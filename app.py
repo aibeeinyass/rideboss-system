@@ -18,19 +18,21 @@ c.execute('''CREATE TABLE IF NOT EXISTS live_bays
              (plate TEXT PRIMARY KEY, status TEXT, entry_time TEXT)''')
 c.execute('''CREATE TABLE IF NOT EXISTS inventory 
              (item TEXT PRIMARY KEY, stock REAL, unit TEXT, price REAL)''')
+c.execute('''CREATE TABLE IF NOT EXISTS wash_prices (service TEXT PRIMARY KEY, price REAL)''')
+c.execute('''CREATE TABLE IF NOT EXISTS expenses (id INTEGER PRIMARY KEY, description TEXT, amount REAL, timestamp TEXT)''')
 conn.commit()
 
-# --- PRE-SEED INVENTORY (Updated with Prices) ---
-c.execute("INSERT OR IGNORE INTO inventory VALUES ('Car Shampoo', 10.0, 'Gallons', 0), ('Ceramic Wax', 5.0, 'Tubs', 0), ('Coke', 50.0, 'Cans', 500), ('Water', 100.0, 'Bottles', 200), ('Club Sandwich', 20.0, 'Units', 3500)")
+# --- PRE-SEED DATA ---
+c.execute("INSERT OR IGNORE INTO inventory VALUES ('Car Shampoo', 10.0, 'Gallons', 0), ('Coke', 50.0, 'Cans', 500), ('Water', 100.0, 'Bottles', 200)")
+# Seed Wash Prices if table is empty
+c.execute("SELECT COUNT(*) FROM wash_prices")
+if c.fetchone()[0] == 0:
+    initial_services = [("Standard Wash", 5000), ("Executive Detail", 15000), ("Engine Steam", 10000), ("Ceramic Wax", 25000), ("Interior Deep Clean", 12000)]
+    c.executemany("INSERT INTO wash_prices VALUES (?,?)", initial_services)
 conn.commit()
 
 # --- SECURITY CONFIG ---
 MANAGER_PIN = "0000"
-
-# --- CONFIGURATION ---
-SERVICES = {"Standard Wash": 5000, "Executive Detail": 15000, "Engine Steam": 10000, "Ceramic Wax": 25000, "Interior Deep Clean": 12000}
-STAFF_MEMBERS = ["Sunday", "Musa", "Chidi", "Ibrahim", "Tunde"]
-COUNTRY_CODES = {"Nigeria": "+234", "Ghana": "+233", "UK": "+44", "USA": "+1", "UAE": "+971"}
 
 # --- CLASSIC UI STYLING ---
 st.set_page_config(page_title="RideBoss Autos HQ", layout="wide")
@@ -54,6 +56,12 @@ def add_event(msg):
 def format_whatsapp(phone, message):
     return f"https://wa.me/{phone}?text={urllib.parse.quote(message)}"
 
+# --- LOAD DYNAMIC CONFIG ---
+wash_prices_df = pd.read_sql_query("SELECT * FROM wash_prices", conn)
+SERVICES = dict(zip(wash_prices_df['service'], wash_prices_df['price']))
+STAFF_MEMBERS = ["Sunday", "Musa", "Chidi", "Ibrahim", "Tunde"]
+COUNTRY_CODES = {"Nigeria": "+234", "Ghana": "+233", "UK": "+44", "USA": "+1", "UAE": "+971"}
+
 # --- SIDEBAR & AUTHENTICATION ---
 st.sidebar.markdown("<h2 style='letter-spacing:4px;'>RIDEBOSS</h2>", unsafe_allow_html=True)
 access_level = st.sidebar.selectbox("ACCESS LEVEL", ["STAFF", "MANAGER"])
@@ -76,13 +84,10 @@ st.markdown(f'<div class="notification-bar">SYSTEM LOG: {latest_note["message"].
 if choice == "COMMAND CENTER":
     mode = st.radio("SELECT MODE", ["CAR WASH", "LOUNGE"], horizontal=True)
     st.markdown("---")
-    
-    # SMART SEARCH LOGIC
     cust_data = pd.read_sql_query("SELECT * FROM customers", conn)
     search_options = ["NEW CUSTOMER"] + [f"{r['plate']} - {r['name']} ({r['phone']})" for _, r in cust_data.iterrows()]
     search_selection = st.selectbox("SEARCH EXISTING CLIENT (Plate/Name/Phone)", search_options)
     
-    # Auto-fill variables
     default_plate, default_name, default_phone = "", "", ""
     if search_selection != "NEW CUSTOMER":
         p_key = search_selection.split(" - ")[0]
@@ -115,25 +120,16 @@ if choice == "COMMAND CENTER":
     if st.button(f"AUTHORIZE {mode} TRANSACTION", use_container_width=True):
         if (plate or mode == "LOUNGE") and selected:
             now = datetime.now().strftime("%Y-%m-%d %H:%M")
-            # Log Sale
             c.execute("INSERT INTO sales (plate, services, total, method, staff, timestamp, type) VALUES (?,?,?,?,?,?,?)", 
                       (plate, ", ".join(selected), total_price, pay_method, staff_assigned, now, mode))
-            # Register/Update Customer
             c.execute("INSERT OR REPLACE INTO customers (plate, name, phone, visits, last_visit) VALUES (?, ?, ?, COALESCE((SELECT visits FROM customers WHERE plate=?), 0) + 1, ?)", (plate, name, full_phone, plate, now.split()[0]))
-            
             if mode == "CAR WASH":
                 c.execute("INSERT OR REPLACE INTO live_bays (plate, status, entry_time) VALUES (?, ?, ?)", (plate, "WET BAY", now))
-                add_event(f"WASH AUTH: {plate} MOVED TO WET BAY via {pay_method}")
+                add_event(f"WASH AUTH: {plate} via {pay_method}")
             else:
-                # Update Inventory for lounge
-                for item in selected:
-                    c.execute("UPDATE inventory SET stock = stock - 1 WHERE item = ?", (item,))
-                add_event(f"LOUNGE SALE: {', '.join(selected)} sold by {staff_assigned}")
-            
-            conn.commit()
-            st.success(f"✅ CONFIRMED: {mode} Transaction Logged Successfully.")
-            st.balloons()
-            st.rerun()
+                for item in selected: c.execute("UPDATE inventory SET stock = stock - 1 WHERE item = ?", (item,))
+                add_event(f"LOUNGE SALE: {', '.join(selected)}")
+            conn.commit(); st.success("✅ Transaction Logged."); st.balloons(); st.rerun()
 
 # --- 2. LIVE U-FLOW ---
 elif choice == "LIVE U-FLOW":
@@ -141,7 +137,7 @@ elif choice == "LIVE U-FLOW":
     live_cars = pd.read_sql_query("SELECT * FROM live_bays", conn)
     if live_cars.empty: st.info("ALL BAYS CLEAR.")
     else:
-        for index, row in live_cars.iterrows():
+        for idx, row in live_cars.iterrows():
             st.markdown('<div class="status-card">', unsafe_allow_html=True)
             c1, c2, c3 = st.columns([2, 2, 1])
             c1.write(f"**{row['plate']}** | ZONE: {row['status']}")
@@ -149,8 +145,7 @@ elif choice == "LIVE U-FLOW":
                 if row['status'] == "WET BAY":
                     if st.button(f"TRANSIT {row['plate']} TO DRY"):
                         c.execute("UPDATE live_bays SET status='DRY BAY' WHERE plate=?", (row['plate'],))
-                        add_event(f"{row['plate']} MOVED TO DRY.")
-                        conn.commit(); st.rerun()
+                        add_event(f"{row['plate']} MOVED TO DRY."); conn.commit(); st.rerun()
             with c3:
                 if st.button(f"RELEASE {row['plate']}"):
                     c.execute("SELECT name, phone FROM customers WHERE plate=?", (row['plate'],))
@@ -169,20 +164,68 @@ elif choice == "NOTIFICATIONS":
 
 # --- 4. INVENTORY & STAFF (MANAGER) ---
 elif choice == "INVENTORY & STAFF" and authenticated:
-    st.subheader("RESOURCES")
-    inv_df = pd.read_sql_query("SELECT item, stock, unit, price FROM inventory", conn)
-    st.dataframe(inv_df, use_container_width=True)
-    # Update logic preserved...
-    staff_data = pd.read_sql_query("SELECT staff, COUNT(*) as washes FROM sales GROUP BY staff", conn)
-    st.bar_chart(staff_data.set_index('staff'))
+    t1, t2, t3 = st.tabs(["Lounge Inventory", "Wash Price List", "Staff Performance"])
+    with t1:
+        st.write("ADD OR UPDATE LOUNGE PRODUCTS")
+        with st.form("new_item"):
+            ni_name = st.text_input("Item Name")
+            ni_stock = st.number_input("Stock", min_value=0.0)
+            ni_unit = st.text_input("Unit (e.g. Cans)")
+            ni_price = st.number_input("Sales Price (₦)", min_value=0.0)
+            if st.form_submit_button("ADD/UPDATE PRODUCT"):
+                c.execute("INSERT OR REPLACE INTO inventory VALUES (?,?,?,?)", (ni_name, ni_stock, ni_unit, ni_price))
+                conn.commit(); add_event(f"INV UPDATE: {ni_name}"); st.rerun()
+        inv_df = pd.read_sql_query("SELECT * FROM inventory", conn)
+        st.dataframe(inv_df, use_container_width=True)
+
+    with t2:
+        st.write("UPDATE CAR WASH SERVICE PRICES")
+        edit_svc = st.selectbox("Select Service to Update", list(SERVICES.keys()))
+        new_svc_price = st.number_input("New Price (₦)", min_value=0.0, value=SERVICES[edit_svc])
+        if st.button("UPDATE WASH PRICE"):
+            c.execute("UPDATE wash_prices SET price=? WHERE service=?", (new_svc_price, edit_svc))
+            conn.commit(); add_event(f"PRICE UPDATE: {edit_svc}"); st.rerun()
+    
+    with t3:
+        staff_data = pd.read_sql_query("SELECT staff, COUNT(*) as washes FROM sales GROUP BY staff", conn)
+        st.bar_chart(staff_data.set_index('staff'))
 
 # --- 5. FINANCIALS (MANAGER) ---
 elif choice == "FINANCIALS" and authenticated:
-    st.subheader("REVENUE ANALYTICS")
+    st.subheader("PROFIT & LOSS TRACKER")
     sales_df = pd.read_sql_query("SELECT * FROM sales", conn)
-    if not sales_df.empty:
-        col1, col2 = st.columns(2)
-        col1.metric("WASH REVENUE", f"₦{sales_df[sales_df['type']=='CAR WASH']['total'].sum():,}")
-        col2.metric("LOUNGE REVENUE", f"₦{sales_df[sales_df['type']=='LOUNGE']['total'].sum():,}")
-        st.write("DETAILED TRANSACTION LOG")
-        st.dataframe(sales_df)
+    exp_df = pd.read_sql_query("SELECT * FROM expenses", conn)
+    
+    rev = sales_df['total'].sum() if not sales_df.empty else 0
+    exps = exp_df['amount'].sum() if not exp_df.empty else 0
+    
+    col1, col2, col3 = st.columns(3)
+    col1.metric("GROSS REVENUE", f"₦{rev:,}")
+    col2.metric("TOTAL EXPENSES", f"₦{exps:,}", delta_color="inverse")
+    col3.metric("NET PROFIT", f"₦{rev-exps:,}")
+    
+    st.markdown("---")
+    with st.expander("LOG NEW EXPENSE"):
+        e_desc = st.text_input("Description (e.g. Diesel, Staff Lunch)")
+        e_amt = st.number_input("Amount (₦)", min_value=0.0)
+        if st.button("LOG EXPENSE"):
+            c.execute("INSERT INTO expenses (description, amount, timestamp) VALUES (?,?,?)", (e_desc, e_amt, datetime.now().strftime("%Y-%m-%d")))
+            conn.commit(); add_event(f"EXPENSE: {e_desc}"); st.rerun()
+    
+    st.write("TRANSACTION LOG")
+    st.dataframe(sales_df, use_container_width=True)
+
+# --- 6. CRM & RETENTION (MANAGER) ---
+elif choice == "CRM & RETENTION" and authenticated:
+    st.subheader("RETENTION INTELLIGENCE")
+    cust_df = pd.read_sql_query("SELECT * FROM customers", conn)
+    if not cust_df.empty:
+        for idx, row in cust_df.iterrows():
+            last_v = datetime.strptime(row['last_visit'], "%Y-%m-%d")
+            days_away = (datetime.now() - last_v).days
+            color = "#00d4ff" if days_away < 14 else "#FF3B30"
+            c1, c2 = st.columns([3, 1])
+            c1.markdown(f"<span style='color:{color};'>**{row['name']}** ({row['plate']}) — {days_away} days away</span>", unsafe_allow_html=True)
+            if days_away >= 14:
+                msg = f"Hi {row['name']}, we missed you at RideBoss! Your car {row['plate']} is due for a wash."
+                c2.markdown(f"[RECALL]({format_whatsapp(row['phone'], msg)})")
