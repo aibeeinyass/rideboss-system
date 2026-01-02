@@ -10,7 +10,7 @@ c = conn.cursor()
 
 # Ensure all tables exist including the new Users and Membership tables
 c.execute('''CREATE TABLE IF NOT EXISTS users 
-             (username TEXT PRIMARY KEY, password TEXT, role TEXT)''')
+             (username TEXT PRIMARY KEY, password TEXT, role TEXT, status TEXT DEFAULT 'ACTIVE')''')
 c.execute('''CREATE TABLE IF NOT EXISTS customers 
              (plate TEXT PRIMARY KEY, name TEXT, phone TEXT, visits INTEGER, last_visit TEXT)''')
 c.execute('''CREATE TABLE IF NOT EXISTS sales 
@@ -18,16 +18,16 @@ c.execute('''CREATE TABLE IF NOT EXISTS sales
 c.execute('''CREATE TABLE IF NOT EXISTS notifications 
              (id INTEGER PRIMARY KEY, message TEXT, timestamp TEXT)''')
 c.execute('''CREATE TABLE IF NOT EXISTS live_bays 
-             (plate TEXT PRIMARY KEY, status TEXT, entry_time TEXT)''')
+             (plate TEXT PRIMARY KEY, status TEXT, entry_time TEXT, staff TEXT)''')
 c.execute('''CREATE TABLE IF NOT EXISTS inventory (item TEXT PRIMARY KEY, stock REAL, unit TEXT, price REAL)''')
 c.execute('''CREATE TABLE IF NOT EXISTS wash_prices (service TEXT PRIMARY KEY, price REAL)''')
 c.execute('''CREATE TABLE IF NOT EXISTS expenses (id INTEGER PRIMARY KEY, description TEXT, amount REAL, timestamp TEXT)''')
-# NEW: Membership Table
+# UPDATED: Added sale_price to track card revenue
 c.execute('''CREATE TABLE IF NOT EXISTS memberships 
-             (plate TEXT PRIMARY KEY, balance_washes INTEGER, card_type TEXT)''')
+             (plate TEXT PRIMARY KEY, balance_washes INTEGER, card_type TEXT, sale_price REAL DEFAULT 0.0)''')
 
 # Seed Admin and Initial Data
-c.execute("INSERT OR IGNORE INTO users VALUES ('admin', '0000', 'MANAGER')")
+c.execute("INSERT OR IGNORE INTO users VALUES ('admin', '0000', 'MANAGER', 'ACTIVE')")
 c.execute("INSERT OR IGNORE INTO inventory VALUES ('Car Shampoo', 10.0, 'Gallons', 0), ('Coke', 50.0, 'Cans', 500), ('Water', 100.0, 'Bottles', 200)")
 c.execute("SELECT COUNT(*) FROM wash_prices")
 if c.fetchone()[0] == 0:
@@ -92,9 +92,16 @@ if not st.session_state.logged_in:
                 st.error("Invalid Username or Password")
     st.stop()
 
-# --- LOAD CONFIG ---
-staff_df = pd.read_sql_query("SELECT username FROM users", conn)
-STAFF_MEMBERS = staff_df['username'].tolist()
+# --- LOAD CONFIG & DYNAMIC STAFF AVAILABILITY ---
+staff_query = pd.read_sql_query("SELECT username FROM users WHERE status='ACTIVE'", conn)
+ALL_STAFF = staff_query['username'].tolist()
+
+# Logic to find Busy Staff (those currently in a live bay)
+busy_query = pd.read_sql_query("SELECT staff FROM live_bays", conn)
+busy_list = busy_query['staff'].tolist()
+# Logic to find Free Staff
+AVAILABLE_STAFF = [s for s in ALL_STAFF if s not in busy_list]
+
 wash_prices_df = pd.read_sql_query("SELECT * FROM wash_prices", conn)
 SERVICES = dict(zip(wash_prices_df['service'], wash_prices_df['price']))
 COUNTRY_CODES = {"Nigeria": "+234", "Ghana": "+233", "UK": "+44", "USA": "+1", "UAE": "+971"}
@@ -144,8 +151,14 @@ if choice == "COMMAND CENTER":
             lounge_items_sold = []
             if mode == "CAR WASH":
                 selected = st.multiselect("SERVICES", list(SERVICES.keys()))
+                # SMARTER FEATURE: Upsell Prompt
+                if selected and "Standard Wash" in selected and "Ceramic Wax" not in selected:
+                    st.warning("💡 PROMPT: Ask client if they want Ceramic Wax for long-lasting shine!")
+                
                 total_price = sum([SERVICES[s] for s in selected])
-                staff_assigned = st.selectbox("ASSIGN DETAILER", STAFF_MEMBERS)
+                
+                # SMARTER FEATURE: Staff Availability UI
+                staff_assigned = st.selectbox("ASSIGN DETAILER (Available listed first)", AVAILABLE_STAFF + ["--- BUSY ---"] + busy_list)
                 item_summary = ", ".join(selected)
             else:
                 inv_items = pd.read_sql_query("SELECT item, price FROM inventory WHERE price > 0", conn)
@@ -156,11 +169,10 @@ if choice == "COMMAND CENTER":
                     qty = st.number_input(f"Quantity for {item}", min_value=1, value=1)
                     total_price += (u_price * qty)
                     lounge_items_sold.append((item, qty))
-                staff_assigned = st.selectbox("SERVER", STAFF_MEMBERS)
+                staff_assigned = st.selectbox("SERVER", ALL_STAFF)
                 item_summary = ", ".join([f"{i} (x{q})" for i, q in lounge_items_sold])
 
             st.markdown(f"### TOTAL: ₦{total_price:,}")
-            # Updated: Added Gold Card to payment methods
             pay_method = st.selectbox("PAYMENT METHOD", ["Moniepoint POS", "Bank Transfer", "Cash", "Gold Card Credit"])
 
         if st.button(f"AUTHORIZE {mode} TRANSACTION", use_container_width=True):
@@ -169,14 +181,13 @@ if choice == "COMMAND CENTER":
                 can_proceed = True
                 low_bal = False
                 
-                # Logic for Gold Card payment
                 if pay_method == "Gold Card Credit":
                     c.execute("SELECT balance_washes FROM memberships WHERE plate=?", (plate,))
                     m_res = c.fetchone()
                     if m_res and m_res[0] > 0:
                         new_bal = m_res[0] - 1
                         c.execute("UPDATE memberships SET balance_washes=? WHERE plate=?", (new_bal, plate))
-                        if new_bal == 1: low_bal = True
+                        if new_bal <= 1: low_bal = True
                     else:
                         st.error("No active card or zero balance for this plate.")
                         can_proceed = False
@@ -188,7 +199,8 @@ if choice == "COMMAND CENTER":
                     c.execute("INSERT OR REPLACE INTO customers (plate, name, phone, visits, last_visit) VALUES (?, ?, ?, COALESCE((SELECT visits FROM customers WHERE plate=?), 0) + 1, ?)", (plate, name, full_phone, plate, now.split()[0]))
                     
                     if mode == "CAR WASH":
-                        c.execute("INSERT OR REPLACE INTO live_bays (plate, status, entry_time) VALUES (?, ?, ?)", (plate, "WET BAY", now))
+                        # Updated to include staff name in live_bays for monitor tracking
+                        c.execute("INSERT OR REPLACE INTO live_bays (plate, status, entry_time, staff) VALUES (?, ?, ?, ?)", (plate, "WET BAY", now, staff_assigned))
                     else:
                         for item, qty in lounge_items_sold:
                             c.execute("UPDATE inventory SET stock = stock - ? WHERE item = ?", (qty, item))
@@ -206,11 +218,13 @@ if choice == "COMMAND CENTER":
         st.subheader("ACTIVATE MEMBERSHIP CARD")
         m_plate = st.text_input("SCAN/ENTER PLATE FOR CARD").upper()
         tier = st.selectbox("CARD TIER", ["Silver (5 Washes)", "Gold (10 Washes)", "Platinum (25 Washes)"])
+        # SMARTER FEATURE: Track Revenue from Card Sales
+        card_sale_price = st.number_input("CARD SALE PRICE (₦)", min_value=0.0)
         qty = 5 if "Silver" in tier else 10 if "Gold" in tier else 25
         
         if st.button("ISSUE CARD"):
             if m_plate:
-                c.execute("INSERT OR REPLACE INTO memberships (plate, balance_washes, card_type) VALUES (?, COALESCE((SELECT balance_washes FROM memberships WHERE plate=?),0) + ?, ?)", (m_plate, m_plate, qty, tier))
+                c.execute("INSERT OR REPLACE INTO memberships (plate, balance_washes, card_type, sale_price) VALUES (?, ?, ?, ?)", (m_plate, qty, tier, card_sale_price))
                 conn.commit()
                 add_event(f"CARD ISSUED: {tier} to {m_plate}")
                 st.success(f"Activated {tier} for {m_plate}!")
@@ -256,22 +270,35 @@ if choice == "COMMAND CENTER":
             del st.session_state['last_receipt']
             st.rerun()
 
-# --- 2. LIVE U-FLOW ---
+# --- 2. LIVE U-FLOW (For Outside Monitor) ---
 elif choice == "LIVE U-FLOW":
-    st.subheader("ACTIVE WASH BAYS")
+    st.subheader("ACTIVE WASH BAYS (EXTERNAL DISPLAY MODE)")
     live_cars = pd.read_sql_query("SELECT * FROM live_bays", conn)
-    if live_cars.empty: st.info("ALL BAYS CLEAR.")
+    
+    if live_cars.empty: 
+        st.info("ALL BAYS CLEAR. READY FOR NEXT VEHICLE.")
     else:
         for idx, row in live_cars.iterrows():
-            st.markdown('<div class="status-card">', unsafe_allow_html=True)
+            # SMARTER FEATURE: Bay Timer Logic
+            entry_dt = datetime.strptime(row['entry_time'], "%Y-%m-%d %H:%M")
+            time_spent = (datetime.now() - entry_dt).seconds // 60
+            
+            # Color logic for monitor
+            border_color = "#00d4ff" if time_spent < 40 else "#FF3B30"
+            
+            st.markdown(f'<div class="status-card" style="border-left: 10px solid {border_color};">', unsafe_allow_html=True)
             c1, c2, c3 = st.columns([2, 2, 1])
-            c1.write(f"**{row['plate']}** | ZONE: {row['status']}")
+            with c1:
+                st.markdown(f"### {row['plate']}")
+                st.write(f"**ZONE:** {row['status']}")
             with c2:
+                st.write(f"**DETAILER:** {row['staff']}")
+                st.write(f"**ELAPSED:** {time_spent} mins")
+            with c3:
                 if row['status'] == "WET BAY":
-                    if st.button(f"TRANSIT {row['plate']} TO DRY"):
+                    if st.button(f"TO DRY {row['plate']}"):
                         c.execute("UPDATE live_bays SET status='DRY BAY' WHERE plate=?", (row['plate'],))
                         add_event(f"{row['plate']} MOVED TO DRY."); conn.commit(); st.rerun()
-            with c3:
                 if st.button(f"RELEASE {row['plate']}"):
                     c.execute("SELECT name, phone FROM customers WHERE plate=?", (row['plate'],))
                     cust = c.fetchone()
@@ -290,12 +317,21 @@ elif choice == "ONBOARD STAFF" and st.session_state.user_role == "MANAGER":
         s_role = st.selectbox("System Role", ["STAFF", "MANAGER"])
         if st.form_submit_button("ONBOARD STAFF"):
             if s_name and s_pass:
-                c.execute("INSERT OR REPLACE INTO users VALUES (?,?,?)", (s_name, s_pass, s_role))
+                c.execute("INSERT OR REPLACE INTO users (username, password, role, status) VALUES (?,?,?,?)", (s_name, s_pass, s_role, 'ACTIVE'))
                 conn.commit()
                 st.success(f"{s_name} added to system.")
                 st.rerun()
-    st.write("CURRENT STAFF")
-    st.dataframe(pd.read_sql_query("SELECT username, role FROM users", conn))
+    
+    st.write("---")
+    st.subheader("CURRENT STAFF LIST")
+    current_staff_df = pd.read_sql_query("SELECT username, role, status FROM users", conn)
+    st.dataframe(current_staff_df, use_container_width=True)
+    
+    # Feature to deactivate staff
+    target_staff = st.selectbox("Deactivate Staff Member", ["None"] + current_staff_df['username'].tolist())
+    if st.button("SET AS INACTIVE") and target_staff != "None":
+        c.execute("UPDATE users SET status='INACTIVE' WHERE username=?", (target_staff,))
+        conn.commit(); st.rerun()
 
 # --- 4. INVENTORY & STAFF (MANAGER) ---
 elif choice == "INVENTORY & STAFF" and st.session_state.user_role == "MANAGER":
@@ -309,7 +345,14 @@ elif choice == "INVENTORY & STAFF" and st.session_state.user_role == "MANAGER":
             if st.form_submit_button("ADD/UPDATE"):
                 c.execute("INSERT OR REPLACE INTO inventory VALUES (?,?,?,?)", (ni_name, ni_stock, ni_unit, ni_price))
                 conn.commit(); st.rerun()
-        st.dataframe(pd.read_sql_query("SELECT * FROM inventory", conn), use_container_width=True)
+        
+        # SMARTER FEATURE: Low Stock Alert
+        inv_data = pd.read_sql_query("SELECT * FROM inventory", conn)
+        for _, item in inv_data.iterrows():
+            if item['stock'] < 5:
+                st.error(f"🚨 LOW STOCK: {item['item']} ({item['stock']} left)")
+        st.dataframe(inv_data, use_container_width=True)
+
     with t2:
         edit_svc = st.selectbox("Select Service", list(SERVICES.keys()))
         new_svc_price = st.number_input("New Price", value=SERVICES[edit_svc])
@@ -317,36 +360,65 @@ elif choice == "INVENTORY & STAFF" and st.session_state.user_role == "MANAGER":
             c.execute("UPDATE wash_prices SET price=? WHERE service=?", (new_svc_price, edit_svc))
             conn.commit(); st.rerun()
     with t3:
-        st.bar_chart(pd.read_sql_query("SELECT staff, COUNT(*) as washes FROM sales GROUP BY staff", conn).set_index('staff'))
+        # SMARTER FEATURE: Detailed Performance
+        perf_query = "SELECT staff, COUNT(*) as washes, SUM(total) as revenue FROM sales WHERE type='CAR WASH' GROUP BY staff"
+        perf_df = pd.read_sql_query(perf_query, conn)
+        st.bar_chart(perf_df.set_index('staff')['washes'])
+        st.dataframe(perf_df, use_container_width=True)
 
 # --- 5. FINANCIALS (MANAGER) ---
 elif choice == "FINANCIALS" and st.session_state.user_role == "MANAGER":
     st.subheader("REVENUE BREAKDOWN")
-    sales_df = pd.read_sql_query("SELECT * FROM sales", conn)
-    exp_df = pd.read_sql_query("SELECT * FROM expenses", conn)
-    m_df = pd.read_sql_query("SELECT * FROM memberships", conn) # View memberships
     
-    rev_wash = sales_df[sales_df['type'] == 'CAR WASH']['total'].sum() if not sales_df.empty else 0
-    rev_lounge = sales_df[sales_df['type'] == 'LOUNGE']['total'].sum() if not sales_df.empty else 0
-    exps = exp_df['amount'].sum() if not exp_df.empty else 0
+    tab_fin, tab_cards_hub = st.tabs(["REVENUE & EXPENSES", "MANAGE MEMBERSHIP CARDS"])
     
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("WASH REVENUE", f"₦{rev_wash:,}")
-    col2.metric("LOUNGE REVENUE", f"₦{rev_lounge:,}")
-    col3.metric("EXPENSES", f"₦{exps:,}", delta_color="inverse")
-    col4.metric("NET PROFIT", f"₦{(rev_wash + rev_lounge) - exps:,}")
-    
-    st.markdown("---")
-    st.write("### ACTIVE MEMBERSHIP BALANCES")
-    st.dataframe(m_df, use_container_width=True)
-    
-    with st.expander("LOG EXPENSE"):
-        e_desc = st.text_input("Description")
-        e_amt = st.number_input("Amount", min_value=0.0)
-        if st.button("LOG"):
-            c.execute("INSERT INTO expenses (description, amount, timestamp) VALUES (?,?,?)", (e_desc, e_amt, datetime.now().strftime("%Y-%m-%d")))
-            conn.commit(); st.rerun()
-    st.dataframe(sales_df)
+    with tab_fin:
+        sales_df = pd.read_sql_query("SELECT * FROM sales", conn)
+        exp_df = pd.read_sql_query("SELECT * FROM expenses", conn)
+        
+        # SMARTER FEATURE: Separate Card Revenue
+        rev_wash = sales_df[sales_df['type'] == 'CAR WASH']['total'].sum() if not sales_df.empty else 0
+        rev_lounge = sales_df[sales_df['type'] == 'LOUNGE']['total'].sum() if not sales_df.empty else 0
+        card_sales_rev = pd.read_sql_query("SELECT SUM(sale_price) FROM memberships", conn).iloc[0,0] or 0
+        exps = exp_df['amount'].sum() if not exp_df.empty else 0
+        
+        col1, col2, col3, col4, col5 = st.columns(5)
+        col1.metric("WASH REV", f"₦{rev_wash:,}")
+        col2.metric("LOUNGE REV", f"₦{rev_lounge:,}")
+        col3.metric("CARD SALES", f"₦{card_sales_rev:,}")
+        col4.metric("EXPENSES", f"₦{exps:,}", delta_color="inverse")
+        col5.metric("NET PROFIT", f"₦{(rev_wash + rev_lounge + card_sales_rev) - exps:,}")
+        
+        st.markdown("---")
+        with st.expander("LOG EXPENSE"):
+            e_desc = st.text_input("Description")
+            e_amt = st.number_input("Amount", min_value=0.0)
+            if st.button("LOG"):
+                c.execute("INSERT INTO expenses (description, amount, timestamp) VALUES (?,?,?)", (e_desc, e_amt, datetime.now().strftime("%Y-%m-%d")))
+                conn.commit(); st.rerun()
+        st.write("### FULL TRANSACTION LOG")
+        st.dataframe(sales_df)
+
+    with tab_cards_hub:
+        st.write("### 💳 MEMBERSHIP CONTROL CENTER")
+        m_df = pd.read_sql_query("SELECT * FROM memberships", conn)
+        
+        for idx, row in m_df.iterrows():
+            with st.container():
+                c1, c2, c3, c4 = st.columns([2, 1, 1, 1])
+                c1.write(f"**{row['plate']}** ({row['card_type']})")
+                c2.write(f"Bal: {row['balance_washes']} left")
+                
+                # REFRESH BALANCE BUTTON
+                if c3.button(f"TOP UP {row['plate']}", key=f"up_{row['plate']}"):
+                    c.execute("UPDATE memberships SET balance_washes = 10 WHERE plate=?", (row['plate'],))
+                    conn.commit(); st.rerun()
+                
+                # DELETE CARD BUTTON
+                if c4.button(f"DELETE {row['plate']}", key=f"del_{row['plate']}"):
+                    c.execute("DELETE FROM memberships WHERE plate=?", (row['plate'],))
+                    conn.commit(); st.rerun()
+                st.markdown("---")
 
 # --- 6. CRM & RETENTION (MANAGER) ---
 elif choice == "CRM & RETENTION" and st.session_state.user_role == "MANAGER":
@@ -356,7 +428,9 @@ elif choice == "CRM & RETENTION" and st.session_state.user_role == "MANAGER":
         last_v = datetime.strptime(row['last_visit'], "%Y-%m-%d")
         days = (datetime.now() - last_v).days
         color = "#00d4ff" if days < 14 else "#FF3B30"
-        st.markdown(f"<p style='color:{color};'><b>{row['name']}</b> ({row['plate']}) - {days} days away</p>", unsafe_allow_html=True)
+        st.markdown(f"<p style='color:{color};'><b>{row['name']}</b> ({row['plate']}) - {days} days since last visit</p>", unsafe_allow_html=True)
+        if days > 14:
+            st.markdown(f"[:warning: REACH OUT]({format_whatsapp(row['phone'], f'Hi {row['name']}, we miss you at RideBoss!')})")
 
 # --- 7. NOTIFICATIONS ---
 elif choice == "NOTIFICATIONS":
