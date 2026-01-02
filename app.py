@@ -336,7 +336,7 @@ elif choice == "LIVE U-FLOW":
                         st.markdown(f"""<a href="{wa_link}" target="_blank" style="text-decoration:none;"><button style="background-color:#25D366; color:white; border:none; padding:10px; width:100%; cursor:pointer; font-weight:bold;">SEND READY PROMPT</button></a>""", unsafe_allow_html=True)
                     
                     st.success(f"{row['plate']} Released.")
-                    time.sleep(2)
+                    time.sleep(300)
                     st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 
