@@ -297,24 +297,21 @@ elif choice == "LIVE U-FLOW":
         if live_cars.empty:
             st.info("ALL BAYS CLEAR.")
         else:
-            # Doubling content creates a seamless loop
+            # FIXED: Removed duplicate function call and simplified the scrolling container
             st.markdown('<div class="monitor-container"><div class="scroll-content">', unsafe_allow_html=True)
-            def render_rows():
-                for _, row in live_cars.iterrows():
-                    st.markdown(f"""
-                    <div class="monitor-row">
-                        <div class="monitor-plate">{row['plate']} <br><span style="font-size:20px; color:#555;">{row['vehicle_type']}</span></div>
-                        <div style="flex:1; padding-left:40px;">
-                             <div class="monitor-svc">SERVICE: {row['service_detail']}</div>
-                        </div>
-                        <div class="monitor-meta">
-                            <div class="monitor-status">{row['status']}</div>
-                            <div class="monitor-staff">ASSIGNED: {row['staff']}</div>
-                        </div>
+            for _, row in live_cars.iterrows():
+                st.markdown(f"""
+                <div class="monitor-row">
+                    <div class="monitor-plate">{row['plate']} <br><span style="font-size:20px; color:#555;">{row['vehicle_type']}</span></div>
+                    <div style="flex:1; padding-left:40px;">
+                         <div class="monitor-svc">SERVICE: {row['service_detail']}</div>
                     </div>
-                    """, unsafe_allow_html=True)
-            render_rows()
-            render_rows() # Repeat for seamlessness
+                    <div class="monitor-meta">
+                        <div class="monitor-status">{row['status']}</div>
+                        <div class="monitor-staff">ASSIGNED: {row['staff']}</div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
             st.markdown('</div></div>', unsafe_allow_html=True)
         
         time.sleep(30)
@@ -482,4 +479,3 @@ elif choice == "NOTIFICATIONS":
     st.subheader("SYSTEM HISTORY")
     notes = pd.read_sql_query("SELECT timestamp as 'TIME', message as 'EVENT' FROM notifications ORDER BY id DESC", conn)
     st.table(notes)
-
