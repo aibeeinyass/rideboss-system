@@ -47,27 +47,27 @@ st.markdown("""
     .stButton>button { border-radius: 0px; letter-spacing: 2px; font-size: 0.8em; text-transform: uppercase; background-color: transparent; border: 1px solid #333; color: white; height: 3em; transition: 0.4s; width: 100%; }
     .stButton>button:hover { border-color: #00d4ff; color: #00d4ff; background-color: #00d4ff11; }
     
-    /* MONITOR MODE STYLING WITH AUTO-SCROLL ANIMATION */
+    /* MONITOR MODE STYLING WITH AUTO-SCROLL ANIMATION - FIXED */
     .monitor-container { 
         background: #000; 
         border: 2px solid #222; 
         border-radius: 10px; 
-        height: 600px; 
+        height: 700px; 
         overflow: hidden; 
         position: relative;
     }
     .scroll-content {
         position: absolute;
         width: 100%;
-        animation: scrollUp 20s linear infinite;
+        animation: scrollUp 40s linear infinite;
     }
     @keyframes scrollUp {
-        0% { top: 100%; }
-        100% { top: -100%; }
+        0% { transform: translateY(0); }
+        100% { transform: translateY(-100%); }
     }
     .scroll-content:hover { animation-play-state: paused; }
 
-    .monitor-row { display: flex; justify-content: space-between; align-items: center; padding: 30px; border-bottom: 2px solid #222; margin-bottom: 10px; background: #050505; }
+    .monitor-row { display: flex; justify-content: space-between; align-items: center; padding: 30px; border-bottom: 2px solid #222; margin-bottom: 0px; background: #050505; }
     .monitor-plate { font-size: 55px; font-weight: 900; color: #00d4ff; font-family: 'Courier New', monospace; }
     .monitor-meta { text-align: right; }
     .monitor-staff { font-size: 20px; color: #888; text-transform: uppercase; }
@@ -280,7 +280,6 @@ if choice == "COMMAND CENTER":
         c_p1, c_p2 = st.columns(2)
         with c_p1:
             if st.button("🖨️ PRINT RECEIPT"):
-                # STRONG FORCE PRINT COMMAND
                 st.markdown('<iframe src="about:blank" style="display:none;" name="print_frame"></iframe>', unsafe_allow_html=True)
                 st.markdown('<script>window.print();</script>', unsafe_allow_html=True)
         with c_p2:
@@ -298,20 +297,24 @@ elif choice == "LIVE U-FLOW":
         if live_cars.empty:
             st.info("ALL BAYS CLEAR.")
         else:
+            # Doubling content creates a seamless loop
             st.markdown('<div class="monitor-container"><div class="scroll-content">', unsafe_allow_html=True)
-            for _, row in live_cars.iterrows():
-                st.markdown(f"""
-                <div class="monitor-row">
-                    <div class="monitor-plate">{row['plate']} <br><span style="font-size:20px; color:#555;">{row['vehicle_type']}</span></div>
-                    <div style="flex:1; padding-left:40px;">
-                         <div class="monitor-svc">SERVICE: {row['service_detail']}</div>
+            def render_rows():
+                for _, row in live_cars.iterrows():
+                    st.markdown(f"""
+                    <div class="monitor-row">
+                        <div class="monitor-plate">{row['plate']} <br><span style="font-size:20px; color:#555;">{row['vehicle_type']}</span></div>
+                        <div style="flex:1; padding-left:40px;">
+                             <div class="monitor-svc">SERVICE: {row['service_detail']}</div>
+                        </div>
+                        <div class="monitor-meta">
+                            <div class="monitor-status">{row['status']}</div>
+                            <div class="monitor-staff">ASSIGNED: {row['staff']}</div>
+                        </div>
                     </div>
-                    <div class="monitor-meta">
-                        <div class="monitor-status">{row['status']}</div>
-                        <div class="monitor-staff">ASSIGNED: {row['staff']}</div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
+                    """, unsafe_allow_html=True)
+            render_rows()
+            render_rows() # Repeat for seamlessness
             st.markdown('</div></div>', unsafe_allow_html=True)
         
         time.sleep(30)
