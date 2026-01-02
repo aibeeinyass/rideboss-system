@@ -47,7 +47,7 @@ st.markdown("""
     .stButton>button { border-radius: 0px; letter-spacing: 2px; font-size: 0.8em; text-transform: uppercase; background-color: transparent; border: 1px solid #333; color: white; height: 3em; transition: 0.4s; width: 100%; }
     .stButton>button:hover { border-color: #00d4ff; color: #00d4ff; background-color: #00d4ff11; }
     
-    /* MONITOR MODE STYLING WITH AUTO-SCROLL ANIMATION - FIXED */
+    /* FIXED MONITOR SCROLLING */
     .monitor-container { 
         background: #000; 
         border: 2px solid #222; 
@@ -59,13 +59,21 @@ st.markdown("""
     .scroll-content {
         position: absolute;
         width: 100%;
-        animation: scrollUp 40s linear infinite;
+        animation: scrollUp 25s linear infinite;
     }
     @keyframes scrollUp {
-        0% { transform: translateY(0); }
-        100% { transform: translateY(-100%); }
+        0% { transform: translateY(700px); } /* Start at the bottom of the box */
+        100% { transform: translateY(-100%); } /* Move all the way out the top */
     }
     .scroll-content:hover { animation-play-state: paused; }
+
+    .monitor-row { display: flex; justify-content: space-between; align-items: center; padding: 30px; border-bottom: 2px solid #222; background: #050505; }
+    .monitor-plate { font-size: 55px; font-weight: 900; color: #00d4ff; font-family: 'Courier New', monospace; }
+    .monitor-status { font-size: 18px; color: #FFD700; font-weight: bold; }
+    
+    .receipt-preview { background: white; color: black; padding: 20px; border-radius: 5px; margin-bottom: 10px; border: 1px solid #ccc; font-family: 'Garamond', serif;}
+    </style>
+    """, unsafe_allow_html=True)
 
     .monitor-row { display: flex; justify-content: space-between; align-items: center; padding: 30px; border-bottom: 2px solid #222; margin-bottom: 0px; background: #050505; }
     .monitor-plate { font-size: 55px; font-weight: 900; color: #00d4ff; font-family: 'Courier New', monospace; }
@@ -84,13 +92,30 @@ st.markdown("""
     .receipt-total { border-top: 2px solid black; margin-top: 20px; padding-top: 10px; display: flex; justify-content: space-between; font-size: 22px; font-weight: bold; color: black !important;}
     .receipt-stamp { border: 2px solid #900; color: #900; padding: 5px 15px; display: inline-block; font-weight: bold; transform: rotate(-5deg); margin-top: 20px; font-size: 14px; text-transform: uppercase; }
     
-    @media print { 
-        .no-print, [data-testid="stSidebar"], .stButton, .notification-bar { display: none !important; } 
-        .stApp { background: white !important; }
-        .receipt-wrap { box-shadow: none !important; border: none !important; width: 100% !important; max-width: 100% !important;}
-    }
-    </style>
+    query_params = st.query_params
+if "print_receipt" in query_params:
+    receipt_data = json.loads(query_params["print_receipt"])
+    st.markdown(f"""
+        <style>
+            .stApp {{ background-color: white !important; color: black !important; }}
+            [data-testid="stSidebar"], .stButton, header {{ display: none !important; }}
+            .receipt-wrap {{ background: white; color: black; padding: 20px; font-family: 'Courier New', monospace; max-width: 400px; margin: auto; border: 1px solid #000; }}
+            .receipt-header {{ text-align: center; border-bottom: 2px dashed black; padding-bottom: 10px; }}
+            .receipt-total {{ border-top: 2px solid black; margin-top: 10px; font-weight: bold; font-size: 20px; }}
+        </style>
+        <div class="receipt-wrap">
+            <div class="receipt-header"><h2>RIDEBOSS AUTOS</h2><p>Premium Detailing</p></div>
+            <p><b>ID:</b> #RB{receipt_data['id']}</p>
+            <p><b>Date:</b> {receipt_data['date']}</p>
+            <p><b>Plate:</b> {receipt_data['plate']}</p>
+            <hr>
+            <p>{receipt_data['items']}</p>
+            <div class="receipt-total">TOTAL: ₦{receipt_data['total']:,}</div>
+            <p style="text-align:center; margin-top:20px;">*** THANK YOU ***</p>
+        </div>
+        <script>window.print();</script>
     """, unsafe_allow_html=True)
+    st.stop()
 
 # --- UTILITIES ---
 def add_event(msg):
