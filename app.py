@@ -1,4 +1,5 @@
 import streamlit as st
+import pd as pd
 import pandas as pd
 from datetime import datetime
 import sqlite3
@@ -75,8 +76,6 @@ st.markdown("""
     .monitor-staff { font-size: 20px; color: #888; text-transform: uppercase; }
     .monitor-svc { color: #00d4ff; font-style: italic; font-size: 16px; }
     
-    .receipt-preview { background: white; color: black; padding: 20px; border-radius: 5px; margin-bottom: 10px; border: 1px solid #ccc; font-family: 'Garamond', serif;}
-    
     /* CLASSIC PREMIUM RECEIPT */
     .receipt-wrap { background: white; color: black; padding: 40px; font-family: 'Garamond', serif; max-width: 450px; margin: auto; border: 1px solid #ccc; box-shadow: 0 0 20px rgba(0,0,0,0.2); line-height: 1.2; }
     .receipt-header { text-align: center; border-bottom: 3px double black; padding-bottom: 15px; margin-bottom: 20px; }
@@ -89,6 +88,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
+# --- SPECIAL PRINT RENDERER (Detects URL Param) ---
 query_params = st.query_params
 if "print_receipt" in query_params:
     receipt_data = json.loads(query_params["print_receipt"])
@@ -301,6 +301,7 @@ if choice == "COMMAND CENTER":
         
         c_p1, c_p2 = st.columns(2)
         with c_p1:
+            # FIX 1: OPEN RECEIPT IN NEW TAB
             if st.button("🖨️ PRINT RECEIPT"):
                 receipt_payload = { 
                     "id": r["id"], 
@@ -309,8 +310,11 @@ if choice == "COMMAND CENTER":
                     "items": r["items"], 
                     "total": r["total"] 
                 }
-                st.query_params["print_receipt"] = json.dumps(receipt_payload)
-                st.rerun()
+                receipt_url = f"?print_receipt={urllib.parse.quote(json.dumps(receipt_payload))}"
+                st.markdown(
+                    f"<script>window.open('{receipt_url}', '_blank');</script>",
+                    unsafe_allow_html=True
+                )
         with c_p2:
             if st.button("DONE"):
                 del st.session_state['last_receipt']
@@ -327,7 +331,11 @@ elif choice == "LIVE U-FLOW":
             st.info("ALL BAYS CLEAR.")
         else:
             st.markdown('<div class="monitor-container"><div class="scroll-content">', unsafe_allow_html=True)
-            for _, row in live_cars.iterrows():
+            
+            # FIX 2: FORCE SCROLL WITH ONE ENTRY (Doubling the list)
+            scroll_data = pd.concat([live_cars, live_cars])
+            
+            for _, row in scroll_data.iterrows():
                 st.markdown(f"""
                 <div class="monitor-row">
                     <div class="monitor-plate">{row['plate']} <br><span style="font-size:20px; color:#555;">{row['vehicle_type']}</span></div>
@@ -379,7 +387,7 @@ elif choice == "LIVE U-FLOW":
                         wa_link = format_whatsapp(cust_info[1], wa_msg)
                         st.markdown(f"""<a href="{wa_link}" target="_blank" style="text-decoration:none;"><button style="background-color:#25D366; color:white; border:none; padding:10px; width:100%; cursor:pointer; font-weight:bold;">SEND READY PROMPT</button></a>""", unsafe_allow_html=True)
                     st.success(f"{row['plate']} Released.")
-                    time.sleep(2)
+                    time.sleep(300)
                     st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 
