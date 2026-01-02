@@ -4,6 +4,7 @@ from datetime import datetime
 import sqlite3
 import urllib.parse
 import time
+import json
 
 # --- DATABASE SETUP ---
 conn = sqlite3.connect('rideboss_ultra.db', check_same_thread=False)
@@ -18,7 +19,6 @@ c.execute('''CREATE TABLE IF NOT EXISTS sales
              (id INTEGER PRIMARY KEY, plate TEXT, services TEXT, total REAL, method TEXT, staff TEXT, timestamp TEXT, type TEXT)''')
 c.execute('''CREATE TABLE IF NOT EXISTS notifications 
              (id INTEGER PRIMARY KEY, message TEXT, timestamp TEXT)''')
-# UPDATED: Added vehicle_type and service_detail to live_bays
 c.execute('''CREATE TABLE IF NOT EXISTS live_bays 
              (plate TEXT PRIMARY KEY, status TEXT, entry_time TEXT, staff TEXT, vehicle_type TEXT, service_detail TEXT)''')
 c.execute('''CREATE TABLE IF NOT EXISTS inventory (item TEXT PRIMARY KEY, stock REAL, unit TEXT, price REAL)''')
@@ -62,26 +62,20 @@ st.markdown("""
         animation: scrollUp 25s linear infinite;
     }
     @keyframes scrollUp {
-        0% { transform: translateY(700px); } /* Start at the bottom of the box */
-        100% { transform: translateY(-100%); } /* Move all the way out the top */
+        0% { transform: translateY(700px); }
+        100% { transform: translateY(-100%); }
     }
     .scroll-content:hover { animation-play-state: paused; }
 
     .monitor-row { display: flex; justify-content: space-between; align-items: center; padding: 30px; border-bottom: 2px solid #222; background: #050505; }
     .monitor-plate { font-size: 55px; font-weight: 900; color: #00d4ff; font-family: 'Courier New', monospace; }
     .monitor-status { font-size: 18px; color: #FFD700; font-weight: bold; }
-    
-    .receipt-preview { background: white; color: black; padding: 20px; border-radius: 5px; margin-bottom: 10px; border: 1px solid #ccc; font-family: 'Garamond', serif;}
-    </style>
-    """, unsafe_allow_html=True)
-
-    .monitor-row { display: flex; justify-content: space-between; align-items: center; padding: 30px; border-bottom: 2px solid #222; margin-bottom: 0px; background: #050505; }
-    .monitor-plate { font-size: 55px; font-weight: 900; color: #00d4ff; font-family: 'Courier New', monospace; }
     .monitor-meta { text-align: right; }
     .monitor-staff { font-size: 20px; color: #888; text-transform: uppercase; }
-    .monitor-status { font-size: 18px; color: #FFD700; font-weight: bold; }
     .monitor-svc { color: #00d4ff; font-style: italic; font-size: 16px; }
-
+    
+    .receipt-preview { background: white; color: black; padding: 20px; border-radius: 5px; margin-bottom: 10px; border: 1px solid #ccc; font-family: 'Garamond', serif;}
+    
     /* CLASSIC PREMIUM RECEIPT */
     .receipt-wrap { background: white; color: black; padding: 40px; font-family: 'Garamond', serif; max-width: 450px; margin: auto; border: 1px solid #ccc; box-shadow: 0 0 20px rgba(0,0,0,0.2); line-height: 1.2; }
     .receipt-header { text-align: center; border-bottom: 3px double black; padding-bottom: 15px; margin-bottom: 20px; }
@@ -91,8 +85,10 @@ st.markdown("""
     .receipt-row { display: flex; justify-content: space-between; margin: 10px 0; border-bottom: 1px dotted #ccc; color: black !important;}
     .receipt-total { border-top: 2px solid black; margin-top: 20px; padding-top: 10px; display: flex; justify-content: space-between; font-size: 22px; font-weight: bold; color: black !important;}
     .receipt-stamp { border: 2px solid #900; color: #900; padding: 5px 15px; display: inline-block; font-weight: bold; transform: rotate(-5deg); margin-top: 20px; font-size: 14px; text-transform: uppercase; }
-    
-    query_params = st.query_params
+    </style>
+    """, unsafe_allow_html=True)
+
+query_params = st.query_params
 if "print_receipt" in query_params:
     receipt_data = json.loads(query_params["print_receipt"])
     st.markdown(f"""
@@ -305,7 +301,6 @@ if choice == "COMMAND CENTER":
         c_p1, c_p2 = st.columns(2)
         with c_p1:
             if st.button("🖨️ PRINT RECEIPT"):
-                st.markdown('<iframe src="about:blank" style="display:none;" name="print_frame"></iframe>', unsafe_allow_html=True)
                 st.markdown('<script>window.print();</script>', unsafe_allow_html=True)
         with c_p2:
             if st.button("DONE"):
@@ -322,7 +317,6 @@ elif choice == "LIVE U-FLOW":
         if live_cars.empty:
             st.info("ALL BAYS CLEAR.")
         else:
-            # FIXED: Removed duplicate function call and simplified the scrolling container
             st.markdown('<div class="monitor-container"><div class="scroll-content">', unsafe_allow_html=True)
             for _, row in live_cars.iterrows():
                 st.markdown(f"""
