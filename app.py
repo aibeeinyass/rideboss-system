@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+from datetime import datetime
 import sqlite3
 import urllib.parse
 import time
@@ -299,7 +300,6 @@ if choice == "COMMAND CENTER":
         
         c_p1, c_p2 = st.columns(2)
         with c_p1:
-            # FIX 1: OPEN RECEIPT IN NEW TAB
             if st.button("🖨️ PRINT RECEIPT"):
                 receipt_payload = { 
                     "id": r["id"], 
@@ -329,8 +329,6 @@ elif choice == "LIVE U-FLOW":
             st.info("ALL BAYS CLEAR.")
         else:
             st.markdown('<div class="monitor-container"><div class="scroll-content">', unsafe_allow_html=True)
-            
-            # FIX 2: FORCE SCROLL WITH ONE ENTRY (Doubling the list)
             scroll_data = pd.concat([live_cars, live_cars])
             
             for _, row in scroll_data.iterrows():
@@ -385,7 +383,7 @@ elif choice == "LIVE U-FLOW":
                         wa_link = format_whatsapp(cust_info[1], wa_msg)
                         st.markdown(f"""<a href="{wa_link}" target="_blank" style="text-decoration:none;"><button style="background-color:#25D366; color:white; border:none; padding:10px; width:100%; cursor:pointer; font-weight:bold;">SEND READY PROMPT</button></a>""", unsafe_allow_html=True)
                     st.success(f"{row['plate']} Released.")
-                    time.sleep(300)
+                    time.sleep(2)
                     st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 
