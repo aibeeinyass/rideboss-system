@@ -58,14 +58,18 @@ st.markdown("""
     /* CLASSIC PREMIUM RECEIPT */
     .receipt-wrap { background: white; color: black; padding: 40px; font-family: 'Garamond', serif; max-width: 450px; margin: auto; border: 1px solid #ccc; box-shadow: 0 0 20px rgba(0,0,0,0.2); line-height: 1.2; }
     .receipt-header { text-align: center; border-bottom: 3px double black; padding-bottom: 15px; margin-bottom: 20px; }
-    .receipt-header h1 { margin: 0; letter-spacing: 5px; font-weight: 900; font-size: 28px; }
-    .receipt-header p { margin: 2px 0; font-size: 14px; text-transform: uppercase; }
-    .receipt-body { font-size: 16px; }
-    .receipt-row { display: flex; justify-content: space-between; margin: 10px 0; border-bottom: 1px dotted #ccc; }
-    .receipt-total { border-top: 2px solid black; margin-top: 20px; padding-top: 10px; display: flex; justify-content: space-between; font-size: 22px; font-weight: bold; }
+    .receipt-header h1 { margin: 0; letter-spacing: 5px; font-weight: 900; font-size: 28px; color: black !important;}
+    .receipt-header p { margin: 2px 0; font-size: 14px; text-transform: uppercase; color: black !important;}
+    .receipt-body { font-size: 16px; color: black !important;}
+    .receipt-row { display: flex; justify-content: space-between; margin: 10px 0; border-bottom: 1px dotted #ccc; color: black !important;}
+    .receipt-total { border-top: 2px solid black; margin-top: 20px; padding-top: 10px; display: flex; justify-content: space-between; font-size: 22px; font-weight: bold; color: black !important;}
     .receipt-stamp { border: 2px solid #900; color: #900; padding: 5px 15px; display: inline-block; font-weight: bold; transform: rotate(-5deg); margin-top: 20px; font-size: 14px; text-transform: uppercase; }
     
-    @media print { .no-print { display: none !important; } .stApp { background: white !important; } }
+    @media print { 
+        .no-print, [data-testid="stSidebar"], .stButton, .notification-bar { display: none !important; } 
+        .stApp { background: white !important; }
+        .receipt-wrap { box-shadow: none !important; border: none !important; width: 100% !important; max-width: 100% !important;}
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -253,9 +257,15 @@ if choice == "COMMAND CENTER":
             <div style="text-align:center;"><div class="receipt-stamp">RIDEBOSS OFFICIAL STAMP</div></div>
         </div>
         """, unsafe_allow_html=True)
-        if st.button("DONE"):
-            del st.session_state['last_receipt']
-            st.rerun()
+        
+        c_p1, c_p2 = st.columns(2)
+        with c_p1:
+            if st.button("🖨️ PRINT RECEIPT"):
+                st.markdown('<script>window.print();</script>', unsafe_allow_html=True)
+        with c_p2:
+            if st.button("DONE"):
+                del st.session_state['last_receipt']
+                st.rerun()
 
 # --- 2. LIVE U-FLOW (DUAL MODE WITH AUTO-REFRESH) ---
 elif choice == "LIVE U-FLOW":
@@ -312,8 +322,22 @@ elif choice == "LIVE U-FLOW":
                                 st.error("Assign a detailer first.")
                 
                 if st.button(f"RELEASE {row['plate']}", key=f"rel_{idx}"):
+                    # FETCH CLIENT INFO FOR WHATSAPP PROMPT
+                    c.execute("SELECT name, phone FROM customers WHERE plate=?", (row['plate'],))
+                    cust_info = c.fetchone()
+                    
                     c.execute("DELETE FROM live_bays WHERE plate=?", (row['plate'],))
-                    conn.commit(); add_event(f"{row['plate']} Released."); st.rerun()
+                    conn.commit()
+                    add_event(f"{row['plate']} Released.")
+                    
+                    if cust_info:
+                        wa_msg = f"Hi {cust_info[0]}, your vehicle ({row['plate']}) is ready for pickup at RideBoss Autos. Thank you for your patronage!"
+                        wa_link = format_whatsapp(cust_info[1], wa_msg)
+                        st.markdown(f"""<a href="{wa_link}" target="_blank" style="text-decoration:none;"><button style="background-color:#25D366; color:white; border:none; padding:10px; width:100%; cursor:pointer; font-weight:bold;">SEND READY PROMPT</button></a>""", unsafe_allow_html=True)
+                    
+                    st.success(f"{row['plate']} Released.")
+                    time.sleep(2)
+                    st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 
 # --- 3. ONBOARD STAFF (UPDATED WITH DEPARTMENTS) ---
