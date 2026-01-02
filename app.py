@@ -59,10 +59,11 @@ st.markdown("""
     .scroll-content {
         position: absolute;
         width: 100%;
-        animation: scrollUp 25s linear infinite;
+        animation: scrollUp 40s linear infinite;
+        will-change: transform;
     }
     @keyframes scrollUp {
-        0% { transform: translateY(700px); }
+        0% { transform: translateY(100%); }
         100% { transform: translateY(-100%); }
     }
     .scroll-content:hover { animation-play-state: paused; }
@@ -301,7 +302,15 @@ if choice == "COMMAND CENTER":
         c_p1, c_p2 = st.columns(2)
         with c_p1:
             if st.button("🖨️ PRINT RECEIPT"):
-                st.markdown('<script>window.print();</script>', unsafe_allow_html=True)
+                receipt_payload = { 
+                    "id": r["id"], 
+                    "date": r["date"], 
+                    "plate": r["plate"], 
+                    "items": r["items"], 
+                    "total": r["total"] 
+                }
+                st.query_params["print_receipt"] = json.dumps(receipt_payload)
+                st.rerun()
         with c_p2:
             if st.button("DONE"):
                 del st.session_state['last_receipt']
@@ -332,10 +341,6 @@ elif choice == "LIVE U-FLOW":
                 </div>
                 """, unsafe_allow_html=True)
             st.markdown('</div></div>', unsafe_allow_html=True)
-        
-        time.sleep(30)
-        st.rerun()
-
     else:
         for idx, row in live_cars.iterrows():
             entry_dt = datetime.strptime(row['entry_time'], "%Y-%m-%d %H:%M")
