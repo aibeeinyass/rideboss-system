@@ -47,27 +47,11 @@ st.markdown("""
     .stButton>button { border-radius: 0px; letter-spacing: 2px; font-size: 0.8em; text-transform: uppercase; background-color: transparent; border: 1px solid #333; color: white; height: 3em; transition: 0.4s; width: 100%; }
     .stButton>button:hover { border-color: #00d4ff; color: #00d4ff; background-color: #00d4ff11; }
     
-    /* FIXED MONITOR SCROLLING */
-    .monitor-container { 
-        background: #000; 
-        border: 2px solid #222; 
-        border-radius: 10px; 
-        height: 700px; 
-        overflow: hidden; 
-        position: relative;
-    }
-    .scroll-content {
-        position: absolute;
-        width: 100%;
-        animation: scrollUp 40s linear infinite;
-        will-change: transform;
-    }
-    @keyframes scrollUp {
-        0% { transform: translateY(100%); }
-        100% { transform: translateY(-100%); }
-    }
+    /* MONITOR SCROLLING */
+    .monitor-container { background: #000; border: 2px solid #222; border-radius: 10px; height: 700px; overflow: hidden; position: relative; }
+    .scroll-content { position: absolute; width: 100%; animation: scrollUp 40s linear infinite; will-change: transform; }
+    @keyframes scrollUp { 0% { transform: translateY(100%); } 100% { transform: translateY(-100%); } }
     .scroll-content:hover { animation-play-state: paused; }
-
     .monitor-row { display: flex; justify-content: space-between; align-items: center; padding: 30px; border-bottom: 2px solid #222; background: #050505; }
     .monitor-plate { font-size: 55px; font-weight: 900; color: #00d4ff; font-family: 'Courier New', monospace; }
     .monitor-status { font-size: 18px; color: #FFD700; font-weight: bold; }
@@ -87,7 +71,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- SPECIAL PRINT RENDERER (Detects URL Param) ---
+# --- SPECIAL PRINT RENDERER ---
 query_params = st.query_params
 if "print_receipt" in query_params:
     receipt_data = json.loads(query_params["print_receipt"])
@@ -301,18 +285,9 @@ if choice == "COMMAND CENTER":
         c_p1, c_p2 = st.columns(2)
         with c_p1:
             if st.button("🖨️ PRINT RECEIPT"):
-                receipt_payload = { 
-                    "id": r["id"], 
-                    "date": r["date"], 
-                    "plate": r["plate"], 
-                    "items": r["items"], 
-                    "total": r["total"] 
-                }
+                receipt_payload = { "id": r["id"], "date": r["date"], "plate": r["plate"], "items": r["items"], "total": r["total"] }
                 receipt_url = f"?print_receipt={urllib.parse.quote(json.dumps(receipt_payload))}"
-                st.markdown(
-                    f"<script>window.open('{receipt_url}', '_blank');</script>",
-                    unsafe_allow_html=True
-                )
+                st.markdown(f"<script>window.open('{receipt_url}', '_blank');</script>", unsafe_allow_html=True)
         with c_p2:
             if st.button("DONE"):
                 del st.session_state['last_receipt']
@@ -330,14 +305,11 @@ elif choice == "LIVE U-FLOW":
         else:
             st.markdown('<div class="monitor-container"><div class="scroll-content">', unsafe_allow_html=True)
             scroll_data = pd.concat([live_cars, live_cars])
-            
             for _, row in scroll_data.iterrows():
                 st.markdown(f"""
                 <div class="monitor-row">
                     <div class="monitor-plate">{row['plate']} <br><span style="font-size:20px; color:#555;">{row['vehicle_type']}</span></div>
-                    <div style="flex:1; padding-left:40px;">
-                         <div class="monitor-svc">SERVICE: {row['service_detail']}</div>
-                    </div>
+                    <div style="flex:1; padding-left:40px;"><div class="monitor-svc">SERVICE: {row['service_detail']}</div></div>
                     <div class="monitor-meta">
                         <div class="monitor-status">{row['status']}</div>
                         <div class="monitor-staff">ASSIGNED: {row['staff']}</div>
@@ -350,7 +322,6 @@ elif choice == "LIVE U-FLOW":
             entry_dt = datetime.strptime(row['entry_time'], "%Y-%m-%d %H:%M")
             time_spent = (datetime.now() - entry_dt).seconds // 60
             border_color = "#00d4ff" if time_spent < 40 else "#FF3B30"
-            
             st.markdown(f'<div class="status-card" style="border-left: 10px solid {border_color};">', unsafe_allow_html=True)
             c1, c2, c3 = st.columns([2, 2, 1])
             with c1:
@@ -369,9 +340,7 @@ elif choice == "LIVE U-FLOW":
                             if new_dry_detailer != "NO FREE STAFF":
                                 c.execute("UPDATE live_bays SET status='DRY BAY', staff=? WHERE plate=?", (new_dry_detailer, row['plate']))
                                 conn.commit(); add_event(f"{row['plate']} moved to Dry Bay under {new_dry_detailer}"); st.rerun()
-                            else:
-                                st.error("Assign a detailer first.")
-                
+                            else: st.error("Assign a detailer first.")
                 if st.button(f"RELEASE {row['plate']}", key=f"rel_{idx}"):
                     c.execute("SELECT name, phone FROM customers WHERE plate=?", (row['plate'],))
                     cust_info = c.fetchone()
@@ -383,8 +352,7 @@ elif choice == "LIVE U-FLOW":
                         wa_link = format_whatsapp(cust_info[1], wa_msg)
                         st.markdown(f"""<a href="{wa_link}" target="_blank" style="text-decoration:none;"><button style="background-color:#25D366; color:white; border:none; padding:10px; width:100%; cursor:pointer; font-weight:bold;">SEND READY PROMPT</button></a>""", unsafe_allow_html=True)
                     st.success(f"{row['plate']} Released.")
-                    time.sleep(2)
-                    st.rerun()
+                    time.sleep(2); st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 
 # --- 3. ONBOARD STAFF ---
@@ -397,10 +365,8 @@ elif choice == "ONBOARD STAFF" and st.session_state.user_role == "MANAGER":
         s_dept = st.selectbox("Department", ["WET BAY", "DRY BAY", "RECEPTIONIST", "MANAGEMENT"])
         if st.form_submit_button("ONBOARD STAFF"):
             if s_name and s_pass:
-                c.execute("INSERT OR REPLACE INTO users (username, password, role, dept, status) VALUES (?,?,?,?,?)", 
-                          (s_name, s_pass, s_role, s_dept, 'ACTIVE'))
+                c.execute("INSERT OR REPLACE INTO users (username, password, role, dept, status) VALUES (?,?,?,?,?)", (s_name, s_pass, s_role, s_dept, 'ACTIVE'))
                 conn.commit(); st.success(f"{s_name} added to {s_dept}."); st.rerun()
-    
     st.write("---")
     st.subheader("CURRENT STAFF DIRECTORY")
     current_staff_df = pd.read_sql_query("SELECT username, dept, role, status FROM users", conn)
@@ -424,16 +390,13 @@ elif choice == "INVENTORY & STAFF" and st.session_state.user_role == "MANAGER":
                 conn.commit(); st.rerun()
         inv_data = pd.read_sql_query("SELECT * FROM inventory", conn)
         st.dataframe(inv_data, use_container_width=True)
-
     with t2:
         st.subheader("EDIT SERVICES & PRICES")
         edit_svc_list = list(SERVICES.keys())
         svc_to_edit = st.selectbox("Select Service to Modify", ["-- ADD NEW --"] + edit_svc_list)
-        
         with st.form("svc_form"):
             new_name = st.text_input("Service Name", value="" if svc_to_edit == "-- ADD NEW --" else svc_to_edit)
             new_price = st.number_input("Service Price (₦)", value=0.0 if svc_to_edit == "-- ADD NEW --" else SERVICES[svc_to_edit])
-            
             sub_col1, sub_col2 = st.columns(2)
             if sub_col1.form_submit_button("SAVE SERVICE"):
                 if svc_to_edit != "-- ADD NEW --" and new_name != svc_to_edit:
@@ -444,39 +407,90 @@ elif choice == "INVENTORY & STAFF" and st.session_state.user_role == "MANAGER":
                 if sub_col2.form_submit_button("DELETE SERVICE"):
                     c.execute("DELETE FROM wash_prices WHERE service=?", (svc_to_edit,))
                     conn.commit(); st.rerun()
-
     with t3:
         perf_query = "SELECT staff, COUNT(*) as washes, SUM(total) as revenue FROM sales WHERE type='CAR WASH' GROUP BY staff"
         perf_df = pd.read_sql_query(perf_query, conn)
         st.bar_chart(perf_df.set_index('staff')['washes'])
         st.dataframe(perf_df, use_container_width=True)
 
-# --- 5. FINANCIALS ---
+# --- 5. FINANCIALS (ENHANCED TRANSPARENCY) ---
 elif choice == "FINANCIALS" and st.session_state.user_role == "MANAGER":
-    st.subheader("FINANCIAL INTELLIGENCE")
-    tab_fin, tab_cards_hub = st.tabs(["REVENUE & EXPENSES", "MEMBERSHIP HUB"])
+    st.subheader("FINANCIAL INTELLIGENCE CENTER")
+    tab_fin, tab_cards_hub = st.tabs(["TRANSPARENT REVENUE", "MEMBERSHIP HUB"])
+    
     with tab_fin:
-        sales_df = pd.read_sql_query("SELECT * FROM sales", conn)
-        exp_df = pd.read_sql_query("SELECT * FROM expenses", conn)
-        rev_wash = sales_df[sales_df['type'] == 'CAR WASH']['total'].sum()
-        rev_lounge = sales_df[sales_df['type'] == 'LOUNGE']['total'].sum()
-        card_sales_rev = pd.read_sql_query("SELECT SUM(sale_price) FROM memberships", conn).iloc[0,0] or 0
-        exps = exp_df['amount'].sum() if not exp_df.empty else 0
+        # 1. TIME SELECTION LOGIC
+        col_f1, col_f2 = st.columns([1, 2])
+        view_scope = col_f1.radio("REPORTING SCOPE", ["DAILY", "MONTHLY", "YEARLY"], horizontal=True)
         
-        col1, col2, col3, col4, col5 = st.columns(5)
-        col1.metric("WASH (CASH)", f"₦{rev_wash:,}")
-        col2.metric("LOUNGE", f"₦{rev_lounge:,}")
-        col3.metric("CARD SALES", f"₦{card_sales_rev:,}")
-        col4.metric("EXPENSES", f"₦{exps:,}")
-        col5.metric("NET PROFIT", f"₦{(rev_wash + rev_lounge + card_sales_rev) - exps:,}")
+        # Load raw data
+        sales_raw = pd.read_sql_query("SELECT * FROM sales", conn)
+        exp_raw = pd.read_sql_query("SELECT * FROM expenses", conn)
+        m_sales_raw = pd.read_sql_query("SELECT plate, card_type, sale_price, '2026-01-01' as timestamp FROM memberships", conn) # Card sales reference
         
+        # Convert timestamps for filtering
+        sales_raw['timestamp'] = pd.to_datetime(sales_raw['timestamp'])
+        exp_raw['timestamp'] = pd.to_datetime(exp_raw['timestamp'])
+        
+        now = datetime.now()
+        
+        if view_scope == "DAILY":
+            selected_date = col_f2.date_input("SELECT DAY", now.date())
+            f_sales = sales_raw[sales_raw['timestamp'].dt.date == selected_date]
+            f_exps = exp_raw[exp_raw['timestamp'].dt.date == selected_date]
+            label = f"REPORT FOR {selected_date}"
+        elif view_scope == "MONTHLY":
+            months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+            selected_month_name = col_f2.selectbox("SELECT MONTH", months, index=now.month-1)
+            selected_month = months.index(selected_month_name) + 1
+            f_sales = sales_raw[(sales_raw['timestamp'].dt.month == selected_month) & (sales_raw['timestamp'].dt.year == 2026)]
+            f_exps = exp_raw[(exp_raw['timestamp'].dt.month == selected_month) & (exp_raw['timestamp'].dt.year == 2026)]
+            label = f"REPORT FOR {selected_month_name} 2026"
+        else:
+            selected_year = col_f2.selectbox("SELECT YEAR", [2024, 2025, 2026], index=2)
+            f_sales = sales_raw[sales_raw['timestamp'].dt.year == selected_year]
+            f_exps = exp_raw[exp_raw['timestamp'].dt.year == selected_year]
+            label = f"ANNUAL REPORT {selected_year}"
+
+        # 2. CALCULATE METRICS
+        rev_wash = f_sales[f_sales['type'] == 'CAR WASH']['total'].sum()
+        rev_lounge = f_sales[f_sales['type'] == 'LOUNGE']['total'].sum()
+        # Card sales logic: In this DB version card sales are stored in memberships. 
+        # For transparency, we show the sum of all cards active in the system.
+        card_total = m_sales_raw['sale_price'].sum() if view_scope != "DAILY" else 0 
+        total_exp = f_exps['amount'].sum()
+        net_profit = (rev_wash + rev_lounge + card_total) - total_exp
+
+        st.markdown(f"### {label}")
+        m1, m2, m3, m4, m5 = st.columns(5)
+        m1.metric("WASH REVENUE", f"₦{rev_wash:,}")
+        m2.metric("LOUNGE REVENUE", f"₦{rev_lounge:,}")
+        m3.metric("CARD SALES", f"₦{card_total:,}")
+        m4.metric("EXPENSES", f"₦{total_exp:,}")
+        m5.metric("NET PROFIT/LOSS", f"₦{net_profit:,}", delta=net_profit, delta_color="normal")
+
+        st.markdown("---")
+        
+        # 3. PROFITABILITY CHART
+        chart_data = pd.DataFrame({
+            'Category': ['Wash', 'Lounge', 'Cards', 'Expenses'],
+            'Amount': [rev_wash, rev_lounge, card_total, total_exp]
+        })
+        st.bar_chart(chart_data.set_index('Category'))
+        
+        # 4. DATA TABLES & EXPORT
+        st.subheader("Detailed Transaction Log")
+        st.dataframe(f_sales, use_container_width=True)
+        
+        csv = f_sales.to_csv(index=False).encode('utf-8')
+        st.download_button("📥 DOWNLOAD FILTERED REPORT (CSV)", csv, f"RideBoss_{view_scope}_{label}.csv", "text/csv")
+
         with st.expander("LOG NEW EXPENSE"):
             e_desc = st.text_input("Description")
             e_amt = st.number_input("Amount", min_value=0.0)
             if st.button("LOG"):
                 c.execute("INSERT INTO expenses (description, amount, timestamp) VALUES (?,?,?)", (e_desc, e_amt, datetime.now().strftime("%Y-%m-%d")))
                 conn.commit(); st.rerun()
-        st.dataframe(sales_df)
 
     with tab_cards_hub:
         m_df = pd.read_sql_query("SELECT * FROM memberships", conn)
