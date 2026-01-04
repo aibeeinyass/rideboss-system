@@ -157,21 +157,74 @@ if "print_receipt" in query_params:
     receipt_data = json.loads(query_params["print_receipt"])
     st.markdown(f"""
         <style>
-            .stApp {{ background-color: white !important; color: black !important; }}
-            [data-testid="stSidebar"], .stButton, header {{ display: none !important; }}
-            .receipt-wrap {{ background: white; color: black; padding: 20px; font-family: 'Courier New', monospace; max-width: 400px; margin: auto; border: 1px solid #000; }}
-            .receipt-header {{ text-align: center; border-bottom: 2px dashed black; padding-bottom: 10px; }}
-            .receipt-total {{ border-top: 2px solid black; margin-top: 10px; font-weight: bold; font-size: 20px; }}
+            @media print {{
+                body {{ background: white !important; }}
+                .stApp {{ background: white !important; }}
+                [data-testid="stSidebar"], header, .stButton {{ display: none !important; }}
+            }}
+            .print-wrap {{
+                background: white;
+                color: black;
+                padding: 30px;
+                font-family: 'Courier New', Courier, monospace;
+                max-width: 400px;
+                margin: auto;
+                border: 2px solid black;
+            }}
+            .print-header {{
+                text-align: center;
+                border-bottom: 2px solid black;
+                padding-bottom: 10px;
+                margin-bottom: 15px;
+            }}
+            .print-row {{
+                display: flex;
+                justify-content: space-between;
+                margin: 5px 0;
+                font-size: 14px;
+            }}
+            .print-divider {{
+                border-top: 1px dashed black;
+                margin: 15px 0;
+            }}
+            .print-total {{
+                border-top: 2px solid black;
+                margin-top: 10px;
+                padding-top: 10px;
+                font-weight: bold;
+                font-size: 22px;
+                display: flex;
+                justify-content: space-between;
+            }}
+            .footer {{
+                text-align: center;
+                font-size: 12px;
+                margin-top: 30px;
+                border-top: 1px solid black;
+                padding-top: 10px;
+            }}
         </style>
-        <div class="receipt-wrap">
-            <div class="receipt-header"><h2>RIDEBOSS AUTOS</h2><p>Premium Detailing</p></div>
-            <p><b>ID:</b> #RB{receipt_data['id']}</p>
-            <p><b>Date:</b> {receipt_data['date']}</p>
-            <p><b>Plate:</b> {receipt_data['plate']}</p>
-            <hr>
-            <p>{receipt_data['items']}</p>
-            <div class="receipt-total">TOTAL: ₦{receipt_data['total']:,}</div>
-            <p style="text-align:center; margin-top:20px;">*** THANK YOU ***</p>
+        <div class="print-wrap">
+            <div class="print-header">
+                <h1 style="margin:0; font-size:24px;">RIDEBOSS AUTOS</h1>
+                <p style="margin:0; font-size:12px; letter-spacing:2px;">PREMIUM DETAILING & LOUNGE</p>
+            </div>
+            <div class="print-row"><span>REF NO:</span> <span>#RB{receipt_data['id']}</span></div>
+            <div class="print-row"><span>DATE:</span> <span>{receipt_data['date']}</span></div>
+            <div class="print-row"><span>PLATE:</span> <b>{receipt_data['plate']}</b></div>
+            <div class="print-divider"></div>
+            <div style="min-height: 100px;">
+                <p style="font-size:12px; margin-bottom:5px;">SERVICES RENDERED:</p>
+                <p style="font-size:16px; font-weight:bold;">{receipt_data['items']}</p>
+            </div>
+            <div class="print-total">
+                <span>TOTAL</span>
+                <span>₦{receipt_data['total']:,}</span>
+            </div>
+            <div class="footer">
+                THANK YOU FOR YOUR PATRONAGE<br>
+                www.ridebossautos.com
+            </div>
         </div>
         <script>window.print();</script>
     """, unsafe_allow_html=True)
@@ -345,35 +398,34 @@ if choice == "COMMAND CENTER":
             else:
                 st.error("Plate number required.")
 
-    if 'last_receipt' in st.session_state:
+        if 'last_receipt' in st.session_state:
         r = st.session_state['last_receipt']
         st.markdown(f"""
-        <div class="receipt-wrap">
-            <div class="receipt-header">
-                <h1>RIDEBOSS</h1>
-                <p>Premium Detailing & Lounge</p>
+        <div style="background: white; color: black; padding: 40px; max-width: 500px; margin: 20px auto; border: 1px solid #ddd; border-top: 10px solid black;">
+            <div style="text-align: center; border-bottom: 2px solid black; padding-bottom: 20px; margin-bottom: 20px;">
+                <h2 style="color: black !important; margin: 0; letter-spacing: 5px;">RIDEBOSS</h2>
+                <p style="color: #666 !important; font-size: 12px; margin: 0;">OFFICIAL TRANSACTION SUMMARY</p>
             </div>
-            <div class="receipt-body">
-                <div class="receipt-row"><span>Ref:</span> <span>#RB-{r['id']}</span></div>
-                <div class="receipt-row"><span>Date:</span> <span>{r['date']}</span></div>
-                <div class="receipt-row"><span>Client:</span> <span>{r['plate']}</span></div>
-                
-                <div class="receipt-item-box">
-                    <div class="item-label">SERVICES & ORDERS</div>
-                    <div class="item-details">{r['items']}</div>
-                </div>
-                
-                <div class="receipt-row"><span>Consultant:</span> <span>{r['staff']}</span></div>
-                
-                <div class="receipt-total">
-                    <span class="total-text">TOTAL DUE</span>
-                    <span class="total-price">₦{r['total']:,}</span>
-                </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <span style="font-weight: bold;">REFERENCE:</span> <span>#RB-{r['id']}</span>
             </div>
-            <div class="receipt-footer">
-                Thank you for your business. <br>
-                “The standard is the standard.”
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <span style="font-weight: bold;">DATE:</span> <span>{r['date']}</span>
             </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 30px;">
+                <span style="font-weight: bold;">VEHICLE:</span> <span style="background: black; color: white; padding: 2px 8px;">{r['plate']}</span>
+            </div>
+            
+            <div style="border: 1px solid black; padding: 15px; margin-bottom: 30px;">
+                <small style="color: #888; font-weight: bold;">DESCRIPTION</small><br>
+                <div style="font-size: 18px; margin-top: 5px;">{r['items']}</div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; border-top: 2px solid black; padding-top: 15px;">
+                <span style="font-size: 18px; font-weight: bold;">AMOUNT PAID</span>
+                <span style="font-size: 22px; font-weight: 900;">₦{r['total']:,}</span>
+            </div>
+            <p style="text-align: center; margin-top: 40px; font-size: 10px; color: #999; letter-spacing: 2px;">AUTHENTIC RIDEBOSS DOCUMENT</p>
         </div>
         """, unsafe_allow_html=True)
         
@@ -381,9 +433,9 @@ if choice == "COMMAND CENTER":
         with c_p1:
             receipt_payload = { "id": r["id"], "date": r["date"], "plate": r["plate"], "items": r["items"], "total": r["total"] }
             receipt_url = f"?print_receipt={urllib.parse.quote(json.dumps(receipt_payload))}"
-            st.markdown(f'<a href="{receipt_url}" target="_blank" style="text-decoration:none;"><button style="width:100%; height:3em; border:1px solid #00d4ff; background:#00d4ff11; color:#00d4ff; letter-spacing:2px; font-weight:bold; cursor:pointer; text-transform:uppercase;">🖨️ PRINT OFFICIAL INVOICE</button></a>', unsafe_allow_html=True)
+            st.markdown(f'<a href="{receipt_url}" target="_blank" style="text-decoration:none;"><button style="width:100%; height:3.5em; border:2px solid black; background:black; color:white; font-weight:bold; cursor:pointer; text-transform:uppercase; letter-spacing:2px;">🖨️ PRINT RECEIPT</button></a>', unsafe_allow_html=True)
         with c_p2:
-            if st.button("DISMISS"):
+            if st.button("CLOSE & DISMISS"):
                 del st.session_state['last_receipt']
                 st.rerun()
 
