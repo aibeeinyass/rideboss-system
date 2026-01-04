@@ -59,15 +59,95 @@ st.markdown("""
     .monitor-staff { font-size: 20px; color: #888; text-transform: uppercase; }
     .monitor-svc { color: #00d4ff; font-style: italic; font-size: 16px; }
     
-    /* CLASSIC PREMIUM RECEIPT */
-    .receipt-wrap { background: white; color: black; padding: 40px; font-family: 'Garamond', serif; max-width: 450px; margin: auto; border: 1px solid #ccc; box-shadow: 0 0 20px rgba(0,0,0,0.2); line-height: 1.2; }
-    .receipt-header { text-align: center; border-bottom: 3px double black; padding-bottom: 15px; margin-bottom: 20px; }
-    .receipt-header h1 { margin: 0; letter-spacing: 5px; font-weight: 900; font-size: 28px; color: black !important;}
-    .receipt-header p { margin: 2px 0; font-size: 14px; text-transform: uppercase; color: black !important;}
-    .receipt-body { font-size: 16px; color: black !important;}
-    .receipt-row { display: flex; justify-content: space-between; margin: 10px 0; border-bottom: 1px dotted #ccc; color: black !important;}
-    .receipt-total { border-top: 2px solid black; margin-top: 20px; padding-top: 10px; display: flex; justify-content: space-between; font-size: 22px; font-weight: bold; color: black !important;}
-    .receipt-stamp { border: 2px solid #900; color: #900; padding: 5px 15px; display: inline-block; font-weight: bold; transform: rotate(-5deg); margin-top: 20px; font-size: 14px; text-transform: uppercase; }
+    /* MODERN LUXURY RECEIPT DESIGN */
+    .receipt-wrap { 
+        background: #ffffff; 
+        color: #1a1a1a; 
+        padding: 45px; 
+        font-family: 'Inter', sans-serif; 
+        max-width: 480px; 
+        margin: 20px auto; 
+        border-top: 8px solid #00d4ff; 
+        box-shadow: 0 15px 35px rgba(0,0,0,0.4); 
+    }
+    .receipt-header { 
+        text-align: center; 
+        margin-bottom: 35px; 
+    }
+    .receipt-header h1 { 
+        margin: 0; 
+        letter-spacing: 10px; 
+        font-weight: 900; 
+        font-size: 26px; 
+        color: #000 !important;
+        text-transform: uppercase;
+    }
+    .receipt-header p { 
+        margin: 5px 0; 
+        font-size: 10px; 
+        letter-spacing: 4px; 
+        text-transform: uppercase; 
+        color: #666 !important;
+    }
+    .receipt-body { 
+        font-size: 13px; 
+        color: #333 !important;
+    }
+    .receipt-row { 
+        display: flex; 
+        justify-content: space-between; 
+        margin: 12px 0; 
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #1a1a1a !important;
+    }
+    .receipt-item-box {
+        margin: 25px 0;
+        padding: 15px 0;
+        border-top: 1px solid #eee;
+        border-bottom: 1px solid #eee;
+    }
+    .item-label {
+        font-size: 10px;
+        font-weight: bold;
+        color: #888;
+        letter-spacing: 2px;
+        margin-bottom: 8px;
+    }
+    .item-details {
+        font-size: 18px;
+        font-weight: 500;
+        color: #000;
+        line-height: 1.4;
+    }
+    .receipt-total { 
+        background: #f8f9fa;
+        margin-top: 25px; 
+        padding: 20px; 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center;
+        border-radius: 4px;
+    }
+    .total-text {
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 2px;
+        color: #555;
+    }
+    .total-price {
+        font-size: 24px;
+        font-weight: 900;
+        color: #000;
+    }
+    .receipt-footer {
+        text-align: center;
+        margin-top: 40px;
+        font-size: 10px;
+        letter-spacing: 1px;
+        color: #999;
+        font-style: italic;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -268,28 +348,42 @@ if choice == "COMMAND CENTER":
     if 'last_receipt' in st.session_state:
         r = st.session_state['last_receipt']
         st.markdown(f"""
-        <div class="receipt-wrap" id="printable-receipt">
-            <div class="receipt-header"><h1>RIDEBOSS AUTOS</h1><p>Premium Detailing & Lounge</p><p>Phone: 09029557912</p></div>
-            <div class="receipt-body">
-                <div class="receipt-row"><span>Receipt ID:</span> <span>#RB{r['id']}</span></div>
-                <div class="receipt-row"><span>Date:</span> <span>{r['date']}</span></div>
-                <div class="receipt-row"><span>Plate:</span> <span>{r['plate']}</span></div>
-                <hr style="border:1px solid black">
-                <p><b>DESCRIPTION:</b></p><p>{r['items']}</p>
-                <div class="receipt-total"><span>TOTAL:</span><span>₦{r['total']:,}</span></div>
+        <div class="receipt-wrap">
+            <div class="receipt-header">
+                <h1>RIDEBOSS</h1>
+                <p>Premium Detailing & Lounge</p>
             </div>
-            <div style="text-align:center;"><div class="receipt-stamp">RIDEBOSS OFFICIAL STAMP</div></div>
+            <div class="receipt-body">
+                <div class="receipt-row"><span>Ref:</span> <span>#RB-{r['id']}</span></div>
+                <div class="receipt-row"><span>Date:</span> <span>{r['date']}</span></div>
+                <div class="receipt-row"><span>Client:</span> <span>{r['plate']}</span></div>
+                
+                <div class="receipt-item-box">
+                    <div class="item-label">SERVICES & ORDERS</div>
+                    <div class="item-details">{r['items']}</div>
+                </div>
+                
+                <div class="receipt-row"><span>Consultant:</span> <span>{r['staff']}</span></div>
+                
+                <div class="receipt-total">
+                    <span class="total-text">TOTAL DUE</span>
+                    <span class="total-price">₦{r['total']:,}</span>
+                </div>
+            </div>
+            <div class="receipt-footer">
+                Thank you for your business. <br>
+                “The standard is the standard.”
+            </div>
         </div>
         """, unsafe_allow_html=True)
         
         c_p1, c_p2 = st.columns(2)
         with c_p1:
-            # --- FIX: DIRECT HTML LINK FOR PRINTING ---
             receipt_payload = { "id": r["id"], "date": r["date"], "plate": r["plate"], "items": r["items"], "total": r["total"] }
             receipt_url = f"?print_receipt={urllib.parse.quote(json.dumps(receipt_payload))}"
-            st.markdown(f'<a href="{receipt_url}" target="_blank" style="text-decoration:none;"><button style="width:100%; height:3em; border:1px solid #333; background:transparent; color:white; letter-spacing:2px; font-weight:bold; cursor:pointer; text-transform:uppercase;">🖨️ PRINT RECEIPT</button></a>', unsafe_allow_html=True)
+            st.markdown(f'<a href="{receipt_url}" target="_blank" style="text-decoration:none;"><button style="width:100%; height:3em; border:1px solid #00d4ff; background:#00d4ff11; color:#00d4ff; letter-spacing:2px; font-weight:bold; cursor:pointer; text-transform:uppercase;">🖨️ PRINT OFFICIAL INVOICE</button></a>', unsafe_allow_html=True)
         with c_p2:
-            if st.button("DONE"):
+            if st.button("DISMISS"):
                 del st.session_state['last_receipt']
                 st.rerun()
 
@@ -303,7 +397,6 @@ elif choice == "LIVE U-FLOW":
         if live_cars.empty:
             st.info("ALL BAYS CLEAR.")
         else:
-            # We build the HTML into a single variable
             monitor_html = """
             <style>
                 body { background-color: #050505; margin: 0; padding: 0; font-family: sans-serif; overflow: hidden; }
@@ -319,7 +412,6 @@ elif choice == "LIVE U-FLOW":
             </style>
             <div class="monitor-container"><div class="scroll-content">"""
             
-            # Duplicate the list to create a seamless loop effect
             scroll_data = pd.concat([live_cars, live_cars])
             
             for _, row in scroll_data.iterrows():
@@ -335,12 +427,10 @@ elif choice == "LIVE U-FLOW":
             
             monitor_html += "</div></div>"
             
-            # Use components.html to isolate the code from the main UI
             import streamlit.components.v1 as components
             components.html(monitor_html, height=800)
 
     else:
-        # Management Controls - Standard Streamlit components
         for idx, row in live_cars.iterrows():
             entry_dt = datetime.strptime(row['entry_time'], "%Y-%m-%d %H:%M")
             time_spent = (datetime.now() - entry_dt).seconds // 60
@@ -441,19 +531,13 @@ elif choice == "FINANCIALS" and st.session_state.user_role == "MANAGER":
     tab_fin, tab_cards_hub = st.tabs(["TRANSPARENT REVENUE", "MEMBERSHIP HUB"])
     
     with tab_fin:
-        # 1. TIME SELECTION LOGIC
         col_f1, col_f2 = st.columns([1, 2])
         view_scope = col_f1.radio("REPORTING SCOPE", ["DAILY", "MONTHLY", "YEARLY"], horizontal=True)
-        
-        # Load raw data
         sales_raw = pd.read_sql_query("SELECT * FROM sales", conn)
         exp_raw = pd.read_sql_query("SELECT * FROM expenses", conn)
-        m_sales_raw = pd.read_sql_query("SELECT plate, card_type, sale_price, '2026-01-01' as timestamp FROM memberships", conn) # Card sales reference
-        
-        # Convert timestamps for filtering
+        m_sales_raw = pd.read_sql_query("SELECT plate, card_type, sale_price, '2026-01-01' as timestamp FROM memberships", conn)
         sales_raw['timestamp'] = pd.to_datetime(sales_raw['timestamp'])
         exp_raw['timestamp'] = pd.to_datetime(exp_raw['timestamp'])
-        
         now = datetime.now()
         
         if view_scope == "DAILY":
@@ -474,11 +558,8 @@ elif choice == "FINANCIALS" and st.session_state.user_role == "MANAGER":
             f_exps = exp_raw[exp_raw['timestamp'].dt.year == selected_year]
             label = f"ANNUAL REPORT {selected_year}"
 
-        # 2. CALCULATE METRICS
         rev_wash = f_sales[f_sales['type'] == 'CAR WASH']['total'].sum()
         rev_lounge = f_sales[f_sales['type'] == 'LOUNGE']['total'].sum()
-        # Card sales logic: In this DB version card sales are stored in memberships. 
-        # For transparency, we show the sum of all cards active in the system.
         card_total = m_sales_raw['sale_price'].sum() if view_scope != "DAILY" else 0 
         total_exp = f_exps['amount'].sum()
         net_profit = (rev_wash + rev_lounge + card_total) - total_exp
@@ -490,23 +571,13 @@ elif choice == "FINANCIALS" and st.session_state.user_role == "MANAGER":
         m3.metric("CARD SALES", f"₦{card_total:,}")
         m4.metric("EXPENSES", f"₦{total_exp:,}")
         m5.metric("NET PROFIT/LOSS", f"₦{net_profit:,}", delta=net_profit, delta_color="normal")
-
         st.markdown("---")
-        
-        # 3. PROFITABILITY CHART
-        chart_data = pd.DataFrame({
-            'Category': ['Wash', 'Lounge', 'Cards', 'Expenses'],
-            'Amount': [rev_wash, rev_lounge, card_total, total_exp]
-        })
+        chart_data = pd.DataFrame({'Category': ['Wash', 'Lounge', 'Cards', 'Expenses'], 'Amount': [rev_wash, rev_lounge, card_total, total_exp]})
         st.bar_chart(chart_data.set_index('Category'))
-        
-        # 4. DATA TABLES & EXPORT
         st.subheader("Detailed Transaction Log")
         st.dataframe(f_sales, use_container_width=True)
-        
         csv = f_sales.to_csv(index=False).encode('utf-8')
         st.download_button("📥 DOWNLOAD FILTERED REPORT (CSV)", csv, f"RideBoss_{view_scope}_{label}.csv", "text/csv")
-
         with st.expander("LOG NEW EXPENSE"):
             e_desc = st.text_input("Description")
             e_amt = st.number_input("Amount", min_value=0.0)
