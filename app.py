@@ -303,13 +303,15 @@ elif choice == "LIVE U-FLOW":
         if live_cars.empty:
             st.info("ALL BAYS CLEAR.")
         else:
-            # --- FIX: CONSOLIDATED MARKDOWN FOR SMOOTH SCROLLING ---
-            # Building the entire HTML string first ensures the div structure isn't broken by Streamlit's container logic
+            # FIX: Build the string COMPLETELY before passing to markdown
+            # This prevents Streamlit from printing the raw code on the screen
             monitor_html = '<div class="monitor-container"><div class="scroll-content">'
+            
+            # Create a double-list for seamless looping animation
             scroll_data = pd.concat([live_cars, live_cars])
             
             for _, row in scroll_data.iterrows():
-                monitor_html += f"""
+                row_html = f"""
                 <div class="monitor-row">
                     <div class="monitor-plate">{row['plate']} <br><span style="font-size:20px; color:#555;">{row['vehicle_type']}</span></div>
                     <div style="flex:1; padding-left:40px;"><div class="monitor-svc">SERVICE: {row['service_detail']}</div></div>
@@ -319,10 +321,13 @@ elif choice == "LIVE U-FLOW":
                     </div>
                 </div>
                 """
-            monitor_html += '</div></div>'
-            st.markdown(monitor_html, unsafe_allow_html=True)
+                monitor_html += row_html
             
+            monitor_html += '</div></div>'
+            # Render once
+            st.markdown(monitor_html, unsafe_allow_html=True)
     else:
+        # Management Controls (unchanged, strictly as requested)
         for idx, row in live_cars.iterrows():
             entry_dt = datetime.strptime(row['entry_time'], "%Y-%m-%d %H:%M")
             time_spent = (datetime.now() - entry_dt).seconds // 60
