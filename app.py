@@ -153,7 +153,7 @@ st.markdown("""
 
 # --- SPECIAL PRINT RENDERER ---
 query_params = st.query_params
-               if "print_receipt" in query_params:
+if "print_receipt" in query_params:
     receipt_data = json.loads(query_params["print_receipt"])
     st.markdown(f"""
         <style>
