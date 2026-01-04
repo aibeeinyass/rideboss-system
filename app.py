@@ -284,10 +284,10 @@ if choice == "COMMAND CENTER":
         
         c_p1, c_p2 = st.columns(2)
         with c_p1:
-            if st.button("🖨️ PRINT RECEIPT"):
-                receipt_payload = { "id": r["id"], "date": r["date"], "plate": r["plate"], "items": r["items"], "total": r["total"] }
-                receipt_url = f"?print_receipt={urllib.parse.quote(json.dumps(receipt_payload))}"
-                st.markdown(f"<script>window.open('{receipt_url}', '_blank');</script>", unsafe_allow_html=True)
+            # --- FIX: DIRECT HTML LINK FOR PRINTING ---
+            receipt_payload = { "id": r["id"], "date": r["date"], "plate": r["plate"], "items": r["items"], "total": r["total"] }
+            receipt_url = f"?print_receipt={urllib.parse.quote(json.dumps(receipt_payload))}"
+            st.markdown(f'<a href="{receipt_url}" target="_blank" style="text-decoration:none;"><button style="width:100%; height:3em; border:1px solid #333; background:transparent; color:white; letter-spacing:2px; font-weight:bold; cursor:pointer; text-transform:uppercase;">🖨️ PRINT RECEIPT</button></a>', unsafe_allow_html=True)
         with c_p2:
             if st.button("DONE"):
                 del st.session_state['last_receipt']
@@ -303,10 +303,13 @@ elif choice == "LIVE U-FLOW":
         if live_cars.empty:
             st.info("ALL BAYS CLEAR.")
         else:
-            st.markdown('<div class="monitor-container"><div class="scroll-content">', unsafe_allow_html=True)
+            # --- FIX: CONSOLIDATED MARKDOWN FOR SMOOTH SCROLLING ---
+            # Building the entire HTML string first ensures the div structure isn't broken by Streamlit's container logic
+            monitor_html = '<div class="monitor-container"><div class="scroll-content">'
             scroll_data = pd.concat([live_cars, live_cars])
+            
             for _, row in scroll_data.iterrows():
-                st.markdown(f"""
+                monitor_html += f"""
                 <div class="monitor-row">
                     <div class="monitor-plate">{row['plate']} <br><span style="font-size:20px; color:#555;">{row['vehicle_type']}</span></div>
                     <div style="flex:1; padding-left:40px;"><div class="monitor-svc">SERVICE: {row['service_detail']}</div></div>
@@ -315,8 +318,10 @@ elif choice == "LIVE U-FLOW":
                         <div class="monitor-staff">ASSIGNED: {row['staff']}</div>
                     </div>
                 </div>
-                """, unsafe_allow_html=True)
-            st.markdown('</div></div>', unsafe_allow_html=True)
+                """
+            monitor_html += '</div></div>'
+            st.markdown(monitor_html, unsafe_allow_html=True)
+            
     else:
         for idx, row in live_cars.iterrows():
             entry_dt = datetime.strptime(row['entry_time'], "%Y-%m-%d %H:%M")
