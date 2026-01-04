@@ -58,96 +58,6 @@ st.markdown("""
     .monitor-meta { text-align: right; }
     .monitor-staff { font-size: 20px; color: #888; text-transform: uppercase; }
     .monitor-svc { color: #00d4ff; font-style: italic; font-size: 16px; }
-    
-    /* MODERN LUXURY RECEIPT DESIGN */
-    .receipt-wrap { 
-        background: #ffffff; 
-        color: #1a1a1a; 
-        padding: 45px; 
-        font-family: 'Inter', sans-serif; 
-        max-width: 480px; 
-        margin: 20px auto; 
-        border-top: 8px solid #00d4ff; 
-        box-shadow: 0 15px 35px rgba(0,0,0,0.4); 
-    }
-    .receipt-header { 
-        text-align: center; 
-        margin-bottom: 35px; 
-    }
-    .receipt-header h1 { 
-        margin: 0; 
-        letter-spacing: 10px; 
-        font-weight: 900; 
-        font-size: 26px; 
-        color: #000 !important;
-        text-transform: uppercase;
-    }
-    .receipt-header p { 
-        margin: 5px 0; 
-        font-size: 10px; 
-        letter-spacing: 4px; 
-        text-transform: uppercase; 
-        color: #666 !important;
-    }
-    .receipt-body { 
-        font-size: 13px; 
-        color: #333 !important;
-    }
-    .receipt-row { 
-        display: flex; 
-        justify-content: space-between; 
-        margin: 12px 0; 
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        color: #1a1a1a !important;
-    }
-    .receipt-item-box {
-        margin: 25px 0;
-        padding: 15px 0;
-        border-top: 1px solid #eee;
-        border-bottom: 1px solid #eee;
-    }
-    .item-label {
-        font-size: 10px;
-        font-weight: bold;
-        color: #888;
-        letter-spacing: 2px;
-        margin-bottom: 8px;
-    }
-    .item-details {
-        font-size: 18px;
-        font-weight: 500;
-        color: #000;
-        line-height: 1.4;
-    }
-    .receipt-total { 
-        background: #f8f9fa;
-        margin-top: 25px; 
-        padding: 20px; 
-        display: flex; 
-        justify-content: space-between; 
-        align-items: center;
-        border-radius: 4px;
-    }
-    .total-text {
-        font-size: 11px;
-        font-weight: 900;
-        letter-spacing: 2px;
-        color: #555;
-    }
-    .total-price {
-        font-size: 24px;
-        font-weight: 900;
-        color: #000;
-    }
-    .receipt-footer {
-        text-align: center;
-        margin-top: 40px;
-        font-size: 10px;
-        letter-spacing: 1px;
-        color: #999;
-        font-style: italic;
-    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -206,8 +116,8 @@ if "print_receipt" in query_params:
         </style>
         <div class="print-wrap">
             <div class="print-header">
-                <h1 style="margin:0; font-size:24px;">RIDEBOSS AUTOS</h1>
-                <p style="margin:0; font-size:12px; letter-spacing:2px;">PREMIUM DETAILING & LOUNGE</p>
+                <h1 style="margin:0; font-size:24px; color: black !important;">RIDEBOSS AUTOS</h1>
+                <p style="margin:0; font-size:12px; letter-spacing:2px; color: black !important;">PREMIUM DETAILING & LOUNGE</p>
             </div>
             <div class="print-row"><span>REF NO:</span> <span>#RB{receipt_data['id']}</span></div>
             <div class="print-row"><span>DATE:</span> <span>{receipt_data['date']}</span></div>
@@ -398,7 +308,7 @@ if choice == "COMMAND CENTER":
             else:
                 st.error("Plate number required.")
 
-        if 'last_receipt' in st.session_state:
+    if 'last_receipt' in st.session_state:
         r = st.session_state['last_receipt']
         st.markdown(f"""
         <div style="background: white; color: black; padding: 40px; max-width: 500px; margin: 20px auto; border: 1px solid #ddd; border-top: 10px solid black;">
@@ -617,8 +527,6 @@ elif choice == "FINANCIALS" and st.session_state.user_role == "MANAGER":
             f_sales = sales_raw[sales_raw['timestamp'].dt.year == selected_year]
             f_exps = exp_raw[exp_raw['timestamp'].dt.year == selected_year]
             label = f"ANNUAL REPORT {selected_year}"
-
-        # ... The rest of the metrics calculation follows below ...
 
         rev_wash = f_sales[f_sales['type'] == 'CAR WASH']['total'].sum()
         rev_lounge = f_sales[f_sales['type'] == 'LOUNGE']['total'].sum()
