@@ -525,19 +525,24 @@ elif choice == "INVENTORY & STAFF" and st.session_state.user_role == "MANAGER":
         st.bar_chart(perf_df.set_index('staff')['washes'])
         st.dataframe(perf_df, use_container_width=True)
 
-# --- 5. FINANCIALS (ENHANCED TRANSPARENCY) ---
+# --- 5. FINANCIALS (SMART YEARLY LOGIC) ---
 elif choice == "FINANCIALS" and st.session_state.user_role == "MANAGER":
     st.subheader("FINANCIAL INTELLIGENCE CENTER")
     tab_fin, tab_cards_hub = st.tabs(["TRANSPARENT REVENUE", "MEMBERSHIP HUB"])
     
     with tab_fin:
+        # 1. TIME SELECTION LOGIC
         col_f1, col_f2 = st.columns([1, 2])
         view_scope = col_f1.radio("REPORTING SCOPE", ["DAILY", "MONTHLY", "YEARLY"], horizontal=True)
+        
+        # Load raw data
         sales_raw = pd.read_sql_query("SELECT * FROM sales", conn)
         exp_raw = pd.read_sql_query("SELECT * FROM expenses", conn)
         m_sales_raw = pd.read_sql_query("SELECT plate, card_type, sale_price, '2026-01-01' as timestamp FROM memberships", conn)
+        
         sales_raw['timestamp'] = pd.to_datetime(sales_raw['timestamp'])
         exp_raw['timestamp'] = pd.to_datetime(exp_raw['timestamp'])
+        
         now = datetime.now()
         
         if view_scope == "DAILY":
@@ -549,17 +554,19 @@ elif choice == "FINANCIALS" and st.session_state.user_role == "MANAGER":
             months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
             selected_month_name = col_f2.selectbox("SELECT MONTH", months, index=now.month-1)
             selected_month = months.index(selected_month_name) + 1
-            f_sales = sales_raw[(sales_raw['timestamp'].dt.month == selected_month) & (sales_raw['timestamp'].dt.year == 2026)]
-            f_exps = exp_raw[(exp_raw['timestamp'].dt.month == selected_month) & (exp_raw['timestamp'].dt.year == 2026)]
-            label = f"REPORT FOR {selected_month_name} 2026"
+            f_sales = sales_raw[(sales_raw['timestamp'].dt.month == selected_month) & (sales_raw['timestamp'].dt.year == now.year)]
+            f_exps = exp_raw[(exp_raw['timestamp'].dt.month == selected_month) & (exp_raw['timestamp'].dt.year == now.year)]
+            label = f"REPORT FOR {selected_month_name} {now.year}"
         else:
-            # Automatically generates a list from 2024 up to the current year
-current_year = datetime.now().year
-year_options = list(range(2024, current_year + 1))
-selected_year = col_f2.selectbox("SELECT YEAR", year_options, index=len(year_options)-1)
+            # FIXED INDENTATION AND SMART YEAR LOGIC
+            current_year = now.year
+            year_options = list(range(2024, current_year + 1))
+            selected_year = col_f2.selectbox("SELECT YEAR", year_options, index=len(year_options)-1)
             f_sales = sales_raw[sales_raw['timestamp'].dt.year == selected_year]
             f_exps = exp_raw[exp_raw['timestamp'].dt.year == selected_year]
             label = f"ANNUAL REPORT {selected_year}"
+
+        # ... The rest of the metrics calculation follows below ...
 
         rev_wash = f_sales[f_sales['type'] == 'CAR WASH']['total'].sum()
         rev_lounge = f_sales[f_sales['type'] == 'LOUNGE']['total'].sum()
