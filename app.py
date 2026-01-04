@@ -553,7 +553,10 @@ elif choice == "FINANCIALS" and st.session_state.user_role == "MANAGER":
             f_exps = exp_raw[(exp_raw['timestamp'].dt.month == selected_month) & (exp_raw['timestamp'].dt.year == 2026)]
             label = f"REPORT FOR {selected_month_name} 2026"
         else:
-            selected_year = col_f2.selectbox("SELECT YEAR", [2024, 2025, 2026], index=2)
+            # Automatically generates a list from 2024 up to the current year
+current_year = datetime.now().year
+year_options = list(range(2024, current_year + 1))
+selected_year = col_f2.selectbox("SELECT YEAR", year_options, index=len(year_options)-1)
             f_sales = sales_raw[sales_raw['timestamp'].dt.year == selected_year]
             f_exps = exp_raw[exp_raw['timestamp'].dt.year == selected_year]
             label = f"ANNUAL REPORT {selected_year}"
