@@ -12,7 +12,7 @@ c = conn.cursor()
 
 # Ensure all tables exist including the new Users and Membership tables
 c.execute('''CREATE TABLE IF NOT EXISTS users 
-             (username TEXT PRIMARY KEY, password TEXT, role TEXT, dept TEXT, status TEXT DEFAULT 'ACTIVE', verified INTEGER DEFAULT 0)''')
+             (username TEXT PRIMARY KEY, password TEXT, role TEXT, dept TEXT, status TEXT DEFAULT 'ACTIVE')''')
 c.execute('''CREATE TABLE IF NOT EXISTS customers 
              (plate TEXT PRIMARY KEY, name TEXT, phone TEXT, visits INTEGER, last_visit TEXT)''')
 c.execute('''CREATE TABLE IF NOT EXISTS sales 
@@ -27,16 +27,8 @@ c.execute('''CREATE TABLE IF NOT EXISTS expenses (id INTEGER PRIMARY KEY, descri
 c.execute('''CREATE TABLE IF NOT EXISTS memberships 
              (plate TEXT PRIMARY KEY, balance_washes INTEGER, card_type TEXT, sale_price REAL DEFAULT 0.0)''')
 
-# --- NEW TABLES FOR STAFF VERIFICATION & PAYROLL ---
-c.execute('''CREATE TABLE IF NOT EXISTS staff_profiles 
-             (username TEXT PRIMARY KEY, full_name TEXT, phone TEXT, address TEXT, nin TEXT, bank_name TEXT, account_no TEXT)''')
-c.execute('''CREATE TABLE IF NOT EXISTS staff_payroll_config 
-             (username TEXT PRIMARY KEY, base_salary REAL DEFAULT 0.0, bonus_pc REAL DEFAULT 0.0)''')
-c.execute('''CREATE TABLE IF NOT EXISTS earnings_log 
-             (id INTEGER PRIMARY KEY, username TEXT, amount REAL, ref_plate TEXT, timestamp TEXT)''')
-
 # Seed Admin and Initial Data
-c.execute("INSERT OR IGNORE INTO users VALUES ('admin', '0000', 'MANAGER', 'MANAGEMENT', 'ACTIVE', 1)")
+c.execute("INSERT OR IGNORE INTO users VALUES ('admin', '0000', 'MANAGER', 'MANAGEMENT', 'ACTIVE')")
 c.execute("INSERT OR IGNORE INTO inventory VALUES ('Car Shampoo', 10.0, 'Gallons', 0), ('Coke', 50.0, 'Cans', 500), ('Water', 100.0, 'Bottles', 200)")
 c.execute("SELECT COUNT(*) FROM wash_prices")
 if c.fetchone()[0] == 0:
@@ -54,6 +46,18 @@ st.markdown("""
     .notification-bar { background: #00d4ff22; padding: 12px; border-bottom: 1px solid #00d4ff; color: #00d4ff; font-size: 0.85em; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 30px; }
     .stButton>button { border-radius: 0px; letter-spacing: 2px; font-size: 0.8em; text-transform: uppercase; background-color: transparent; border: 1px solid #333; color: white; height: 3em; transition: 0.4s; width: 100%; }
     .stButton>button:hover { border-color: #00d4ff; color: #00d4ff; background-color: #00d4ff11; }
+    
+    /* MONITOR SCROLLING */
+    .monitor-container { background: #000; border: 2px solid #222; border-radius: 10px; height: 700px; overflow: hidden; position: relative; }
+    .scroll-content { position: absolute; width: 100%; animation: scrollUp 40s linear infinite; will-change: transform; }
+    @keyframes scrollUp { 0% { transform: translateY(100%); } 100% { transform: translateY(-100%); } }
+    .scroll-content:hover { animation-play-state: paused; }
+    .monitor-row { display: flex; justify-content: space-between; align-items: center; padding: 30px; border-bottom: 2px solid #222; background: #050505; }
+    .monitor-plate { font-size: 55px; font-weight: 900; color: #00d4ff; font-family: 'Courier New', monospace; }
+    .monitor-status { font-size: 18px; color: #FFD700; font-weight: bold; }
+    .monitor-meta { text-align: right; }
+    .monitor-staff { font-size: 20px; color: #888; text-transform: uppercase; }
+    .monitor-svc { color: #00d4ff; font-style: italic; font-size: 16px; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -63,13 +67,52 @@ if "print_receipt" in query_params:
     receipt_data = json.loads(query_params["print_receipt"])
     st.markdown(f"""
         <style>
-            @media print {{ body {{ background: white !important; }} .stApp {{ background: white !important; }} [data-testid="stSidebar"], header, .stButton {{ display: none !important; }} }}
-            .print-wrap {{ background: white; color: black; padding: 30px; font-family: 'Courier New', Courier, monospace; max-width: 400px; margin: auto; border: 2px solid black; }}
-            .print-header {{ text-align: center; border-bottom: 2px solid black; padding-bottom: 10px; margin-bottom: 15px; }}
-            .print-row {{ display: flex; justify-content: space-between; margin: 5px 0; font-size: 14px; }}
-            .print-divider {{ border-top: 1px dashed black; margin: 15px 0; }}
-            .print-total {{ border-top: 2px solid black; margin-top: 10px; padding-top: 10px; font-weight: bold; font-size: 22px; display: flex; justify-content: space-between; }}
-            .footer {{ text-align: center; font-size: 12px; margin-top: 30px; border-top: 1px solid black; padding-top: 10px; }}
+            @media print {{
+                body {{ background: white !important; }}
+                .stApp {{ background: white !important; }}
+                [data-testid="stSidebar"], header, .stButton {{ display: none !important; }}
+            }}
+            .print-wrap {{
+                background: white;
+                color: black;
+                padding: 30px;
+                font-family: 'Courier New', Courier, monospace;
+                max-width: 400px;
+                margin: auto;
+                border: 2px solid black;
+            }}
+            .print-header {{
+                text-align: center;
+                border-bottom: 2px solid black;
+                padding-bottom: 10px;
+                margin-bottom: 15px;
+            }}
+            .print-row {{
+                display: flex;
+                justify-content: space-between;
+                margin: 5px 0;
+                font-size: 14px;
+            }}
+            .print-divider {{
+                border-top: 1px dashed black;
+                margin: 15px 0;
+            }}
+            .print-total {{
+                border-top: 2px solid black;
+                margin-top: 10px;
+                padding-top: 10px;
+                font-weight: bold;
+                font-size: 22px;
+                display: flex;
+                justify-content: space-between;
+            }}
+            .footer {{
+                text-align: center;
+                font-size: 12px;
+                margin-top: 30px;
+                border-top: 1px solid black;
+                padding-top: 10px;
+            }}
         </style>
         <div class="print-wrap">
             <div class="print-header">
@@ -84,8 +127,14 @@ if "print_receipt" in query_params:
                 <p style="font-size:12px; margin-bottom:5px;">SERVICES RENDERED:</p>
                 <p style="font-size:16px; font-weight:bold;">{receipt_data['items']}</p>
             </div>
-            <div class="print-total"><span>TOTAL</span> <span>₦{receipt_data['total']:,}</span></div>
-            <div class="footer">THANK YOU FOR YOUR PATRONAGE<br>www.ridebossautos.com</div>
+            <div class="print-total">
+                <span>TOTAL</span>
+                <span>₦{receipt_data['total']:,}</span>
+            </div>
+            <div class="footer">
+                THANK YOU FOR YOUR PATRONAGE<br>
+                www.ridebossautos.com
+            </div>
         </div>
         <script>window.print();</script>
     """, unsafe_allow_html=True)
@@ -102,7 +151,7 @@ def format_whatsapp(phone, message):
 
 def get_free_staff_by_dept(dept_name):
     busy_list = pd.read_sql_query("SELECT staff FROM live_bays", conn)['staff'].tolist()
-    all_dept = pd.read_sql_query(f"SELECT username FROM users WHERE dept='{dept_name}' AND status='ACTIVE' AND verified=1", conn)['username'].tolist()
+    all_dept = pd.read_sql_query(f"SELECT username FROM users WHERE dept='{dept_name}' AND status='ACTIVE'", conn)['username'].tolist()
     return [s for s in all_dept if s not in busy_list]
 
 # --- LOGIN SYSTEM ---
@@ -128,39 +177,6 @@ if not st.session_state.logged_in:
                 st.error("Invalid Username or Password")
     st.stop()
 
-# --- NEW: STAFF VERIFICATION GATEKEEPER ---
-c.execute("SELECT verified FROM users WHERE username=?", (st.session_state.user_name,))
-is_verified = c.fetchone()[0]
-
-if st.session_state.user_role == "STAFF" and is_verified == 0:
-    st.markdown("<h2 style='text-align:center; color:#00d4ff;'>RIDEBOSS INDUCTION</h2>", unsafe_allow_html=True)
-    st.info("Please complete your verification details to unlock the system.")
-    with st.form("staff_verification_form"):
-        fn = st.text_input("Full Legal Name")
-        ph = st.text_input("Phone Number")
-        addr = st.text_area("Residential Address")
-        nin = st.text_input("NIN (11 Digits)", max_chars=11)
-        st.markdown("---")
-        st.write("BANKING DETAILS")
-        bn = st.text_input("Bank Name")
-        acc = st.text_input("Account Number")
-        
-        if st.form_submit_button("SUBMIT FOR VERIFICATION"):
-            if len(nin) != 11 or not nin.isdigit():
-                st.error("Invalid NIN. Please provide exactly 11 digits.")
-            elif fn and ph and addr and nin and bn and acc:
-                c.execute("INSERT OR REPLACE INTO staff_profiles VALUES (?,?,?,?,?,?,?)", 
-                          (st.session_state.user_name, fn, ph, addr, nin, bn, acc))
-                conn.commit()
-                st.success("Details submitted! Awaiting Manager Approval.")
-                st.info("Log out and wait for your manager to verify your account.")
-            else:
-                st.error("Please fill all fields.")
-    if st.button("LOGOUT"):
-        st.session_state.logged_in = False
-        st.rerun()
-    st.stop()
-
 # --- LOAD CONFIG ---
 wash_prices_df = pd.read_sql_query("SELECT * FROM wash_prices", conn)
 SERVICES = dict(zip(wash_prices_df['service'], wash_prices_df['price']))
@@ -170,7 +186,7 @@ COUNTRY_CODES = {"Nigeria": "+234", "Ghana": "+233", "UK": "+44", "USA": "+1", "
 st.sidebar.markdown(f"USER: **{st.session_state.user_name}**")
 menu = ["COMMAND CENTER", "LIVE U-FLOW", "NOTIFICATIONS"]
 if st.session_state.user_role == "MANAGER":
-    menu += ["ONBOARD STAFF", "BOSS HR", "INVENTORY & STAFF", "FINANCIALS", "CRM & RETENTION"]
+    menu += ["ONBOARD STAFF", "INVENTORY & STAFF", "FINANCIALS", "CRM & RETENTION"]
 
 choice = st.sidebar.radio("NAVIGATE", menu)
 if st.sidebar.button("LOGOUT"):
@@ -188,6 +204,7 @@ if choice == "COMMAND CENTER":
     with tab_trans:
         mode = st.radio("SELECT MODE", ["CAR WASH", "LOUNGE"], horizontal=True)
         st.markdown("---")
+        
         cust_data = pd.read_sql_query("SELECT * FROM customers", conn)
         search_options = ["NEW CUSTOMER"] + [f"{r['plate']} - {r['name']} ({r['phone']})" for _, r in cust_data.iterrows()]
         search_selection = st.selectbox("SEARCH EXISTING CLIENT", search_options)
@@ -211,7 +228,10 @@ if choice == "COMMAND CENTER":
             lounge_items_sold = []
             if mode == "CAR WASH":
                 selected = st.multiselect("SERVICES", list(SERVICES.keys()))
+                if selected and "Standard Wash" in selected and "Ceramic Wax" not in selected:
+                    st.warning("💡 PROMPT: Ask client if they want Ceramic Wax for long-lasting shine!")
                 total_price = sum([SERVICES[s] for s in selected])
+                
                 wet_staff = get_free_staff_by_dept("WET BAY")
                 staff_assigned = st.selectbox("ASSIGN WET BAY DETAILER", wet_staff if wet_staff else ["NO FREE STAFF"])
                 item_summary = ", ".join(selected)
@@ -232,7 +252,7 @@ if choice == "COMMAND CENTER":
 
         if st.button(f"AUTHORIZE {mode} TRANSACTION", use_container_width=True):
             if staff_assigned == "NO FREE STAFF" and mode == "CAR WASH":
-                st.error("Cannot authorize. No available staff.")
+                st.error("Cannot authorize. No available staff in the Wet Bay.")
             elif (plate or mode == "LOUNGE") and (selected if mode=="CAR WASH" else lounge_items_sold):
                 can_proceed = True
                 low_bal = False
@@ -245,8 +265,10 @@ if choice == "COMMAND CENTER":
                         new_bal = m_res[0] - 1
                         c.execute("UPDATE memberships SET balance_washes=? WHERE plate=?", (new_bal, plate))
                         final_sales_total = 0.0
+                        if new_bal <= 1: low_bal = True
                     else:
-                        st.error("No active card balance."); can_proceed = False
+                        st.error("No active card or zero balance for this plate.")
+                        can_proceed = False
 
                 if can_proceed:
                     now = datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -262,8 +284,13 @@ if choice == "COMMAND CENTER":
                             c.execute("UPDATE inventory SET stock = stock - ? WHERE item = ?", (qty, item))
                     
                     conn.commit()
-                    st.session_state['last_receipt'] = {"id": c.lastrowid, "items": item_summary, "total": final_sales_total, "plate": plate, "date": now}
-                    add_event(f"{mode} AUTH: {plate}"); st.rerun()
+                    st.session_state['last_receipt'] = {
+                        "id": c.lastrowid, "mode": mode, "name": name, "plate": plate, "phone": full_phone,
+                        "items": item_summary, "total": final_sales_total, 
+                        "staff": staff_assigned, "date": now, "low_bal": low_bal
+                    }
+                    add_event(f"{mode} AUTH: {plate if plate else 'Lounge'} via {pay_method}")
+                    st.rerun()
 
     with tab_mem:
         st.subheader("ACTIVATE MEMBERSHIP CARD")
@@ -271,10 +298,15 @@ if choice == "COMMAND CENTER":
         tier = st.selectbox("CARD TIER", ["Silver (5 Washes)", "Gold (10 Washes)", "Platinum (25 Washes)"])
         card_sale_price = st.number_input("CARD SALE PRICE (₦)", min_value=0.0)
         qty = 5 if "Silver" in tier else 10 if "Gold" in tier else 25
+        
         if st.button("ISSUE CARD"):
             if m_plate:
                 c.execute("INSERT OR REPLACE INTO memberships (plate, balance_washes, card_type, sale_price) VALUES (?, ?, ?, ?)", (m_plate, qty, tier, card_sale_price))
-                conn.commit(); add_event(f"CARD ISSUED: {tier} to {m_plate}"); st.success("Activated!")
+                conn.commit()
+                add_event(f"CARD ISSUED: {tier} to {m_plate}")
+                st.success(f"Activated {tier} for {m_plate}!")
+            else:
+                st.error("Plate number required.")
 
     if 'last_receipt' in st.session_state:
         r = st.session_state['last_receipt']
@@ -284,20 +316,38 @@ if choice == "COMMAND CENTER":
                 <h2 style="color: black !important; margin: 0; letter-spacing: 5px;">RIDEBOSS</h2>
                 <p style="color: #666 !important; font-size: 12px; margin: 0;">OFFICIAL TRANSACTION SUMMARY</p>
             </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;"><b>REFERENCE:</b> <span>#RB-{r['id']}</span></div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;"><b>DATE:</b> <span>{r['date']}</span></div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 30px;"><b>VEHICLE:</b> <span style="background: black; color: white; padding: 2px 8px;">{r['plate']}</span></div>
-            <div style="border: 1px solid black; padding: 15px; margin-bottom: 30px;"><small>DESCRIPTION</small><div style="font-size: 18px;">{r['items']}</div></div>
-            <div style="display: flex; justify-content: space-between; border-top: 2px solid black; padding-top: 15px;"><b>AMOUNT PAID</b><span style="font-size: 22px; font-weight: 900;">₦{r['total']:,}</span></div>
-            <p style="text-align: center; margin-top: 40px; font-size: 10px; color: #999;">AUTHENTIC RIDEBOSS DOCUMENT</p>
-        </div>""", unsafe_allow_html=True)
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <span style="font-weight: bold;">REFERENCE:</span> <span>#RB-{r['id']}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <span style="font-weight: bold;">DATE:</span> <span>{r['date']}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 30px;">
+                <span style="font-weight: bold;">VEHICLE:</span> <span style="background: black; color: white; padding: 2px 8px;">{r['plate']}</span>
+            </div>
+            
+            <div style="border: 1px solid black; padding: 15px; margin-bottom: 30px;">
+                <small style="color: #888; font-weight: bold;">DESCRIPTION</small><br>
+                <div style="font-size: 18px; margin-top: 5px;">{r['items']}</div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; border-top: 2px solid black; padding-top: 15px;">
+                <span style="font-size: 18px; font-weight: bold;">AMOUNT PAID</span>
+                <span style="font-size: 22px; font-weight: 900;">₦{r['total']:,}</span>
+            </div>
+            <p style="text-align: center; margin-top: 40px; font-size: 10px; color: #999; letter-spacing: 2px;">AUTHENTIC RIDEBOSS DOCUMENT</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
         c_p1, c_p2 = st.columns(2)
         with c_p1:
             receipt_payload = { "id": r["id"], "date": r["date"], "plate": r["plate"], "items": r["items"], "total": r["total"] }
             receipt_url = f"?print_receipt={urllib.parse.quote(json.dumps(receipt_payload))}"
-            st.markdown(f'<a href="{receipt_url}" target="_blank" style="text-decoration:none;"><button style="width:100%; height:3.5em; border:2px solid black; background:black; color:white; font-weight:bold; cursor:pointer;">🖨️ PRINT RECEIPT</button></a>', unsafe_allow_html=True)
+            st.markdown(f'<a href="{receipt_url}" target="_blank" style="text-decoration:none;"><button style="width:100%; height:3.5em; border:2px solid black; background:black; color:white; font-weight:bold; cursor:pointer; text-transform:uppercase; letter-spacing:2px;">🖨️ PRINT RECEIPT</button></a>', unsafe_allow_html=True)
         with c_p2:
-            if st.button("CLOSE & DISMISS"): del st.session_state['last_receipt']; st.rerun()
+            if st.button("CLOSE & DISMISS"):
+                del st.session_state['last_receipt']
+                st.rerun()
 
 # --- 2. LIVE U-FLOW ---
 elif choice == "LIVE U-FLOW":
@@ -323,7 +373,9 @@ elif choice == "LIVE U-FLOW":
                 .monitor-svc { color: #00d4ff; font-style: italic; font-size: 22px; }
             </style>
             <div class="monitor-container"><div class="scroll-content">"""
+            
             scroll_data = pd.concat([live_cars, live_cars])
+            
             for _, row in scroll_data.iterrows():
                 monitor_html += f"""
                 <div class="monitor-row">
@@ -334,7 +386,9 @@ elif choice == "LIVE U-FLOW":
                         <div class="monitor-staff">ASSIGNED: {row['staff']}</div>
                     </div>
                 </div>"""
+            
             monitor_html += "</div></div>"
+            
             import streamlit.components.v1 as components
             components.html(monitor_html, height=800)
 
@@ -363,17 +417,6 @@ elif choice == "LIVE U-FLOW":
                                 conn.commit(); add_event(f"{row['plate']} moved to Dry Bay"); st.rerun()
                 
                 if st.button(f"RELEASE {row['plate']}", key=f"rel_{idx}"):
-                    # CALCULATE COMMISSION LOGIC
-                    c.execute("SELECT total FROM sales WHERE plate=? ORDER BY id DESC LIMIT 1", (row['plate'],))
-                    sale_total = c.fetchone()[0]
-                    c.execute("SELECT bonus_pc FROM staff_payroll_config WHERE username=?", (row['staff'],))
-                    staff_cfg = c.fetchone()
-                    
-                    if staff_cfg and staff_cfg[0] > 0:
-                        comm = sale_total * (staff_cfg[0] / 100)
-                        c.execute("INSERT INTO earnings_log (username, amount, ref_plate, timestamp) VALUES (?,?,?,?)", 
-                                  (row['staff'], comm, row['plate'], datetime.now().strftime("%Y-%m-%d")))
-                    
                     c.execute("SELECT name, phone FROM customers WHERE plate=?", (row['plate'],))
                     cust_info = c.fetchone()
                     c.execute("DELETE FROM live_bays WHERE plate=?", (row['plate'],))
@@ -382,7 +425,8 @@ elif choice == "LIVE U-FLOW":
                     if cust_info:
                         wa_msg = f"Hi {cust_info[0]}, your vehicle ({row['plate']}) is ready! Thank you."
                         st.markdown(f'<a href="{format_whatsapp(cust_info[1], wa_msg)}" target="_blank">SEND WA</a>', unsafe_allow_html=True)
-                    st.success("Released."); time.sleep(1); st.rerun()
+                    st.success("Released.")
+                    time.sleep(1); st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 
 # --- 3. ONBOARD STAFF ---
@@ -395,41 +439,16 @@ elif choice == "ONBOARD STAFF" and st.session_state.user_role == "MANAGER":
         s_dept = st.selectbox("Department", ["WET BAY", "DRY BAY", "RECEPTIONIST", "MANAGEMENT"])
         if st.form_submit_button("ONBOARD STAFF"):
             if s_name and s_pass:
-                c.execute("INSERT OR REPLACE INTO users (username, password, role, dept, status, verified) VALUES (?,?,?,?,?,?)", (s_name, s_pass, s_role, s_dept, 'ACTIVE', 0))
+                c.execute("INSERT OR REPLACE INTO users (username, password, role, dept, status) VALUES (?,?,?,?,?)", (s_name, s_pass, s_role, s_dept, 'ACTIVE'))
                 conn.commit(); st.success(f"{s_name} added to {s_dept}."); st.rerun()
     st.write("---")
     st.subheader("CURRENT STAFF DIRECTORY")
-    current_staff_df = pd.read_sql_query("SELECT username, dept, role, status, verified FROM users", conn)
+    current_staff_df = pd.read_sql_query("SELECT username, dept, role, status FROM users", conn)
     st.dataframe(current_staff_df, use_container_width=True)
-
-# --- NEW: BOSS HR PORTAL ---
-elif choice == "BOSS HR" and st.session_state.user_role == "MANAGER":
-    st.subheader("HUMAN RESOURCES & VERIFICATION")
-    pending_staff = pd.read_sql_query("SELECT * FROM staff_profiles WHERE username IN (SELECT username FROM users WHERE verified=0)", conn)
-    
-    if pending_staff.empty:
-        st.info("No pending verifications.")
-    else:
-        for idx, row in pending_staff.iterrows():
-            with st.expander(f"REVIEW: {row['username']}"):
-                st.write(f"**Full Name:** {row['full_name']}")
-                st.write(f"**NIN:** {row['nin']}")
-                st.write(f"**Bank:** {row['bank_name']} ({row['account_no']})")
-                st.write(f"**Address:** {row['address']}")
-                
-                col_a, col_b = st.columns(2)
-                base_sal = col_a.number_input("Set Base Salary (₦)", min_value=0.0, key=f"bsal_{idx}")
-                bonus_pct = col_b.number_input("Set Commission %", min_value=0.0, max_value=100.0, key=f"bpct_{idx}")
-                
-                if st.button("VERIFY & APPROVE STAFF", key=f"appr_{idx}"):
-                    c.execute("UPDATE users SET verified=1 WHERE username=?", (row['username'],))
-                    c.execute("INSERT OR REPLACE INTO staff_payroll_config VALUES (?,?,?)", (row['username'], base_sal, bonus_pct))
-                    conn.commit(); add_event(f"STAFF VERIFIED: {row['username']}"); st.rerun()
-
-    st.write("---")
-    st.subheader("PAYROLL & EARNINGS")
-    earnings_df = pd.read_sql_query("SELECT username, SUM(amount) as total_bonuses FROM earnings_log GROUP BY username", conn)
-    st.dataframe(earnings_df, use_container_width=True)
+    target_staff = st.selectbox("Select Staff Member", ["None"] + current_staff_df['username'].tolist())
+    if st.button("DEACTIVATE STAFF") and target_staff != "None":
+        c.execute("UPDATE users SET status='INACTIVE' WHERE username=?", (target_staff,))
+        conn.commit(); st.rerun()
 
 # --- 4. INVENTORY & STAFF (MANAGER) ---
 elif choice == "INVENTORY & STAFF" and st.session_state.user_role == "MANAGER":
@@ -443,19 +462,31 @@ elif choice == "INVENTORY & STAFF" and st.session_state.user_role == "MANAGER":
             if st.form_submit_button("ADD/UPDATE"):
                 c.execute("INSERT OR REPLACE INTO inventory VALUES (?,?,?,?)", (ni_name, ni_stock, ni_unit, ni_price))
                 conn.commit(); st.rerun()
-        inv_data = pd.read_sql_query("SELECT * FROM inventory", conn); st.dataframe(inv_data, use_container_width=True)
+        inv_data = pd.read_sql_query("SELECT * FROM inventory", conn)
+        st.dataframe(inv_data, use_container_width=True)
     with t2:
+        st.subheader("EDIT SERVICES & PRICES")
         edit_svc_list = list(SERVICES.keys())
         svc_to_edit = st.selectbox("Select Service to Modify", ["-- ADD NEW --"] + edit_svc_list)
         with st.form("svc_form"):
             new_name = st.text_input("Service Name", value="" if svc_to_edit == "-- ADD NEW --" else svc_to_edit)
             new_price = st.number_input("Service Price (₦)", value=0.0 if svc_to_edit == "-- ADD NEW --" else SERVICES[svc_to_edit])
-            if st.form_submit_button("SAVE SERVICE"):
-                c.execute("INSERT OR REPLACE INTO wash_prices VALUES (?,?)", (new_name, new_price)); conn.commit(); st.rerun()
+            sub_col1, sub_col2 = st.columns(2)
+            if sub_col1.form_submit_button("SAVE SERVICE"):
+                if svc_to_edit != "-- ADD NEW --" and new_name != svc_to_edit:
+                    c.execute("DELETE FROM wash_prices WHERE service=?", (svc_to_edit,))
+                c.execute("INSERT OR REPLACE INTO wash_prices VALUES (?,?)", (new_name, new_price))
+                conn.commit(); st.rerun()
+            if svc_to_edit != "-- ADD NEW --":
+                if sub_col2.form_submit_button("DELETE SERVICE"):
+                    c.execute("DELETE FROM wash_prices WHERE service=?", (svc_to_edit,))
+                    conn.commit(); st.rerun()
     with t3:
         perf_query = "SELECT staff, COUNT(*) as washes, SUM(total) as revenue FROM sales WHERE type='CAR WASH' GROUP BY staff"
-        perf_df = pd.read_sql_query(perf_query, conn); st.bar_chart(perf_df.set_index('staff')['washes'])
-        
+        perf_df = pd.read_sql_query(perf_query, conn)
+        st.bar_chart(perf_df.set_index('staff')['washes'])
+        st.dataframe(perf_df, use_container_width=True)
+
 # --- 5. FINANCIALS (SMART YEARLY LOGIC) ---
 elif choice == "FINANCIALS" and st.session_state.user_role == "MANAGER":
     st.subheader("FINANCIAL INTELLIGENCE CENTER")
@@ -543,10 +574,11 @@ elif choice == "FINANCIALS" and st.session_state.user_role == "MANAGER":
 elif choice == "CRM & RETENTION" and st.session_state.user_role == "MANAGER":
     st.subheader("RETENTION PANEL")
     cust_df = pd.read_sql_query("SELECT * FROM customers", conn)
-    for _, row in cust_df.iterrows():
+    for idx, row in cust_df.iterrows():
         last_v = datetime.strptime(row['last_visit'], "%Y-%m-%d")
         days = (datetime.now() - last_v).days
-        st.write(f"**{row['name']}** - {days} days since last visit")
+        color = "#00d4ff" if days < 14 else "#FF3B30"
+        st.markdown(f"<p style='color:{color};'><b>{row['name']}</b> ({row['plate']}) - {days} days since last visit</p>", unsafe_allow_html=True)
 
 elif choice == "NOTIFICATIONS":
     st.subheader("SYSTEM HISTORY")
