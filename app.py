@@ -340,9 +340,9 @@ if choice == "COMMAND CENTER":
                     add_event(f"{mode} AUTH: {plate if plate else 'Lounge'} via {pay_method}")
                     st.rerun()
 
-        with tab_mem:
-            st.subheader("ACTIVATE MEMBERSHIP CARD")
-                m_plate = st.text_input("SCAN/ENTER PLATE FOR CARD").upper()
+    with tab_mem:
+        st.subheader("ACTIVATE MEMBERSHIP CARD")
+        m_plate = st.text_input("SCAN/ENTER PLATE FOR CARD").upper()
         tier = st.selectbox("CARD TIER", ["Silver (5 Washes)", "Gold (10 Washes)", "Platinum (25 Washes)"])
         card_sale_price = st.number_input("CARD SALE PRICE (₦)", min_value=0.0)
         qty = 5 if "Silver" in tier else 10 if "Gold" in tier else 25
@@ -716,7 +716,7 @@ elif choice == "FINANCIALS" and st.session_state.user_role == "MANAGER":
                 c.execute("INSERT INTO expenses (description, amount, timestamp) VALUES (?,?,?)", (e_desc, e_amt, datetime.now().strftime("%Y-%m-%d")))
                 conn.commit(); st.rerun()
 
-        with tab_cards_hub:
+    with tab_cards_hub:
         m_df = pd.read_sql_query("SELECT * FROM memberships", conn)
         for idx, row in m_df.iterrows():
             with st.container():
