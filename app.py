@@ -408,49 +408,46 @@ if choice == "COMMAND CENTER":
                 del st.session_state['last_receipt']
                 st.rerun()
 
-# --- 2. LIVE U-FLOW (ENHANCED FOR COMMISSION) ---
+# --- 2. LIVE U-FLOW (ENHANCED WITH PERSISTENT WHATSAPP NOTIFICATION) ---
 elif choice == "LIVE U-FLOW":
+    # Initialize session state for the WhatsApp notification if it doesn't exist
+    if 'wa_pending' not in st.session_state:
+        st.session_state.wa_pending = None
+
     view_mode = st.radio("VIEW MODE", ["Management controls", "External Flight Board"], horizontal=True)
     live_cars = pd.read_sql_query("SELECT * FROM live_bays", conn)
     
     if view_mode == "External Flight Board":
+        # ... (Keep your existing External Flight Board HTML/CSS code here) ...
         st.markdown("<h1 style='text-align:center; color:#00d4ff;'>WORKFLOW MONITOR</h1>", unsafe_allow_html=True)
         if live_cars.empty:
             st.info("ALL BAYS CLEAR.")
         else:
-            monitor_html = """
-            <style>
-                body { background-color: #050505; margin: 0; padding: 0; font-family: sans-serif; overflow: hidden; }
-                .monitor-container { background: #000; height: 100vh; width: 100%; position: relative; overflow: hidden; }
-                .scroll-content { position: absolute; width: 100%; animation: scrollUp 30s linear infinite; }
-                @keyframes scrollUp { 0% { transform: translateY(100%); } 100% { transform: translateY(-100%); } }
-                .monitor-row { display: flex; justify-content: space-between; align-items: center; padding: 30px; border-bottom: 2px solid #222; background: #050505; color: white; }
-                .monitor-plate { font-size: 50px; font-weight: 900; color: #00d4ff; font-family: 'Courier New', monospace; line-height: 1; }
-                .monitor-status { font-size: 18px; color: #FFD700; font-weight: bold; text-transform: uppercase; }
-                .monitor-meta { text-align: right; }
-                .monitor-staff { font-size: 20px; color: #888; text-transform: uppercase; }
-                .monitor-svc { color: #00d4ff; font-style: italic; font-size: 22px; }
-            </style>
-            <div class="monitor-container"><div class="scroll-content">"""
-            
-            scroll_data = pd.concat([live_cars, live_cars])
-            
-            for _, row in scroll_data.iterrows():
-                monitor_html += f"""
-                <div class="monitor-row">
-                    <div class="monitor-plate">{row['plate']}<br><span style="font-size:18px; color:#555;">{row['vehicle_type']}</span></div>
-                    <div style="flex:1; padding-left:40px;"><div class="monitor-svc">SERVICE: {row['service_detail']}</div></div>
-                    <div class="monitor-meta">
-                        <div class="monitor-status">{row['status']}</div>
-                        <div class="monitor-staff">ASSIGNED: {row['staff']}</div>
-                    </div>
-                </div>"""
-            
-            monitor_html += "</div></div>"
-            import streamlit.components.v1 as components
-            components.html(monitor_html, height=800)
+            monitor_html = """<style>...</style><div class="monitor-container"><div class="scroll-content">"""
+            # (Your existing monitor loop)
+            st.markdown("Monitor code here...") 
 
     else:
+        # --- NEW: PERSISTENT WHATSAPP NOTIFICATION BAR ---
+        if st.session_state.wa_pending:
+            with st.container():
+                st.markdown(f"""
+                    <div style="background-color:#0e1117; border:2px solid #25D366; padding:15px; border-radius:10px; margin-bottom:20px; text-align:center;">
+                        <h4 style="color:#25D366; margin:0;">Vehicle Ready: {st.session_state.wa_pending['plate']}</h4>
+                        <p style="color:white; margin:5px 0 15px 0;">The car has been released. Click below to notify the customer.</p>
+                        <a href="{st.session_state.wa_pending['url']}" target="_blank" style="text-decoration:none;">
+                            <button style="background-color:#25D366; color:white; padding:12px 30px; border:none; border-radius:5px; font-weight:bold; cursor:pointer; width:100%;">
+                                📲 OPEN WHATSAPP CHAT
+                            </button>
+                        </a>
+                    </div>
+                """, unsafe_allow_html=True)
+                if st.button("Dismiss Notification", use_container_width=True):
+                    st.session_state.wa_pending = None
+                    st.rerun()
+                st.divider()
+
+        # --- CAR LIST ---
         for idx, row in live_cars.iterrows():
             entry_dt = datetime.strptime(row['entry_time'], "%Y-%m-%d %H:%M")
             time_spent = (datetime.now() - entry_dt).seconds // 60
@@ -472,27 +469,20 @@ elif choice == "LIVE U-FLOW":
                         new_dry_detailer = st.selectbox("Assign Dry Bay", dry_staff if dry_staff else ["NO FREE STAFF"], key=f"dry_{idx}")
                         if st.button("Confirm Handover", key=f"hnd_{idx}"):
                             if new_dry_detailer != "NO FREE STAFF":
-                                # NEW: Store the current staff (Wet) into wet_staff_history before changing status
                                 c.execute("UPDATE live_bays SET status='DRY BAY', staff=?, wet_staff_history=? WHERE plate=?", 
                                           (new_dry_detailer, row['staff'], row['plate']))
                                 conn.commit(); add_event(f"{row['plate']} moved to Dry Bay"); st.rerun()
                 
-                # --- AUTOMATED COMMISSION RELEASE LOGIC ---
-                if st.button(f"RELEASE {row['plate']}", key=f"rel_{idx}"):
-                    # 1. Get Transaction Total
+                # --- RELEASE LOGIC ---
+                if st.button(f"RELEASE {row['plate']}", key=f"rel_{idx}", use_container_width=True):
+                    # 1. Commission Logic
                     c.execute("SELECT total FROM sales WHERE plate=? ORDER BY id DESC LIMIT 1", (row['plate'],))
                     sale_data = c.fetchone()
-                    
                     if sale_data:
                         sale_total = sale_data[0]
-                        # 2. Identify Staff Involved (Current + Previous)
-                        current_staff = row['staff'] # Likely Dry Bay
-                        prev_staff = row['wet_staff_history'] # Wet Bay
-                        
+                        current_staff, prev_staff = row['staff'], row['wet_staff_history']
                         staff_to_pay = [s for s in [current_staff, prev_staff] if s is not None]
-                        
                         for s_member in staff_to_pay:
-                            # Get their commission %
                             c.execute("SELECT bonus_pc FROM staff_payroll_config WHERE username=?", (s_member,))
                             p_res = c.fetchone()
                             if p_res and p_res[0] > 0:
@@ -500,16 +490,23 @@ elif choice == "LIVE U-FLOW":
                                 c.execute("INSERT INTO earnings_log (username, amount, ref_plate, timestamp) VALUES (?,?,?,?)",
                                           (s_member, comm_amt, row['plate'], datetime.now().strftime("%Y-%m-%d %H:%M")))
 
+                    # 2. Prep WhatsApp Info
                     c.execute("SELECT name, phone FROM customers WHERE plate=?", (row['plate'],))
                     cust_info = c.fetchone()
+                    
+                    if cust_info:
+                        wa_msg = f"Hi {cust_info[0]}, your vehicle ({row['plate']}) is ready! Thank you for choosing RideBoss Autos."
+                        # Store in session state so it survives the rerun
+                        st.session_state.wa_pending = {
+                            "url": format_whatsapp(cust_info[1], wa_msg),
+                            "plate": row['plate']
+                        }
+
+                    # 3. Delete and Refresh
                     c.execute("DELETE FROM live_bays WHERE plate=?", (row['plate'],))
                     conn.commit()
                     add_event(f"{row['plate']} Released.")
-                    if cust_info:
-                        wa_msg = f"Hi {cust_info[0]}, your vehicle ({row['plate']}) is ready! Thank you."
-                        st.markdown(f'<a href="{format_whatsapp(cust_info[1], wa_msg)}" target="_blank">SEND WA</a>', unsafe_allow_html=True)
-                    st.success("Released & Commissions Logged.")
-                    time.sleep(1); st.rerun()
+                    st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 
 # --- 3. ONBOARD STAFF (MANAGER) ---
