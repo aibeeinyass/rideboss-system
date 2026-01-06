@@ -14,6 +14,7 @@ from PIL import Image
 conn = st.connection("postgresql", type="sql")
 
 def init_db():
+    # TRANSACTION 1: Schema Setup
     with conn.session as s:
         # --- EXISTING TABLES ---
         s.execute(text('''CREATE TABLE IF NOT EXISTS users 
@@ -33,7 +34,6 @@ def init_db():
                      (plate TEXT PRIMARY KEY, balance_washes INTEGER, card_type TEXT, sale_price REAL DEFAULT 0.0)'''))
 
         # --- NEW FEATURES TABLES ---
-        # Note: Using BYTEA for PostgreSQL image storage
         s.execute(text('''CREATE TABLE IF NOT EXISTS staff_profiles 
                      (username TEXT PRIMARY KEY, full_name TEXT, phone TEXT, address TEXT, nin TEXT, bank_name TEXT, account_no TEXT, id_type TEXT, id_image BYTEA)'''))
         s.execute(text('''CREATE TABLE IF NOT EXISTS staff_payroll_config 
@@ -46,7 +46,10 @@ def init_db():
             s.execute(text("ALTER TABLE live_bays ADD COLUMN wet_staff_history TEXT"))
         except:
             pass 
+        s.commit() # FORCE COMMIT TABLES BEFORE SEEDING
 
+    # TRANSACTION 2: Data Seeding
+    with conn.session as s:
         # Seed Admin and Initial Data
         s.execute(text("INSERT INTO users (username, password, role, dept, status, verified) VALUES ('admin', '0000', 'MANAGER', 'MANAGEMENT', 'ACTIVE', 1) ON CONFLICT (username) DO NOTHING"))
         s.execute(text("INSERT INTO inventory (item, stock, unit, price) VALUES ('Car Shampoo', 10.0, 'Gallons', 0) ON CONFLICT (item) DO NOTHING"))
