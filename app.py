@@ -229,7 +229,7 @@ if st.session_state.user_role == "MANAGER":
     # Added "ONBOARD STAFF" back to the Manager's list
     menu = ["COMMAND CENTER", "LIVE U-FLOW", "ONBOARD STAFF", "BOSS HR", "FINANCIALS", "INVENTORY & STAFF", "CRM & RETENTION", "NOTIFICATIONS"]
 elif st.session_state.user_dept == "RECEPTIONIST":
-    menu = ["COMMAND CENTER", "LIVE U-FLOW", "NOTIFICATIONS"]
+    menu = ["COMMAND CENTER", "LIVE U-FLOW", "MY EARNINGS", "NOTIFICATIONS"]
 else:
     # Wet/Dry Bay Staff only see this
     menu = ["LIVE U-FLOW", "MY EARNINGS", "NOTIFICATIONS"]
