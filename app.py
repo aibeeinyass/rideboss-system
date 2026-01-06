@@ -14,9 +14,8 @@ from PIL import Image
 conn = st.connection("postgresql", type="sql")
 
 def init_db():
-    # TRANSACTION 1: Schema Setup
+    # 1. CREATE ALL TABLES
     with conn.session as s:
-        # --- EXISTING TABLES ---
         s.execute(text('''CREATE TABLE IF NOT EXISTS users 
                      (username TEXT PRIMARY KEY, password TEXT, role TEXT, dept TEXT, status TEXT DEFAULT 'ACTIVE', verified INTEGER DEFAULT 0)'''))
         s.execute(text('''CREATE TABLE IF NOT EXISTS customers 
@@ -32,41 +31,43 @@ def init_db():
         s.execute(text('''CREATE TABLE IF NOT EXISTS expenses (id SERIAL PRIMARY KEY, description TEXT, amount REAL, timestamp TEXT)'''))
         s.execute(text('''CREATE TABLE IF NOT EXISTS memberships 
                      (plate TEXT PRIMARY KEY, balance_washes INTEGER, card_type TEXT, sale_price REAL DEFAULT 0.0)'''))
-
-        # --- NEW FEATURES TABLES ---
         s.execute(text('''CREATE TABLE IF NOT EXISTS staff_profiles 
                      (username TEXT PRIMARY KEY, full_name TEXT, phone TEXT, address TEXT, nin TEXT, bank_name TEXT, account_no TEXT, id_type TEXT, id_image BYTEA)'''))
         s.execute(text('''CREATE TABLE IF NOT EXISTS staff_payroll_config 
                      (username TEXT PRIMARY KEY, base_salary REAL DEFAULT 0.0, bonus_pc REAL DEFAULT 0.0)'''))
         s.execute(text('''CREATE TABLE IF NOT EXISTS earnings_log 
                      (id SERIAL PRIMARY KEY, username TEXT, amount REAL, ref_plate TEXT, timestamp TEXT)'''))
-
-        # Migration for existing columns
+        
+        # Migration
         try:
             s.execute(text("ALTER TABLE live_bays ADD COLUMN wet_staff_history TEXT"))
         except:
-            pass 
-        s.commit() # FORCE COMMIT TABLES BEFORE SEEDING
+            pass
+        s.commit()
 
-    # TRANSACTION 2: Data Seeding
+    # 2. SEED DATA (Independent Transaction)
     with conn.session as s:
-        # Seed Admin and Initial Data
+        # Seed Admin
         s.execute(text("INSERT INTO users (username, password, role, dept, status, verified) VALUES ('admin', '0000', 'MANAGER', 'MANAGEMENT', 'ACTIVE', 1) ON CONFLICT (username) DO NOTHING"))
-        s.execute(text("INSERT INTO inventory (item, stock, unit, price) VALUES ('Car Shampoo', 10.0, 'Gallons', 0) ON CONFLICT (item) DO NOTHING"))
-        s.execute(text("INSERT INTO inventory (item, stock, unit, price) VALUES ('Coke', 50.0, 'Cans', 500) ON CONFLICT (item) DO NOTHING"))
-        s.execute(text("INSERT INTO inventory (item, stock, unit, price) VALUES ('Water', 100.0, 'Bottles', 200) ON CONFLICT (item) DO NOTHING"))
         
-        res = s.execute(text("SELECT COUNT(*) FROM wash_prices")).fetchone()
-        if res[0] == 0:
-            initial_services = [
-                {"s": "Standard Wash", "p": 5000}, 
-                {"s": "Executive Detail", "p": 15000}, 
-                {"s": "Engine Steam", "p": 10000}, 
-                {"s": "Ceramic Wax", "p": 25000}, 
-                {"s": "Interior Deep Clean", "p": 12000}
-            ]
-            for svc in initial_services:
-                s.execute(text("INSERT INTO wash_prices (service, price) VALUES (:s, :p)"), svc)
+        # Seed Inventory
+        items = [('Car Shampoo', 10.0, 'Gallons', 0), ('Coke', 50.0, 'Cans', 500), ('Water', 100.0, 'Bottles', 200)]
+        for item, stock, unit, price in items:
+            s.execute(text("INSERT INTO inventory (item, stock, unit, price) VALUES (:i, :s, :u, :p) ON CONFLICT (item) DO NOTHING"), 
+                      {"i": item, "s": stock, "u": unit, "p": price})
+        
+        # Seed Wash Prices
+        initial_services = [
+            ("Standard Wash", 5000), 
+            ("Executive Detail", 15000), 
+            ("Engine Steam", 10000), 
+            ("Ceramic Wax", 25000), 
+            ("Interior Deep Clean", 12000)
+        ]
+        for name, price in initial_services:
+            s.execute(text("INSERT INTO wash_prices (service, price) VALUES (:s, :p) ON CONFLICT (service) DO NOTHING"), 
+                      {"s": name, "p": price})
+        
         s.commit()
 
 init_db()
