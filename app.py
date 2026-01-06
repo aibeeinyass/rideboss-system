@@ -220,13 +220,14 @@ wash_prices_df = pd.read_sql_query("SELECT * FROM wash_prices", conn)
 SERVICES = dict(zip(wash_prices_df['service'], wash_prices_df['price']))
 COUNTRY_CODES = {"Nigeria": "+234", "Ghana": "+233", "UK": "+44", "USA": "+1", "UAE": "+971"}
 
-# --- SIDEBAR NAVIGATION (NEW FEATURE 4: STRICT ACCESS) ---
+# --- SIDEBAR NAVIGATION (RESTORED ONBOARD STAFF) ---
 st.sidebar.markdown(f"USER: **{st.session_state.user_name}**")
 st.sidebar.caption(f"DEPT: {st.session_state.user_dept}")
 
 # Define Menus based on Role/Dept
 if st.session_state.user_role == "MANAGER":
-    menu = ["COMMAND CENTER", "LIVE U-FLOW", "BOSS HR", "FINANCIALS", "INVENTORY & STAFF", "CRM & RETENTION", "NOTIFICATIONS"]
+    # Added "ONBOARD STAFF" back to the Manager's list
+    menu = ["COMMAND CENTER", "LIVE U-FLOW", "ONBOARD STAFF", "BOSS HR", "FINANCIALS", "INVENTORY & STAFF", "CRM & RETENTION", "NOTIFICATIONS"]
 elif st.session_state.user_dept == "RECEPTIONIST":
     menu = ["COMMAND CENTER", "LIVE U-FLOW", "NOTIFICATIONS"]
 else:
