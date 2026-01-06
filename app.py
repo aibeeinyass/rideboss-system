@@ -347,24 +347,24 @@ if choice == "COMMAND CENTER":
         card_sale_price = st.number_input("CARD SALE PRICE (₦)", min_value=0.0)
         qty = 5 if "Silver" in tier else 10 if "Gold" in tier else 25
         
-        if st.button("ISSUE CARD"):
-    if m_plate:
-        c.execute("INSERT OR REPLACE INTO memberships (plate, balance_washes, card_type, sale_price) VALUES (?, ?, ?, ?)", (m_plate, qty, tier, card_sale_price))
-        
-        # --- ADD THIS NEW LOGIC HERE ---
-        receptionist = st.session_state.user_name
-        c.execute("SELECT bonus_pc FROM staff_payroll_config WHERE username=?", (receptionist,))
-        p_res = c.fetchone()
-        
-        if p_res and p_res[0] > 0:
-            comm_amt = card_sale_price * (p_res[0] / 100)
-            c.execute("INSERT INTO earnings_log (username, amount, ref_plate, timestamp) VALUES (?,?,?,?)",
-                      (receptionist, comm_amt, f"CARD:{tier}", datetime.now().strftime("%Y-%m-%d %H:%M")))
-        # --- END OF NEW LOGIC ---
-
-        conn.commit()
-        add_event(f"CARD ISSUED: {tier} to {m_plate}")
-        st.success(f"Activated {tier} for {m_plate}!")
+                if st.button("ISSUE CARD"):
+            if m_plate:
+                c.execute("INSERT OR REPLACE INTO memberships (plate, balance_washes, card_type, sale_price) VALUES (?, ?, ?, ?)", (m_plate, qty, tier, card_sale_price))
+                
+                # --- COMMISSION LOGIC FOR RECEPTIONIST ---
+                receptionist = st.session_state.user_name
+                c.execute("SELECT bonus_pc FROM staff_payroll_config WHERE username=?", (receptionist,))
+                p_res = c.fetchone()
+                if p_res and p_res[0] > 0:
+                    comm_amt = card_sale_price * (p_res[0] / 100)
+                    c.execute("INSERT INTO earnings_log (username, amount, ref_plate, timestamp) VALUES (?,?,?,?)",
+                              (receptionist, comm_amt, f"NEW_CARD:{m_plate}", datetime.now().strftime("%Y-%m-%d %H:%M")))
+                
+                conn.commit()
+                add_event(f"CARD ISSUED: {tier} to {m_plate}")
+                st.success(f"Activated {tier} for {m_plate}!")
+            else:
+                st.error("Plate number required.")
 
     if 'last_receipt' in st.session_state:
         r = st.session_state['last_receipt']
