@@ -523,7 +523,7 @@ elif choice == "LIVE U-FLOW":
                     cust_info = c.fetchone()
                     
                     if cust_info:
-                        wa_msg = f"Hi {cust_info[0]}, your vehicle ({row['plate']}) is ready! Thank you."
+                        wa_msg = f"Hi {cust_info[0]}, your vehicle ({row['plate']}) is ready for pickup! Thank you for choosing RideBoss Autos."
                         # Set the sticky notification data
                         st.session_state.wa_pending = {
                             "url": format_whatsapp(cust_info[1], wa_msg),
