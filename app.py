@@ -340,14 +340,14 @@ if choice == "COMMAND CENTER":
                     add_event(f"{mode} AUTH: {plate if plate else 'Lounge'} via {pay_method}")
                     st.rerun()
 
-    with tab_mem:
+        with tab_mem:
         st.subheader("ACTIVATE MEMBERSHIP CARD")
         m_plate = st.text_input("SCAN/ENTER PLATE FOR CARD").upper()
         tier = st.selectbox("CARD TIER", ["Silver (5 Washes)", "Gold (10 Washes)", "Platinum (25 Washes)"])
         card_sale_price = st.number_input("CARD SALE PRICE (₦)", min_value=0.0)
         qty = 5 if "Silver" in tier else 10 if "Gold" in tier else 25
         
-            if st.button("ISSUE CARD"):
+        if st.button("ISSUE CARD"):
             if m_plate:
                 c.execute("INSERT OR REPLACE INTO memberships (plate, balance_washes, card_type, sale_price) VALUES (?, ?, ?, ?)", (m_plate, qty, tier, card_sale_price))
                 
@@ -365,6 +365,7 @@ if choice == "COMMAND CENTER":
                 st.success(f"Activated {tier} for {m_plate}!")
             else:
                 st.error("Plate number required.")
+                
 
     if 'last_receipt' in st.session_state:
         r = st.session_state['last_receipt']
