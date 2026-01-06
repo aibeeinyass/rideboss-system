@@ -1,4 +1,6 @@
 streamlit
 pandas
-SQLAlchemy
+sqlalchemy
 psycopg2-binary
+st-postgresql-connection
+Pillow
