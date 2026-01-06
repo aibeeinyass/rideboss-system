@@ -347,7 +347,7 @@ if choice == "COMMAND CENTER":
         card_sale_price = st.number_input("CARD SALE PRICE (₦)", min_value=0.0)
         qty = 5 if "Silver" in tier else 10 if "Gold" in tier else 25
         
-                if st.button("ISSUE CARD"):
+            if st.button("ISSUE CARD"):
             if m_plate:
                 c.execute("INSERT OR REPLACE INTO memberships (plate, balance_washes, card_type, sale_price) VALUES (?, ?, ?, ?)", (m_plate, qty, tier, card_sale_price))
                 
