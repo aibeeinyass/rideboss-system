@@ -348,13 +348,23 @@ if choice == "COMMAND CENTER":
         qty = 5 if "Silver" in tier else 10 if "Gold" in tier else 25
         
         if st.button("ISSUE CARD"):
-            if m_plate:
-                c.execute("INSERT OR REPLACE INTO memberships (plate, balance_washes, card_type, sale_price) VALUES (?, ?, ?, ?)", (m_plate, qty, tier, card_sale_price))
-                conn.commit()
-                add_event(f"CARD ISSUED: {tier} to {m_plate}")
-                st.success(f"Activated {tier} for {m_plate}!")
-            else:
-                st.error("Plate number required.")
+    if m_plate:
+        c.execute("INSERT OR REPLACE INTO memberships (plate, balance_washes, card_type, sale_price) VALUES (?, ?, ?, ?)", (m_plate, qty, tier, card_sale_price))
+        
+        # --- ADD THIS NEW LOGIC HERE ---
+        receptionist = st.session_state.user_name
+        c.execute("SELECT bonus_pc FROM staff_payroll_config WHERE username=?", (receptionist,))
+        p_res = c.fetchone()
+        
+        if p_res and p_res[0] > 0:
+            comm_amt = card_sale_price * (p_res[0] / 100)
+            c.execute("INSERT INTO earnings_log (username, amount, ref_plate, timestamp) VALUES (?,?,?,?)",
+                      (receptionist, comm_amt, f"CARD:{tier}", datetime.now().strftime("%Y-%m-%d %H:%M")))
+        # --- END OF NEW LOGIC ---
+
+        conn.commit()
+        add_event(f"CARD ISSUED: {tier} to {m_plate}")
+        st.success(f"Activated {tier} for {m_plate}!")
 
     if 'last_receipt' in st.session_state:
         r = st.session_state['last_receipt']
@@ -705,20 +715,39 @@ elif choice == "FINANCIALS" and st.session_state.user_role == "MANAGER":
                 c.execute("INSERT INTO expenses (description, amount, timestamp) VALUES (?,?,?)", (e_desc, e_amt, datetime.now().strftime("%Y-%m-%d")))
                 conn.commit(); st.rerun()
 
-    with tab_cards_hub:
+        with tab_cards_hub:
         m_df = pd.read_sql_query("SELECT * FROM memberships", conn)
         for idx, row in m_df.iterrows():
             with st.container():
                 c1, c2, c3, c4 = st.columns([2, 1, 1, 1])
                 c1.write(f"**{row['plate']}** ({row['card_type']})")
                 c2.write(f"Bal: {row['balance_washes']} left")
+                
+                # Correctly indented under st.container
                 if c3.button(f"TOP UP {row['plate']}", key=f"up_{idx}"):
+                    # 1. Update the balance
                     c.execute("UPDATE memberships SET balance_washes = 10 WHERE plate=?", (row['plate'],))
-                    conn.commit(); st.rerun()
+                    
+                    # 2. Log Commission for the person who clicked 'Top Up'
+                    receptionist = st.session_state.user_name
+                    c.execute("SELECT bonus_pc FROM staff_payroll_config WHERE username=?", (receptionist,))
+                    p_res = c.fetchone()
+                    if p_res and p_res[0] > 0:
+                        comm_amt = row['sale_price'] * (p_res[0] / 100)
+                        c.execute("INSERT INTO earnings_log (username, amount, ref_plate, timestamp) VALUES (?,?,?,?)",
+                                  (receptionist, comm_amt, f"REFILL:{row['plate']}", datetime.now().strftime("%Y-%m-%d %H:%M")))
+                    
+                    conn.commit()
+                    st.success(f"Card Refilled & Commission Logged!")
+                    st.rerun()
+
+                # Correctly indented under st.container
                 if c4.button(f"DELETE {row['plate']}", key=f"del_{idx}"):
                     c.execute("DELETE FROM memberships WHERE plate=?", (row['plate'],))
-                    conn.commit(); st.rerun()
-                st.markdown("---")
+                    conn.commit()
+                    st.rerun()
+                
+                st.markdown("---")     
 
 # --- 6. CRM & NOTIFICATIONS ---
 elif choice == "CRM & RETENTION" and st.session_state.user_role == "MANAGER":
