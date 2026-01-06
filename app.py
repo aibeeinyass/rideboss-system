@@ -341,8 +341,8 @@ if choice == "COMMAND CENTER":
                     st.rerun()
 
         with tab_mem:
-        st.subheader("ACTIVATE MEMBERSHIP CARD")
-        m_plate = st.text_input("SCAN/ENTER PLATE FOR CARD").upper()
+            st.subheader("ACTIVATE MEMBERSHIP CARD")
+                m_plate = st.text_input("SCAN/ENTER PLATE FOR CARD").upper()
         tier = st.selectbox("CARD TIER", ["Silver (5 Washes)", "Gold (10 Washes)", "Platinum (25 Washes)"])
         card_sale_price = st.number_input("CARD SALE PRICE (₦)", min_value=0.0)
         qty = 5 if "Silver" in tier else 10 if "Gold" in tier else 25
