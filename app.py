@@ -392,9 +392,12 @@ def get_free_staff_by_dept(dept_name):
     busy_list = busy_df['staff'].tolist() if not busy_df.empty else []
     
     # Get all verified staff in department
-    query = text("SELECT username FROM users WHERE dept=:d AND status='ACTIVE' AND verified=1")
-    staff_df = conn.query(query, params={"d": dept_name}, ttl=0)
-    all_dept = staff_df['username'].tolist() if not staff_df.empty else []
+    query = "SELECT username FROM users WHERE dept = :d AND status = 'ACTIVE' AND verified = 1"
+    try:
+        staff_df = conn.query(query, params={"d": dept_name}, ttl=0)
+        return staff_df['username'].tolist() if not staff_df.empty else []
+    except:
+        return []
     
     # Filter
     return [s for s in all_dept if s not in busy_list]
