@@ -1683,24 +1683,51 @@ elif choice == "FINANCIALS" and st.session_state.user_role == "MANAGER":
                 st.markdown("---")     
 
 # ==============================================================================
-# 7. CRM & NOTIFICATIONS
+# 7. CRM & RETENTION
 # ==============================================================================
 elif choice == "CRM & RETENTION" and st.session_state.user_role == "MANAGER":
     st.subheader("RETENTION PANEL")
     cust_df = conn.query("SELECT * FROM customers", ttl=0)
     
     if cust_df.empty:
-        st.info("No customer data.")
-    
-    for idx, row in cust_df.iterrows():
-        try:
-            last_v = datetime.strptime(row['last_visit'], "%Y-%m-%d")
-            days = (datetime.now() - last_v).days
-            color = "#00d4ff" if days < 14 else "#FF3B30"
-            st.markdown(f"<p style='color:{color};'><b>{row['name']}</b> ({row['plate']}) - {days} days since last visit</p>", unsafe_allow_html=True)
-        except:
-            pass
-
+        st.info("No customer data available.")
+    else:
+        for idx, row in cust_df.iterrows():
+            try:
+                # Convert the stored string date back to a Python object
+                last_v = datetime.strptime(row['last_visit'], "%Y-%m-%d")
+                days_since = (datetime.now() - last_v).days
+                
+                # Determine status color
+                color = "#00d4ff" if days_since < 7 else "#FFD700" if days_since < 14 else "#FF3B30"
+                
+                col1, col2 = st.columns([3, 1])
+                
+                with col1:
+                    st.markdown(f"""
+                        <div style='padding:10px; border-left: 4px solid {color}; background:#111; margin-bottom:5px;'>
+                            <b style='color:white;'>{row['name']}</b> <span style='color:#888;'>[{row['plate']}]</span><br>
+                            <small style='color:{color};'>{days_since} days since last visit</small>
+                        </div>
+                    """, unsafe_allow_html=True)
+                
+                with col2:
+                    # ONLY show the button if it's been 7 days or more
+                    if days_since >= 7:
+                        msg = f"Hello {row['name']}, we noticed your car ({row['plate']}) hasn't been to RideBoss in {days_since} days! Ready for a fresh shine? We're open today!"
+                        wa_link = format_whatsapp(row['phone'], msg)
+                        
+                        # Use a link button for the WhatsApp API
+                        st.markdown(f"""
+                            <a href="{wa_link}" target="_blank" style="text-decoration:none;">
+                                <div style="background-color:#25D366; color:white; padding:10px; text-align:center; font-size:12px; font-weight:bold; border-radius:5px;">
+                                    REACH OUT
+                                </div>
+                            </a>
+                        """, unsafe_allow_html=True)
+            except Exception as e:
+                # Skip rows with invalid date formats
+                continue
 elif choice == "NOTIFICATIONS":
     st.subheader("SYSTEM HISTORY")
     notes = conn.query('SELECT timestamp as "TIME", message as "EVENT" FROM notifications ORDER BY id DESC LIMIT 50', ttl=0)
