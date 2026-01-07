@@ -717,11 +717,6 @@ latest_note = conn.query("SELECT message FROM notifications ORDER BY id DESC LIM
 message_text = latest_note.iloc[0]['message'] if not latest_note.empty else "SYSTEM READY"
 st.markdown(f'<div class="notification-bar">SYSTEM LOG: {message_text}</div>', unsafe_allow_html=True)
 
-# --- TOP NOTIFICATION FEED ---
-latest_note = conn.query("SELECT message FROM notifications ORDER BY id DESC LIMIT 1", ttl=0)
-message_text = latest_note.iloc[0]['message'] if not latest_note.empty else "SYSTEM READY"
-st.markdown(f'<div class="notification-bar">SYSTEM LOG: {message_text}</div>', unsafe_allow_html=True)
-
 # ==============================================================================
 # 1. COMMAND CENTER (TRANSACTION HUB)
 # ==============================================================================
