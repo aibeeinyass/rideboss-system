@@ -669,26 +669,53 @@ if st.sidebar.button("LOGOUT"):
 # --- FACTORY RESET (MANAGER ONLY) ---
 if st.session_state.user_role == "MANAGER":
     st.sidebar.markdown("### SYSTEM ADMIN")
+    
+    # Initialize reset state if not present
+    if "reset_mode" not in st.session_state:
+        st.session_state.reset_mode = False
+
+    # First Button: Opens the confirmation dialogue
     if st.sidebar.button("⚠️ FACTORY RESET SYSTEM", help="Wipe all data for a new start"):
-        st.warning("ARE YOU SURE? This will delete ALL sales, staff, and customer data.")
-        if st.button("YES, DELETE EVERYTHING"):
-            with conn.session as s:
-                # List of tables to clear
-                tables = [
-                    "live_bays", "earnings_log", "sales", 
-                    "notifications", "membership_cards", "customers", 
-                    "staff_profiles", "staff_payroll_config"
-                ]
-                for table in tables:
-                    # TRUNCATE + CASCADE + RESTART IDENTITY wipes data and resets IDs to 1
-                    s.execute(text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE;"))
+        st.session_state.reset_mode = True
+
+    # If reset mode is active, show the warning and the real delete button
+    if st.session_state.reset_mode:
+        st.sidebar.error("⚠️ THIS ACTION IS PERMANENT!")
+        
+        # Second Button: Actually executes the TRUNCATE
+        if st.sidebar.button("✅ CONFIRM: DELETE EVERYTHING"):
+            try:
+                with conn.session as s:
+                    # List of tables to clear
+                    tables = [
+                        "live_bays", "earnings_log", "sales", 
+                        "notifications", "membership_cards", "customers", 
+                        "staff_profiles", "staff_payroll_config"
+                    ]
+                    for table in tables:
+                        # TRUNCATE + CASCADE + RESTART IDENTITY wipes data and resets IDs to 1
+                        s.execute(text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE;"))
+                    
+                    # Delete all users except you
+                    s.execute(text("DELETE FROM users WHERE role != 'MANAGER'"))
+                    s.commit()
                 
-                # Delete all users except you
-                s.execute(text("DELETE FROM users WHERE role != 'MANAGER'"))
-                s.commit()
-                
-            st.success("System Reset Complete! All records wiped.")
+                # Cleanup state and refresh
+                st.session_state.reset_mode = False
+                st.sidebar.success("All data wiped successfully!")
+                st.rerun()
+            except Exception as e:
+                st.sidebar.error(f"Reset Error: {e}")
+
+        # Cancel option
+        if st.sidebar.button("❌ CANCEL"):
+            st.session_state.reset_mode = False
             st.rerun()
+
+# --- TOP NOTIFICATION FEED ---
+latest_note = conn.query("SELECT message FROM notifications ORDER BY id DESC LIMIT 1", ttl=0)
+message_text = latest_note.iloc[0]['message'] if not latest_note.empty else "SYSTEM READY"
+st.markdown(f'<div class="notification-bar">SYSTEM LOG: {message_text}</div>', unsafe_allow_html=True)
 
 # --- TOP NOTIFICATION FEED ---
 latest_note = conn.query("SELECT message FROM notifications ORDER BY id DESC LIMIT 1", ttl=0)
