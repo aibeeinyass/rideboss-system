@@ -562,7 +562,7 @@ if not st.session_state.logged_in:
 
 # --- STAFF INDUCTION GATE (NEW FEATURE) ---
 # Check verification status
-v_query = text("SELECT verified FROM users WHERE username=:u")
+v_query = "SELECT verified FROM users WHERE username = :u"
 v_df = conn.query(v_query, params={"u": st.session_state.user_name}, ttl=0)
 is_verified = v_df.iloc[0]['verified'] if not v_df.empty else 0
 
