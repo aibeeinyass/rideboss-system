@@ -538,8 +538,9 @@ if not st.session_state.logged_in:
         
         if st.button("ACCESS SYSTEM"):
             # MIGRATION NOTE: Using parameterized query for security
-            login_query = text("SELECT role, dept FROM users WHERE username=:u AND password=:p")
-            df = conn.query(login_query, params={"u": u, "p": p}, ttl=0)
+            login_query = "SELECT * FROM users WHERE username = :u AND password = :p AND status = 'ACTIVE'"
+df = conn.query(login_query, params={"u": u, "p": p}, ttl=0)
+
             
             if not df.empty:
                 st.session_state.logged_in = True
