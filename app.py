@@ -4,7 +4,7 @@ from datetime import datetime
 import urllib.parse
 import time
 import json
-import io 
+import io
 from PIL import Image
 from sqlalchemy import text
 
@@ -1508,35 +1508,38 @@ elif choice == "INVENTORY & STAFF" and st.session_state.user_role == "MANAGER":
    with t3:
         st.subheader("STAFF PERFORMANCE")
         
-        # This check prevents the 'redacted' error if the column is missing
-        check_col = conn.query("SELECT * FROM sales LIMIT 0", ttl=0)
-        
-        if 'dry_staff' in check_col.columns:
-            # If you eventually add the column, this query runs automatically
-            perf_query = """
-                SELECT name, COUNT(*) as jobs FROM (
-                    SELECT staff as name FROM sales WHERE staff IS NOT NULL
-                    UNION ALL
-                    SELECT dry_staff as name FROM sales WHERE dry_staff IS NOT NULL
-                ) AS combined GROUP BY name ORDER BY jobs DESC
-            """
-        else:
-            # If column is missing, only show Wet Bay staff to keep app running
-            perf_query = """
-                SELECT staff as name, COUNT(*) as jobs 
-                FROM sales 
-                WHERE staff IS NOT NULL 
-                GROUP BY staff 
-                ORDER BY jobs DESC
-            """
-        
-        perf_df = conn.query(perf_query, ttl=0)
-        
-        if not perf_df.empty:
-            st.bar_chart(perf_df.set_index('name')['jobs'])
-            st.dataframe(perf_df, use_container_width=True)
-        else:
-            st.info("No performance data found.")
+        # 1. Peek at the table columns to see what is available without crashing
+        try:
+            check_df = conn.query("SELECT * FROM sales LIMIT 0", ttl=0)
+            
+            # 2. If 'dry_staff' isn't in your table, only query 'staff'
+            if 'dry_staff' in check_df.columns:
+                perf_query = """
+                    SELECT name, COUNT(*) as jobs FROM (
+                        SELECT staff as name FROM sales WHERE staff IS NOT NULL AND staff != ''
+                        UNION ALL
+                        SELECT dry_staff as name FROM sales WHERE dry_staff IS NOT NULL AND dry_staff != ''
+                    ) AS combined GROUP BY name ORDER BY jobs DESC
+                """
+            else:
+                perf_query = """
+                    SELECT staff as name, COUNT(*) as jobs 
+                    FROM sales 
+                    WHERE staff IS NOT NULL AND staff != ''
+                    GROUP BY staff 
+                    ORDER BY jobs DESC
+                """
+            
+            perf_df = conn.query(perf_query, ttl=0)
+            
+            if not perf_df.empty:
+                st.bar_chart(perf_df.set_index('name')['jobs'])
+                st.dataframe(perf_df, use_container_width=True, hide_index=True)
+            else:
+                st.info("No performance data found yet.")
+                
+        except Exception as e:
+            st.error("Waiting for initial sales data...")
 # ==============================================================================
 # 6. FINANCIALS (INTELLIGENCE CENTER)
 # ==============================================================================
