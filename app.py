@@ -644,7 +644,7 @@ if st.session_state.user_role == "MANAGER":
         "CRM & RETENTION", 
         "NOTIFICATIONS"
     ]
-elif st.session_state.user_role == "RECEPTIONIST":
+elif st.session_state.user_dept == "RECEPTIONIST":
     menu = [
         "COMMAND CENTER", 
         "LIVE U-FLOW", 
