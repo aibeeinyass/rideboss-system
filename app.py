@@ -975,27 +975,70 @@ elif choice == "LIVE U-FLOW":
     live_cars = conn.query("SELECT * FROM live_bays", ttl=0)
     
     if view_mode == "External Flight Board":
+        # --- FULLSCREEN & UI OVERRIDE ---
+        st.markdown("""
+            <script>
+                function toggleFullScreen() {
+                    var doc = window.parent.document;
+                    var elem = doc.documentElement;
+                    if (!doc.fullscreenElement) {
+                        elem.requestFullscreen();
+                    } else {
+                        doc.exitFullscreen();
+                    }
+                }
+            </script>
+            <style>
+                header, footer, .stAppDeployButton {display:none !important;}
+            </style>
+            <div style="text-align:center; margin-bottom: 10px;">
+                <button onclick="toggleFullScreen()" style="
+                    background: #00d4ff; color: black; border: none; 
+                    padding: 10px 25px; border-radius: 5px; font-weight: bold; 
+                    cursor: pointer; letter-spacing: 1px;">
+                    📺 TOGGLE FULLSCREEN
+                </button>
+            </div>
+        """, unsafe_allow_html=True)
+
         # --- FLIGHT BOARD DISPLAY ---
-        st.markdown("<h1 style='text-align:center; color:#00d4ff;'>WORKFLOW MONITOR</h1>", unsafe_allow_html=True)
+        st.markdown("<h1 style='text-align:center; color:#00d4ff; margin:0;'>WORKFLOW MONITOR</h1>", unsafe_allow_html=True)
         
         if live_cars.empty:
             st.info("ALL BAYS CLEAR.")
         else:
-            # Generating HTML for the Scrolling Monitor
-            monitor_html = """
+            # Generating HTML for the Scrolling Monitor with Clock
+            monitor_html = f"""
             <style>
-                body { background-color: #050505; margin: 0; padding: 0; font-family: sans-serif; overflow: hidden; }
-                .monitor-container { background: #000; height: 100vh; width: 100%; position: relative; overflow: hidden; }
-                .scroll-content { position: absolute; width: 100%; animation: scrollUp 30s linear infinite; }
-                @keyframes scrollUp { 0% { transform: translateY(100%); } 100% { transform: translateY(-100%); } }
-                .monitor-row { display: flex; justify-content: space-between; align-items: center; padding: 30px; border-bottom: 2px solid #222; background: #050505; color: white; }
-                .monitor-plate { font-size: 50px; font-weight: 900; color: #00d4ff; font-family: 'Courier New', monospace; line-height: 1; }
-                .monitor-status { font-size: 18px; color: #FFD700; font-weight: bold; text-transform: uppercase; }
-                .monitor-meta { text-align: right; }
-                .monitor-staff { font-size: 20px; color: #888; text-transform: uppercase; }
-                .monitor-svc { color: #00d4ff; font-style: italic; font-size: 22px; }
+                body {{ background-color: #050505; margin: 0; padding: 0; font-family: sans-serif; overflow: hidden; }}
+                .monitor-container {{ background: #000; height: 100vh; width: 100%; position: relative; overflow: hidden; }}
+                
+                /* Digital Clock Styling */
+                .clock-overlay {{
+                    position: absolute; top: 10px; right: 20px; text-align: right;
+                    color: white; font-family: monospace; z-index: 100; background: rgba(0,0,0,0.5);
+                    padding: 10px; border-radius: 8px; border: 1px solid #222;
+                }}
+                #time {{ font-size: 32px; color: #00d4ff; font-weight: bold; }}
+                #date {{ font-size: 16px; color: #888; }}
+
+                .scroll-content {{ position: absolute; width: 100%; animation: scrollUp 30s linear infinite; }}
+                @keyframes scrollUp {{ 0% {{ transform: translateY(100%); }} 100% {{ transform: translateY(-100%); }} }}
+                .monitor-row {{ display: flex; justify-content: space-between; align-items: center; padding: 30px; border-bottom: 2px solid #222; background: #050505; color: white; }}
+                .monitor-plate {{ font-size: 50px; font-weight: 900; color: #00d4ff; font-family: 'Courier New', monospace; line-height: 1; }}
+                .monitor-status {{ font-size: 18px; color: #FFD700; font-weight: bold; text-transform: uppercase; }}
+                .monitor-meta {{ text-align: right; }}
+                .monitor-staff {{ font-size: 20px; color: #888; text-transform: uppercase; }}
+                .monitor-svc {{ color: #00d4ff; font-style: italic; font-size: 22px; }}
             </style>
-            <div class="monitor-container"><div class="scroll-content">"""
+
+            <div class="monitor-container">
+                <div class="clock-overlay">
+                    <div id="time"></div>
+                    <div id="date"></div>
+                </div>
+
+                <div class="scroll-content">"""
             
             # Duplicate data to create seamless scroll loop
             scroll_data = pd.concat([live_cars, live_cars])
@@ -1011,7 +1054,24 @@ elif choice == "LIVE U-FLOW":
                     </div>
                 </div>"""
             
-            monitor_html += "</div></div>"
+            monitor_html += """
+                </div>
+            </div>
+
+            <script>
+                function updateClock() {
+                    var now = new Date();
+                    var timeStr = now.getHours().toString().padStart(2, '0') + ':' + 
+                                  now.getMinutes().toString().padStart(2, '0') + ':' + 
+                                  now.getSeconds().toString().padStart(2, '0');
+                    var dateStr = now.toDateString().toUpperCase();
+                    document.getElementById('time').innerHTML = timeStr;
+                    document.getElementById('date').innerHTML = dateStr;
+                }
+                setInterval(updateClock, 1000);
+                updateClock();
+            </script>
+            """
             
             import streamlit.components.v1 as components
             components.html(monitor_html, height=800)
