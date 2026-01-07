@@ -1505,38 +1505,38 @@ elif choice == "INVENTORY & STAFF" and st.session_state.user_role == "MANAGER":
                         s.commit()
                     st.rerun()
                     
-    with t3:
-        st.subheader("STAFF PERFORMANCE (WET & DRY BAYS)")
-        # This query combines 'staff' (Wet Bay) and 'dry_staff' (Dry Bay) into one ranking
-        perf_query = """
-            SELECT staff_member, COUNT(*) as tasks, SUM(total) as revenue_impact
-            FROM (
-                SELECT staff as staff_member, total FROM sales WHERE staff IS NOT NULL
-                UNION ALL
-                SELECT dry_staff as staff_member, total FROM sales WHERE dry_staff IS NOT NULL
-            ) AS combined_data
-            GROUP BY staff_member
-            ORDER BY tasks DESC
-        """
+   with t3:
+        st.subheader("STAFF PERFORMANCE")
+        
+        # This check prevents the 'redacted' error if the column is missing
+        check_col = conn.query("SELECT * FROM sales LIMIT 0", ttl=0)
+        
+        if 'dry_staff' in check_col.columns:
+            # If you eventually add the column, this query runs automatically
+            perf_query = """
+                SELECT name, COUNT(*) as jobs FROM (
+                    SELECT staff as name FROM sales WHERE staff IS NOT NULL
+                    UNION ALL
+                    SELECT dry_staff as name FROM sales WHERE dry_staff IS NOT NULL
+                ) AS combined GROUP BY name ORDER BY jobs DESC
+            """
+        else:
+            # If column is missing, only show Wet Bay staff to keep app running
+            perf_query = """
+                SELECT staff as name, COUNT(*) as jobs 
+                FROM sales 
+                WHERE staff IS NOT NULL 
+                GROUP BY staff 
+                ORDER BY jobs DESC
+            """
+        
         perf_df = conn.query(perf_query, ttl=0)
         
         if not perf_df.empty:
-            # Chart based on number of cars handled
-            st.bar_chart(perf_df.set_index('staff_member')['tasks'])
-            
-            # Formatted Dataframe
-            st.dataframe(
-                perf_df, 
-                column_config={
-                    "staff_member": "Staff Name",
-                    "tasks": "Cars Handled",
-                    "revenue_impact": st.column_config.NumberColumn("Revenue Impact", format="₦%.2f")
-                },
-                use_container_width=True,
-                hide_index=True
-            )
+            st.bar_chart(perf_df.set_index('name')['jobs'])
+            st.dataframe(perf_df, use_container_width=True)
         else:
-            st.info("No performance data yet.")
+            st.info("No performance data found.")
 # ==============================================================================
 # 6. FINANCIALS (INTELLIGENCE CENTER)
 # ==============================================================================
