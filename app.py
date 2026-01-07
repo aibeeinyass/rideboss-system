@@ -1072,19 +1072,6 @@ elif choice == "LIVE U-FLOW":
             """
             import streamlit.components.v1 as components
             components.html(monitor_html, height=800)
-
-    else:
-        # --- MANAGEMENT CONTROLS LOGIC ---
-        st.subheader("BAYS MANAGEMENT")
-        if st.session_state.wa_pending:
-            st.info(f"PENDING NOTIFICATION: {st.session_state.wa_pending['plate']}")
-            st.link_button("SEND WHATSAPP MESSAGE", st.session_state.wa_pending['url'])
-
-        if live_cars.empty:
-            st.info("No vehicles currently in process.")
-        else:
-            st.dataframe(live_cars, use_container_width=True)
-            # Your existing Move/Release button logic would follow here
     else:
         # --- MANAGEMENT CONTROLS ---
         
