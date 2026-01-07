@@ -1194,7 +1194,7 @@ elif choice == "LIVE U-FLOW":
                                 st.rerun()
                 
                 # REPLACE THE EXISTING COMMISSION RELEASE BLOCK WITH THIS:
-if st.button(f"RELEASE {row['plate']}", key=f"rel_{idx}"):
+                                if st.button(f"RELEASE {row['plate']}", key=f"rel_{idx}"):
     # 1. Fetch the sale details
     sale_data = conn.query("SELECT total, services, type FROM sales WHERE plate=:p ORDER BY id DESC LIMIT 1", params={"p": row['plate']}, ttl=0)
     
