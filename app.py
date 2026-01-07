@@ -680,29 +680,33 @@ if st.session_state.user_role == "MANAGER":
 
     # If reset mode is active, show the warning and the real delete button
     if st.session_state.reset_mode:
-        st.sidebar.error("⚠️ THIS ACTION IS PERMANENT!")
+        st.sidebar.error("⚠️ THIS WILL WIPE EVERY TABLE IN THE DATABASE!")
         
-        # Second Button: Actually executes the TRUNCATE
+        # Second Button: Dynamically finds and clears ALL tables
         if st.sidebar.button("✅ CONFIRM: DELETE EVERYTHING"):
             try:
                 with conn.session as s:
-                    # List of tables to clear
-                    tables = [
-                        "live_bays", "earnings_log", "sales", 
-                        "notifications", "membership_cards", "customers", 
-                        "staff_profiles", "staff_payroll_config"
-                    ]
-                    for table in tables:
-                        # TRUNCATE + CASCADE + RESTART IDENTITY wipes data and resets IDs to 1
-                        s.execute(text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE;"))
+                    # 1. Get all table names from the database automatically
+                    result = s.execute(text("""
+                        SELECT tablename FROM pg_catalog.pg_tables 
+                        WHERE schemaname = 'public';
+                    """))
+                    all_tables = [row[0] for row in result]
+
+                    # 2. Iterate through and clear them
+                    for table in all_tables:
+                        if table == 'users':
+                            # Keep the Manager, delete other users
+                            s.execute(text("DELETE FROM users WHERE role != 'MANAGER'"))
+                        else:
+                            # TRUNCATE resets the ID counters and handles dependencies
+                            s.execute(text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE;"))
                     
-                    # Delete all users except you
-                    s.execute(text("DELETE FROM users WHERE role != 'MANAGER'"))
                     s.commit()
                 
                 # Cleanup state and refresh
                 st.session_state.reset_mode = False
-                st.sidebar.success("All data wiped successfully!")
+                st.sidebar.success("All tables wiped successfully!")
                 st.rerun()
             except Exception as e:
                 st.sidebar.error(f"Reset Error: {e}")
