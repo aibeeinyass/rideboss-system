@@ -670,48 +670,46 @@ if st.sidebar.button("LOGOUT"):
 if st.session_state.user_role == "MANAGER":
     st.sidebar.markdown("### SYSTEM ADMIN")
     
-    # Initialize reset state if not present
     if "reset_mode" not in st.session_state:
         st.session_state.reset_mode = False
 
-    # First Button: Opens the confirmation dialogue
-    if st.sidebar.button("⚠️ FACTORY RESET SYSTEM", help="Wipe all data for a new start"):
+    if st.sidebar.button("⚠️ FACTORY RESET SYSTEM"):
         st.session_state.reset_mode = True
 
-    # If reset mode is active, show the warning and the real delete button
     if st.session_state.reset_mode:
-        st.sidebar.error("⚠️ THIS WILL WIPE EVERY TABLE IN THE DATABASE!")
+        st.sidebar.error("⚠️ THIS ACTION IS PERMANENT!")
         
-        # Second Button: Dynamically finds and clears ALL tables
         if st.sidebar.button("✅ CONFIRM: DELETE EVERYTHING"):
             try:
                 with conn.session as s:
-                    # 1. Get all table names from the database automatically
+                    # 1. Increase timeout to 30 seconds for this session only
+                    s.execute(text("SET statement_timeout = '30s';"))
+                    
+                    # 2. Get all table names
                     result = s.execute(text("""
                         SELECT tablename FROM pg_catalog.pg_tables 
                         WHERE schemaname = 'public';
                     """))
                     all_tables = [row[0] for row in result]
 
-                    # 2. Iterate through and clear them
+                    # 3. Wipe every table
                     for table in all_tables:
                         if table == 'users':
-                            # Keep the Manager, delete other users
                             s.execute(text("DELETE FROM users WHERE role != 'MANAGER'"))
                         else:
-                            # TRUNCATE resets the ID counters and handles dependencies
+                            # Use ONLY TRUNCATE for speed to avoid timeout
                             s.execute(text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE;"))
                     
                     s.commit()
                 
-                # Cleanup state and refresh
                 st.session_state.reset_mode = False
-                st.sidebar.success("All tables wiped successfully!")
+                st.sidebar.success("All data wiped successfully!")
                 st.rerun()
             except Exception as e:
+                # If it fails, we rollback to prevent leaving the DB in a locked state
+                s.rollback()
                 st.sidebar.error(f"Reset Error: {e}")
 
-        # Cancel option
         if st.sidebar.button("❌ CANCEL"):
             st.session_state.reset_mode = False
             st.rerun()
