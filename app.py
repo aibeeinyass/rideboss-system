@@ -648,7 +648,8 @@ elif st.session_state.user_dept == "RECEPTIONIST":
     menu = [
         "COMMAND CENTER", 
         "LIVE U-FLOW", 
-        "MY EARNINGS", 
+        "MY EARNINGS",
+        "CRM & RETENTION",
         "NOTIFICATIONS"
     ]
 else:
@@ -1685,7 +1686,7 @@ elif choice == "FINANCIALS" and st.session_state.user_role == "MANAGER":
 # ==============================================================================
 # 7. CRM & RETENTION
 # ==============================================================================
-elif choice == "CRM & RETENTION" and st.session_state.user_role == "MANAGER":
+elif choice == "CRM & RETENTION" and st.session_state.user_role == ["MANAGER", "RECEPTIONIST"]:
     st.subheader("RETENTION PANEL")
     cust_df = conn.query("SELECT * FROM customers", ttl=0)
     
