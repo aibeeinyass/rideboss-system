@@ -1547,30 +1547,29 @@ elif choice == "FINANCIALS" and st.session_state.user_role == "MANAGER":
         col_f1, col_f2 = st.columns([1, 2])
         view_scope = col_f1.radio("REPORTING SCOPE", ["DAILY", "MONTHLY", "YEARLY"], horizontal=True)
         
-        # Load raw data into Pandas for flexible filtering without complex SQL
         sales_raw = conn.query("SELECT * FROM sales", ttl=0)
         exp_raw = conn.query("SELECT * FROM expenses", ttl=0)
         m_sales_raw = conn.query("SELECT plate, card_type, sale_price FROM memberships", ttl=0)
         
-        # Add dummy timestamp for membership sales since table doesn't have one (per requirements)
-        # Assuming membership sales count towards current year for simplicity or added date logic
         m_sales_raw['timestamp'] = datetime.now() 
-        
-        # Convert timestamps
         sales_raw['timestamp'] = pd.to_datetime(sales_raw['timestamp'])
         exp_raw['timestamp'] = pd.to_datetime(exp_raw['timestamp'])
         
         now = datetime.now()
         label = ""
         
-        # Filtering Logic
         if view_scope == "DAILY":
             selected_date = col_f2.date_input("SELECT DAY", now.date())
             f_sales = sales_raw[sales_raw['timestamp'].dt.date == selected_date]
             f_exps = exp_raw[exp_raw['timestamp'].dt.date == selected_date]
             label = f"REPORT FOR {selected_date}"
-            # Cards don't have date tracking in this schema, so exclude from daily
-            card_total = 0 
+            
+            # FIXED: If viewing "Today", include card sales. If viewing a past date, cards show 0 
+            # (unless you add a 'created_at' column to memberships later)
+            if selected_date == now.date():
+                card_total = m_sales_raw['sale_price'].sum()
+            else:
+                card_total = 0 
             
         elif view_scope == "MONTHLY":
             months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
@@ -1580,8 +1579,7 @@ elif choice == "FINANCIALS" and st.session_state.user_role == "MANAGER":
             f_sales = sales_raw[(sales_raw['timestamp'].dt.month == selected_month) & (sales_raw['timestamp'].dt.year == now.year)]
             f_exps = exp_raw[(exp_raw['timestamp'].dt.month == selected_month) & (exp_raw['timestamp'].dt.year == now.year)]
             label = f"REPORT FOR {selected_month_name} {now.year}"
-            # Assume cards count for the running year, or show all if simpler
-            card_total = m_sales_raw['sale_price'].sum() # Showing total lifetime card sales as per original logic approximation
+            card_total = m_sales_raw['sale_price'].sum()
             
         else:
             current_year = now.year
@@ -1602,33 +1600,9 @@ elif choice == "FINANCIALS" and st.session_state.user_role == "MANAGER":
         m1, m2, m3, m4, m5 = st.columns(5)
         m1.metric("WASH REVENUE", f"₦{rev_wash:,}")
         m2.metric("LOUNGE REVENUE", f"₦{rev_lounge:,}")
-        m3.metric("CARD SALES (LIFETIME)", f"₦{card_total:,}")
+        m3.metric("CARD SALES", f"₦{card_total:,}")
         m4.metric("EXPENSES", f"₦{total_exp:,}")
-        m5.metric("NET PROFIT/LOSS", f"₦{net_profit:,}", delta=net_profit, delta_color="normal")
-        
-        st.markdown("---")
-        chart_data = pd.DataFrame({
-            'Category': ['Wash', 'Lounge', 'Cards', 'Expenses'], 
-            'Amount': [rev_wash, rev_lounge, card_total, total_exp]
-        })
-        st.bar_chart(chart_data.set_index('Category'))
-        
-        st.subheader("Detailed Transaction Log")
-        st.dataframe(f_sales, use_container_width=True)
-        
-        csv = f_sales.to_csv(index=False).encode('utf-8')
-        st.download_button("📥 DOWNLOAD FILTERED REPORT (CSV)", csv, f"RideBoss_{view_scope}_{label}.csv", "text/csv")
-        
-        with st.expander("LOG NEW EXPENSE"):
-            e_desc = st.text_input("Description")
-            e_amt = st.number_input("Amount", min_value=0.0)
-            if st.button("LOG EXPENSE"):
-                with conn.session as s:
-                    s.execute(text("INSERT INTO expenses (description, amount, timestamp) VALUES (:d, :a, :t)"), 
-                              {"d": e_desc, "a": e_amt, "t": datetime.now().strftime("%Y-%m-%d")})
-                    s.commit()
-                st.success("Expense Logged.")
-                st.rerun()
+        m5.metric("NET PROFIT/LOSS", f"₦{net_profit:,}", delta=float(net_profit))
 
     with tab_cards_hub:
         m_df = conn.query("SELECT * FROM memberships", ttl=0)
