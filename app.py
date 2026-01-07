@@ -1542,7 +1542,7 @@ elif choice == "CRM & RETENTION" and st.session_state.user_role == "MANAGER":
 
 elif choice == "NOTIFICATIONS":
     st.subheader("SYSTEM HISTORY")
-    notes = conn.query("SELECT timestamp as 'TIME', message as 'EVENT' FROM notifications ORDER BY id DESC LIMIT 50", ttl=0)
+    notes = conn.query('SELECT timestamp as "TIME", message as "EVENT" FROM notifications ORDER BY id DESC LIMIT 50', ttl=0)
     st.table(notes)
 
 # ==============================================================================
