@@ -1190,12 +1190,14 @@ elif choice == "BOSS HR" and st.session_state.user_role == "MANAGER":
     
     with hr_t1:
         # PENDING VERIFICATIONS
-        # Subquery logic for Postgres
+        # Bypass conn.query to avoid serialization errors with binary image data
         query_pending = """
             SELECT * FROM staff_profiles 
             WHERE username IN (SELECT username FROM users WHERE verified=0)
         """
-        pending_staff = conn.query(query_pending, ttl=0)
+        with conn.session as s:
+            res_pending = s.execute(text(query_pending))
+            pending_staff = pd.DataFrame(res_pending.fetchall(), columns=res_pending.keys())
         
         if pending_staff.empty:
             st.info("No pending verifications.")
@@ -1206,11 +1208,14 @@ elif choice == "BOSS HR" and st.session_state.user_role == "MANAGER":
                     with c1:
                         if row['id_image']:
                             try:
-                                # Convert memoryview/bytes to Image
-                                image = Image.open(io.BytesIO(row['id_image']))
-                                st.image(image, caption=row['id_type'])
+                                # Postgres returns binary as bytes or memoryview
+                                img_data = row['id_image']
+                                if isinstance(img_data, memoryview):
+                                    img_data = img_data.tobytes()
+                                image = Image.open(io.BytesIO(img_data))
+                                st.image(image, caption=row['id_type'], use_container_width=True)
                             except Exception as e:
-                                st.error(f"Image Error: {e}")
+                                st.error(f"Display Error: {e}")
                     with c2:
                         st.write(f"**NIN:** {row['nin']}")
                         st.write(f"**Address:** {row['address']}")
@@ -1218,29 +1223,29 @@ elif choice == "BOSS HR" and st.session_state.user_role == "MANAGER":
                         
                         if st.button("APPROVE & VERIFY", key=f"app_{idx}"):
                             with conn.session as s:
-                                # 1. Update User Verification
                                 s.execute(text("UPDATE users SET verified=1 WHERE username=:u"), {"u": row['username']})
-                                # 2. Initialize Salary Config
                                 s.execute(text("""
                                     INSERT INTO staff_payroll_config (username, base_salary, bonus_pc) 
                                     VALUES (:u, 0, 0)
                                     ON CONFLICT (username) DO NOTHING
                                 """), {"u": row['username']})
                                 s.commit()
-                            st.success("Approved!")
+                            st.success(f"Verified {row['username']}!")
                             st.rerun()
 
     with hr_t2:
-        # ACTIVE STAFF TABLE & DETAILS
+        # ACTIVE STAFF TABLE
         active_staff = conn.query("SELECT username FROM users WHERE verified=1 AND role='STAFF'", ttl=0)
         st.dataframe(active_staff, use_container_width=True)
         
         staff_list = active_staff['username'].tolist() if not active_staff.empty else []
-        selected_staff = st.selectbox("SELECT STAFF TO VIEW FULL DETAILS", staff_list)
+        selected_staff = st.selectbox("SELECT STAFF TO VIEW FULL DETAILS", ["-- Select --"] + staff_list)
         
-        if selected_staff:
-            # FIX: Removed text() wrapper from conn.query call
-            s_prof = conn.query("SELECT * FROM staff_profiles WHERE username=:u", params={"u": selected_staff}, ttl=0)
+        if selected_staff != "-- Select --":
+            # Fetch profile using session to avoid caching errors with image
+            with conn.session as s:
+                res_prof = s.execute(text("SELECT * FROM staff_profiles WHERE username=:u"), {"u": selected_staff})
+                s_prof = pd.DataFrame(res_prof.fetchall(), columns=res_prof.keys())
             
             if not s_prof.empty:
                 row = s_prof.iloc[0]
@@ -1249,12 +1254,15 @@ elif choice == "BOSS HR" and st.session_state.user_role == "MANAGER":
                 st.markdown("---")
                 col_d1, col_d2 = st.columns([1, 2])
                 with col_d1:
-                     if row['id_image']:
+                    if row['id_image']:
                         try:
-                            image = Image.open(io.BytesIO(row['id_image']))
+                            img_data = row['id_image']
+                            if isinstance(img_data, memoryview):
+                                img_data = img_data.tobytes()
+                            image = Image.open(io.BytesIO(img_data))
                             st.image(image, caption=f"{selected_staff}'s ID")
                         except:
-                            st.write("Image unavailable")
+                            st.warning("ID Image format incompatible.")
                 with col_d2:
                     st.markdown(f"### {row['full_name']}")
                     st.write(f"**Phone:** {row['phone']}")
@@ -1266,7 +1274,7 @@ elif choice == "BOSS HR" and st.session_state.user_role == "MANAGER":
                     m1.metric("Daily Bonus", f"₦{d_com:,}")
                     m2.metric("Monthly Bonus", f"₦{m_com:,}")
                     m3.metric("Yearly Bonus", f"₦{y_com:,}")
-                    st.success(f"**TOTAL ESTIMATED PAYOUT THIS MONTH:** ₦{total_m:,}")
+                    st.success(f"**ESTIMATED PAYOUT THIS MONTH:** ₦{total_m:,}")
 
     with hr_t3:
         # SALARY CONFIG
@@ -1274,10 +1282,10 @@ elif choice == "BOSS HR" and st.session_state.user_role == "MANAGER":
         all_staff_df = conn.query("SELECT username FROM users WHERE role='STAFF'", ttl=0)
         all_staff_list = all_staff_df['username'].tolist() if not all_staff_df.empty else []
         
-        config_staff = st.selectbox("Select Staff to Config", all_staff_list)
+        config_staff = st.selectbox("Select Staff to Config", ["-- Select --"] + all_staff_list)
         
-        if config_staff:
-            # FIX: Removed text() wrapper from conn.query call
+        if config_staff != "-- Select --":
+            # Direct query without text() wrapper inside conn.query
             curr = conn.query("SELECT base_salary, bonus_pc FROM staff_payroll_config WHERE username=:u", params={"u": config_staff}, ttl=0)
             
             curr_base = curr.iloc[0]['base_salary'] if not curr.empty else 0.0
@@ -1296,7 +1304,7 @@ elif choice == "BOSS HR" and st.session_state.user_role == "MANAGER":
                             SET base_salary=:bs, bonus_pc=:bp
                         """), {"u": config_staff, "bs": new_base, "bp": new_bon})
                         s.commit()
-                    st.success("Updated!")
+                    st.success(f"Payroll updated for {config_staff}")
                     st.rerun()
 
 # ==============================================================================
