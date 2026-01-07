@@ -1684,50 +1684,61 @@ elif choice == "FINANCIALS" and st.session_state.user_role == "MANAGER":
                 st.markdown("---")     
 
 # ==============================================================================
-# 7. CRM & RETENTION
+# 7. CRM & RETENTION (MANAGER & RECEPTIONIST)
 # ==============================================================================
 elif choice == "CRM & RETENTION" and st.session_state.user_role in ["MANAGER", "RECEPTIONIST"]:
-    st.subheader("RETENTION PANEL")
+    st.subheader("CUSTOMER RETENTION PANEL")
+    
+    # Get customer data
     cust_df = conn.query("SELECT * FROM customers", ttl=0)
     
     if cust_df.empty:
-        st.info("No customer data available.")
+        st.info("No customer records found yet.")
     else:
+        # Layout for the list
         for idx, row in cust_df.iterrows():
             try:
-                # Convert the stored string date back to a Python object
+                # Calculate days since last visit
                 last_v = datetime.strptime(row['last_visit'], "%Y-%m-%d")
                 days_since = (datetime.now() - last_v).days
                 
-                # Determine status color
-                color = "#00d4ff" if days_since < 7 else "#FFD700" if days_since < 14 else "#FF3B30"
-                
+                # Logic-based coloring
+                if days_since < 7:
+                    color = "#00d4ff"  # Fresh (Blue)
+                    status_text = "Active"
+                elif days_since < 14:
+                    color = "#FFD700"  # Due (Yellow)
+                    status_text = "Needs Follow-up"
+                else:
+                    color = "#FF3B30"  # Lapsed (Red)
+                    status_text = "At Risk"
+
                 col1, col2 = st.columns([3, 1])
                 
                 with col1:
                     st.markdown(f"""
-                        <div style='padding:10px; border-left: 4px solid {color}; background:#111; margin-bottom:5px;'>
-                            <b style='color:white;'>{row['name']}</b> <span style='color:#888;'>[{row['plate']}]</span><br>
-                            <small style='color:{color};'>{days_since} days since last visit</small>
+                        <div style='padding:12px; border-radius:5px; border-left: 5px solid {color}; background:#1e1e1e; margin-bottom:8px;'>
+                            <b style='color:white; font-size:16px;'>{row['name']}</b> 
+                            <span style='color:#888;'> | {row['plate']}</span><br>
+                            <small style='color:{color}; font-weight:bold;'>{days_since} days since last visit ({status_text})</small>
                         </div>
                     """, unsafe_allow_html=True)
                 
                 with col2:
-                    # ONLY show the button if it's been 7 days or more
+                    # ONLY show WhatsApp button if away for 7 days or more
                     if days_since >= 7:
-                        msg = f"Hello {row['name']}, we noticed your car ({row['plate']}) hasn't been to RideBoss in {days_since} days! Ready for a fresh shine? We're open today!"
-                        wa_link = format_whatsapp(row['phone'], msg)
+                        message = f"Hello {row['name']}! This is RideBoss. We noticed your car ({row['plate']}) hasn't been in for a wash in {days_since} days. We'd love to see you again! Any chance you're coming by today?"
+                        wa_url = format_whatsapp(row['phone'], message)
                         
-                        # Use a link button for the WhatsApp API
                         st.markdown(f"""
-                            <a href="{wa_link}" target="_blank" style="text-decoration:none;">
-                                <div style="background-color:#25D366; color:white; padding:10px; text-align:center; font-size:12px; font-weight:bold; border-radius:5px;">
-                                    REACH OUT
+                            <a href="{wa_url}" target="_blank" style="text-decoration:none;">
+                                <div style="background-color:#25D366; color:white; padding:12px; text-align:center; 
+                                     border-radius:5px; font-weight:bold; margin-top:5px; font-size:13px;">
+                                    WHATSAPP 📲
                                 </div>
                             </a>
                         """, unsafe_allow_html=True)
-            except Exception as e:
-                # Skip rows with invalid date formats
+            except:
                 continue
 elif choice == "NOTIFICATIONS":
     st.subheader("SYSTEM HISTORY")
