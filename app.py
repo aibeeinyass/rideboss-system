@@ -527,29 +527,37 @@ if 'wa_pending' not in st.session_state:
 if not st.session_state.logged_in:
     st.markdown("<h1 style='text-align:center; letter-spacing:10px; margin-top:100px;'>RIDEBOSS LOGIN</h1>", unsafe_allow_html=True)
     _, log_col, _ = st.columns([1,1,1])
+    
     with log_col:
         st.markdown("""
         <div style="background:#111; padding:20px; border:1px solid #333;">
             <p style="text-align:center; color:#666;">SECURE ACCESS GATEWAY</p>
         </div>
         """, unsafe_allow_html=True)
+        
         u = st.text_input("Username").strip()
         p = st.text_input("Password", type="password")
         
         if st.button("ACCESS SYSTEM"):
-            # MIGRATION NOTE: Using parameterized query for security
+            # The query string
             login_query = "SELECT * FROM users WHERE username = :u AND password = :p AND status = 'ACTIVE'"
-df = conn.query(login_query, params={"u": u, "p": p}, ttl=0)
-
             
-            if not df.empty:
-                st.session_state.logged_in = True
-                st.session_state.user_role = df.iloc[0]['role']
-                st.session_state.user_dept = df.iloc[0]['dept']
-                st.session_state.user_name = u
-                st.rerun()
-            else:
-                st.error("Invalid Credentials. Access Denied.")
+            # This line must be indented (4 spaces or 1 tab) to be inside the button click
+            try:
+                df = conn.query(login_query, params={"u": u, "p": p}, ttl=0)
+                
+                if not df.empty:
+                    st.session_state.logged_in = True
+                    st.session_state.user_role = df.iloc[0]['role']
+                    st.session_state.user_dept = df.iloc[0]['dept']
+                    st.session_state.user_name = u
+                    st.success("Access Granted. Redirecting...")
+                    st.rerun()
+                else:
+                    st.error("Invalid Credentials. Access Denied.")
+            except Exception as e:
+                st.error(f"System connection error: {e}")
+                
     st.stop()
 
 # --- STAFF INDUCTION GATE (NEW FEATURE) ---
