@@ -1686,7 +1686,7 @@ elif choice == "FINANCIALS" and st.session_state.user_role == "MANAGER":
 # ==============================================================================
 # 7. CRM & RETENTION
 # ==============================================================================
-elif choice == "CRM & RETENTION" and st.session_state.user_role == ["MANAGER", "RECEPTIONIST"]:
+elif choice == "CRM & RETENTION" and st.session_state.user_role in ["MANAGER", "RECEPTIONIST"]:
     st.subheader("RETENTION PANEL")
     cust_df = conn.query("SELECT * FROM customers", ttl=0)
     
