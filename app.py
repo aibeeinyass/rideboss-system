@@ -768,37 +768,30 @@ if choice == "COMMAND CENTER":
             full_phone = f"{COUNTRY_CODES[c_code].replace('+', '')}{phone_raw}" if not d_phone else d_phone
 
         with col2:
-# FIND THIS IN COMMAND CENTER -> tab_trans -> col2
-if mode == "CAR WASH":
-    selected = st.multiselect("SERVICES", list(SERVICES.keys()))
-    
-    # --- ADD THIS NEW CHECKBOX HERE ---
-    is_promo = st.checkbox("🎟️ COMPLIMENTARY (FREE WASH)")
-    
-    # Update total_price logic
-    if is_promo:
-        total_price = 0.0
-        mode = "PROMO" # Changes the type to PROMO for the database
-    else:
-        total_price = sum([SERVICES[s] for s in selected])
-    # ----------------------------------
-
-    item_summary = ", ".join(selected)
-
             # FIX: Initialize variables before use to prevent NameError
             total_price = 0.0
             item_summary = ""
             lounge_items_sold = []
             staff_assigned = "UNKNOWN"
+            transaction_type = mode # Default type is current mode
             
             if mode == "CAR WASH":
                 selected = st.multiselect("SERVICES", list(SERVICES.keys()))
+                
+                # --- NEW COMPLIMENTARY TOGGLE ---
+                is_promo = st.checkbox("🎟️ COMPLIMENTARY (FREE WASH)")
                 
                 # Upsell Logic
                 if selected and "Standard Wash" in selected and "Ceramic Wax" not in selected:
                     st.warning("💡 PROMPT: Ask client if they want Ceramic Wax for long-lasting shine!")
                 
-                total_price = sum([SERVICES[s] for s in selected])
+                # Calculate Price based on Toggle
+                if is_promo:
+                    total_price = 0.0
+                    transaction_type = "PROMO"
+                else:
+                    total_price = sum([SERVICES[s] for s in selected])
+                
                 item_summary = ", ".join(selected)
 
                 # Staff Assignment Logic
@@ -829,7 +822,7 @@ if mode == "CAR WASH":
             st.markdown(f"### TOTAL: ₦{total_price:,}")
             pay_method = st.selectbox("PAYMENT METHOD", ["Moniepoint POS", "Bank Transfer", "Cash", "Gold Card Credit"])
 
-        if st.button(f"AUTHORIZE {mode} TRANSACTION", use_container_width=True):
+        if st.button(f"AUTHORIZE {transaction_type} TRANSACTION", use_container_width=True):
             if staff_assigned == "NO FREE STAFF" and mode == "CAR WASH":
                 st.error("Cannot authorize. No available staff in the Wet Bay.")
             elif (plate or mode == "LOUNGE") and (mode == "LOUNGE" or (mode == "CAR WASH" and item_summary)):
@@ -840,19 +833,18 @@ if mode == "CAR WASH":
                 
                 # Handle Gold Card Credit Logic
                 if pay_method == "Gold Card Credit":
-                    # FIX: Removed text() wrapper from conn.query
                     q_mem = "SELECT balance_washes FROM memberships WHERE plate=:p"
                     m_res = conn.query(q_mem, params={"p": plate}, ttl=0)
                     
                     if not m_res.empty and m_res.iloc[0]['balance_washes'] > 0:
                         new_bal = int(m_res.iloc[0]['balance_washes']) - 1
                         
-                        # Update Membership Balance
                         with conn.session as s:
                             s.execute(text("UPDATE memberships SET balance_washes=:nb WHERE plate=:p"), {"nb": new_bal, "p": plate})
                             s.commit()
                             
                         final_sales_total = 0.0
+                        transaction_type = "MEMBERSHIP"
                         if new_bal <= 1: low_bal = True
                     else:
                         st.error("No active card or zero balance for this plate.")
@@ -862,10 +854,7 @@ if mode == "CAR WASH":
                     now = datetime.now().strftime("%Y-%m-%d %H:%M")
                     new_sales_id = 0
                     
-                    # Transaction Block
                     with conn.session as s:
-                        # 1. Insert into Sales (PostgreSQL returns ID via RETURNING)
-                        # MIGRATION NOTE: Used RETURNING id to get the ID for the receipt
                         res = s.execute(
                             text("""
                                 INSERT INTO sales (plate, services, total, method, staff, timestamp, type) 
@@ -874,13 +863,11 @@ if mode == "CAR WASH":
                             """), 
                             {
                                 "p": plate, "svc": item_summary, "tot": final_sales_total, 
-                                "meth": pay_method, "st": staff_assigned, "ts": now, "typ": mode
+                                "meth": pay_method, "st": staff_assigned, "ts": now, "typ": transaction_type
                             }
                         )
                         new_sales_id = res.fetchone()[0]
                         
-                        # 2. Update Customer (Upsert)
-                        # Check visits
                         curr_v_res = s.execute(text("SELECT visits FROM customers WHERE plate=:p"), {"p": plate}).fetchone()
                         curr_visits = curr_v_res[0] if curr_v_res else 0
                         
@@ -894,10 +881,7 @@ if mode == "CAR WASH":
                             "v": curr_visits + 1, "lv": now.split()[0]
                         })
 
-                        # 3. Mode Specific Updates
                         if mode == "CAR WASH":
-                            # Insert into Live Bays
-                            # MIGRATION NOTE: wet_staff_history is initialized as NULL (None)
                             s.execute(text("""
                                 INSERT INTO live_bays 
                                 (plate, status, entry_time, staff, vehicle_type, service_detail, wet_staff_history) 
@@ -909,16 +893,14 @@ if mode == "CAR WASH":
                                 "vt": v_type, "sd": item_summary
                             })
                         else:
-                            # Update Inventory
                             for item, qty in lounge_items_sold:
                                 s.execute(text("UPDATE inventory SET stock = stock - :q WHERE item = :i"), {"q": qty, "i": item})
                         
                         s.commit()
                     
-                    # Store receipt in session state
                     st.session_state['last_receipt'] = {
                         "id": new_sales_id, 
-                        "mode": mode, 
+                        "mode": transaction_type, 
                         "name": name, 
                         "plate": plate, 
                         "phone": full_phone,
@@ -929,8 +911,9 @@ if mode == "CAR WASH":
                         "low_bal": low_bal
                     }
                     
-                    add_event(f"{mode} AUTH: {plate if plate else 'Lounge'} via {pay_method}")
+                    add_event(f"{transaction_type} AUTH: {plate if plate else 'Lounge'} via {pay_method}")
                     st.rerun()
+
 # ... continue part 2
     with tab_mem:
         st.subheader("ACTIVATE MEMBERSHIP CARD")
