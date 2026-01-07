@@ -677,13 +677,19 @@ if st.session_state.user_role == "MANAGER":
         st.session_state.reset_mode = True
 
     if st.session_state.reset_mode:
-        st.sidebar.error("⚠️ THIS ACTION IS PERMANENT!")
+        st.sidebar.error("⚠️ FORCE WIPE INITIATED")
         
         if st.sidebar.button("✅ CONFIRM: DELETE EVERYTHING"):
             try:
                 with conn.session as s:
-                    # 1. Increase timeout to 30 seconds for this session only
-                    s.execute(text("SET statement_timeout = '30s';"))
+                    # 1. KILL OTHER CONNECTIONS (Prevents the Timeout/Lock)
+                    # This stops the TV/Staff phones from blocking the reset
+                    s.execute(text("""
+                        SELECT pg_terminate_backend(pid) 
+                        FROM pg_stat_activity 
+                        WHERE datname = current_database() 
+                        AND pid <> pg_backend_pid();
+                    """))
                     
                     # 2. Get all table names
                     result = s.execute(text("""
@@ -692,28 +698,28 @@ if st.session_state.user_role == "MANAGER":
                     """))
                     all_tables = [row[0] for row in result]
 
-                    # 3. Wipe every table
+                    # 3. Execute Truncate on all tables
                     for table in all_tables:
                         if table == 'users':
                             s.execute(text("DELETE FROM users WHERE role != 'MANAGER'"))
                         else:
-                            # Use ONLY TRUNCATE for speed to avoid timeout
                             s.execute(text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE;"))
                     
                     s.commit()
                 
                 st.session_state.reset_mode = False
-                st.sidebar.success("All data wiped successfully!")
+                st.sidebar.success("System Wiped Successfully!")
                 st.rerun()
+                
             except Exception as e:
-                # If it fails, we rollback to prevent leaving the DB in a locked state
-                s.rollback()
-                st.sidebar.error(f"Reset Error: {e}")
+                # If error, try to rollback
+                try: s.rollback()
+                except: pass
+                st.sidebar.error(f"Reset Failed: {e}")
 
         if st.sidebar.button("❌ CANCEL"):
             st.session_state.reset_mode = False
             st.rerun()
-
 # --- TOP NOTIFICATION FEED ---
 latest_note = conn.query("SELECT message FROM notifications ORDER BY id DESC LIMIT 1", ttl=0)
 message_text = latest_note.iloc[0]['message'] if not latest_note.empty else "SYSTEM READY"
