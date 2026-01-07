@@ -407,12 +407,14 @@ def calculate_payouts(username):
     Calculates payroll metrics: Base Salary, Daily Comm, Monthly Comm, Yearly Comm, and Total.
     """
     # Fetch base salary
-    query_conf = text("SELECT base_salary FROM staff_payroll_config WHERE username=:u")
+    # FIX: Removed text() wrapper from conn.query call
+    query_conf = "SELECT base_salary FROM staff_payroll_config WHERE username=:u"
     res = conn.query(query_conf, params={"u": username}, ttl=0)
     base = res.iloc[0]['base_salary'] if not res.empty else 0.0
     
     # Fetch commissions log
-    query_log = text("SELECT * FROM earnings_log WHERE username=:u")
+    # FIX: Removed text() wrapper from conn.query call
+    query_log = "SELECT * FROM earnings_log WHERE username=:u"
     df_comm = conn.query(query_log, params={"u": username}, ttl=0)
     
     daily_comm = 0.0
@@ -710,6 +712,9 @@ if choice == "COMMAND CENTER":
             full_phone = f"{COUNTRY_CODES[c_code].replace('+', '')}{phone_raw}" if not d_phone else d_phone
 
         with col2:
+            # FIX: Initialize variables before use to prevent NameError
+            total_price = 0.0
+            item_summary = ""
             lounge_items_sold = []
             staff_assigned = "UNKNOWN"
             
@@ -721,28 +726,32 @@ if choice == "COMMAND CENTER":
                     st.warning("💡 PROMPT: Ask client if they want Ceramic Wax for long-lasting shine!")
                 
                 total_price = sum([SERVICES[s] for s in selected])
-                
-                # Fetch only Verified Wet Bay Staff
-                wet_staff = get_free_staff_by_dept("WET BAY")
-                staff_assigned = st.selectbox("ASSIGN WET BAY DETAILER", wet_staff if wet_staff else ["NO FREE STAFF"])
                 item_summary = ", ".join(selected)
-                
+
+                # Staff Assignment Logic
+                free_staff = get_free_staff_by_dept("WET BAY")
+                if not free_staff:
+                    st.error("⚠️ NO WET BAY STAFF AVAILABLE")
+                    staff_assigned = "NO FREE STAFF"
+                else:
+                    staff_assigned = st.selectbox("ASSIGN WET BAY DETAILER", free_staff)
+            
             else:
-                # Lounge Mode
-                inv_items = conn.query("SELECT item, price FROM inventory WHERE price > 0", ttl=0)
-                items_list = st.multiselect("SELECT ITEMS", inv_items['item'].tolist())
-                total_price = 0
-                item_summary = ""
+                # LOUNGE MODE
+                st.subheader("LOUNGE ORDER")
+                inv_data = conn.query("SELECT * FROM inventory", ttl=0)
+                inv_dict = dict(zip(inv_data['item'], inv_data['price']))
+                stock_dict = dict(zip(inv_data['item'], inv_data['stock']))
                 
-                # Dynamic Quantity Inputs
-                for item in items_list:
-                    u_price = inv_items[inv_items['item'] == item]['price'].values[0]
-                    qty = st.number_input(f"Quantity for {item}", min_value=1, value=1)
-                    total_price += (u_price * qty)
+                lounge_items = st.multiselect("SELECT ITEMS", list(inv_dict.keys()))
+                
+                for item in lounge_items:
+                    qty = st.number_input(f"Qty: {item}", min_value=1, max_value=int(stock_dict.get(item, 0)))
                     lounge_items_sold.append((item, qty))
+                    total_price += (inv_dict[item] * qty)
                 
-                staff_assigned = st.session_state.user_name
-                item_summary = ", ".join([f"{i} (x{q})" for i, q in lounge_items_sold])
+                item_summary = ", ".join([f"{q}x {i}" for i, q in lounge_items_sold])
+                staff_assigned = st.session_state.user_name # Receptionist serves lounge
 
             st.markdown(f"### TOTAL: ₦{total_price:,}")
             pay_method = st.selectbox("PAYMENT METHOD", ["Moniepoint POS", "Bank Transfer", "Cash", "Gold Card Credit"])
@@ -750,7 +759,7 @@ if choice == "COMMAND CENTER":
         if st.button(f"AUTHORIZE {mode} TRANSACTION", use_container_width=True):
             if staff_assigned == "NO FREE STAFF" and mode == "CAR WASH":
                 st.error("Cannot authorize. No available staff in the Wet Bay.")
-            elif (plate or mode == "LOUNGE") and (selected if mode=="CAR WASH" else lounge_items_sold):
+            elif (plate or mode == "LOUNGE") and (mode == "LOUNGE" or (mode == "CAR WASH" and item_summary)):
                 
                 can_proceed = True
                 low_bal = False
@@ -758,7 +767,8 @@ if choice == "COMMAND CENTER":
                 
                 # Handle Gold Card Credit Logic
                 if pay_method == "Gold Card Credit":
-                    q_mem = text("SELECT balance_washes FROM memberships WHERE plate=:p")
+                    # FIX: Removed text() wrapper from conn.query
+                    q_mem = "SELECT balance_washes FROM memberships WHERE plate=:p"
                     m_res = conn.query(q_mem, params={"p": plate}, ttl=0)
                     
                     if not m_res.empty and m_res.iloc[0]['balance_washes'] > 0:
@@ -848,7 +858,7 @@ if choice == "COMMAND CENTER":
                     
                     add_event(f"{mode} AUTH: {plate if plate else 'Lounge'} via {pay_method}")
                     st.rerun()
-# ... CONTINUES IN PART 2
+# ... continue part 2
     with tab_mem:
         st.subheader("ACTIVATE MEMBERSHIP CARD")
         m_plate = st.text_input("SCAN/ENTER PLATE FOR CARD").upper()
@@ -1075,7 +1085,8 @@ elif choice == "LIVE U-FLOW":
                 if st.button(f"RELEASE {row['plate']}", key=f"rel_{idx}"):
                     # 1. Commission Logic
                     # Fetch total sale amount
-                    sale_data = conn.query(text("SELECT total FROM sales WHERE plate=:p ORDER BY id DESC LIMIT 1"), params={"p": row['plate']}, ttl=0)
+                    # FIX: Removed text() wrapper from conn.query call
+                    sale_data = conn.query("SELECT total FROM sales WHERE plate=:p ORDER BY id DESC LIMIT 1", params={"p": row['plate']}, ttl=0)
                     
                     if not sale_data.empty:
                         sale_total = sale_data.iloc[0]['total']
@@ -1103,7 +1114,8 @@ elif choice == "LIVE U-FLOW":
                             s.commit()
 
                     # 2. Capture WhatsApp Info BEFORE deleting car
-                    cust_info = conn.query(text("SELECT name, phone FROM customers WHERE plate=:p"), params={"p": row['plate']}, ttl=0)
+                    # FIX: Removed text() wrapper from conn.query call
+                    cust_info = conn.query("SELECT name, phone FROM customers WHERE plate=:p", params={"p": row['plate']}, ttl=0)
                     
                     if not cust_info.empty:
                         c_name = cust_info.iloc[0]['name']
@@ -1227,7 +1239,8 @@ elif choice == "BOSS HR" and st.session_state.user_role == "MANAGER":
         selected_staff = st.selectbox("SELECT STAFF TO VIEW FULL DETAILS", staff_list)
         
         if selected_staff:
-            s_prof = conn.query(text("SELECT * FROM staff_profiles WHERE username=:u"), params={"u": selected_staff}, ttl=0)
+            # FIX: Removed text() wrapper from conn.query call
+            s_prof = conn.query("SELECT * FROM staff_profiles WHERE username=:u", params={"u": selected_staff}, ttl=0)
             
             if not s_prof.empty:
                 row = s_prof.iloc[0]
@@ -1264,7 +1277,8 @@ elif choice == "BOSS HR" and st.session_state.user_role == "MANAGER":
         config_staff = st.selectbox("Select Staff to Config", all_staff_list)
         
         if config_staff:
-            curr = conn.query(text("SELECT base_salary, bonus_pc FROM staff_payroll_config WHERE username=:u"), params={"u": config_staff}, ttl=0)
+            # FIX: Removed text() wrapper from conn.query call
+            curr = conn.query("SELECT base_salary, bonus_pc FROM staff_payroll_config WHERE username=:u", params={"u": config_staff}, ttl=0)
             
             curr_base = curr.iloc[0]['base_salary'] if not curr.empty else 0.0
             curr_bon = curr.iloc[0]['bonus_pc'] if not curr.empty else 0.0
@@ -1544,11 +1558,12 @@ elif choice == "MY EARNINGS":
     col3.metric("TOTAL PAYOUT (BASE + BONUS)", f"₦{total_m:,}")
     
     st.write("### RECENT EARNINGS LOG")
-    e_log = conn.query(text("""
+    # FIX: Removed text() wrapper from conn.query call
+    e_log = conn.query("""
         SELECT timestamp, ref_plate, amount 
         FROM earnings_log 
         WHERE username=:u 
         ORDER BY id DESC LIMIT 20
-    """), params={"u": st.session_state.user_name}, ttl=0)
+    """, params={"u": st.session_state.user_name}, ttl=0)
     
     st.table(e_log)
