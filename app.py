@@ -644,7 +644,7 @@ if st.session_state.user_role == "MANAGER":
         "CRM & RETENTION", 
         "NOTIFICATIONS"
     ]
-elif st.session_state.user_dept == "RECEPTIONIST":
+elif st.session_state.user_role == "RECEPTIONIST":
     menu = [
         "COMMAND CENTER", 
         "LIVE U-FLOW", 
@@ -1684,55 +1684,47 @@ elif choice == "FINANCIALS" and st.session_state.user_role == "MANAGER":
                 st.markdown("---")     
 
 # ==============================================================================
-# 7. CRM & RETENTION (MANAGER & RECEPTIONIST)
+# 7. CRM & RETENTION
 # ==============================================================================
-elif choice == "CRM & RETENTION" and st.session_state.user_role in ["MANAGER", "RECEPTIONIST"]:
+elif choice == "CRM & RETENTION":
     st.subheader("CUSTOMER RETENTION PANEL")
     
-    # DEBUG: Remove this line once you see it working
-    # st.write(f"Logged in as: {st.session_state.user_role}") 
-
+    # Query the database
     cust_df = conn.query("SELECT * FROM customers", ttl=0)
     
     if cust_df is None or cust_df.empty:
-        st.info("No customer records found. As soon as a car is released, data will appear here.")
+        st.info("No customer records found yet.")
     else:
-        # Sort by days since visit automatically so the 'At Risk' are at the top
         for idx, row in cust_df.iterrows():
             try:
-                # IMPORTANT: Ensure 'last_visit' column exists and has data
+                # Ensure date exists
                 if not row['last_visit']:
                     continue
                     
                 last_v = datetime.strptime(str(row['last_visit']), "%Y-%m-%d")
                 days_since = (datetime.now() - last_v).days
                 
-                # --- Rest of your UI logic stays the same ---
-                if days_since < 7:
-                    color, status = "#00d4ff", "Active"
-                elif days_since < 14:
-                    color, status = "#FFD700", "Needs Follow-up"
-                else:
-                    color, status = "#FF3B30", "At Risk"
+                # Logic-based coloring
+                color = "#00d4ff" if days_since < 7 else "#FFD700" if days_since < 14 else "#FF3B30"
+                status_text = "Active" if days_since < 7 else "Needs Follow-up" if days_since < 14 else "At Risk"
 
-                c1, c2 = st.columns([3, 1])
-                with c1:
+                col1, col2 = st.columns([3, 1])
+                
+                with col1:
                     st.markdown(f"""
                         <div style='padding:12px; border-radius:5px; border-left: 5px solid {color}; background:#1e1e1e; margin-bottom:8px;'>
                             <b style='color:white; font-size:16px;'>{row['name']}</b> 
                             <span style='color:#888;'> | {row['plate']}</span><br>
-                            <small style='color:{color}; font-weight:bold;'>{days_since} days since last visit ({status})</small>
+                            <small style='color:{color}; font-weight:bold;'>{days_since} days since last visit ({status_text})</small>
                         </div>
                     """, unsafe_allow_html=True)
                 
-                with c2:
+                with col2:
                     if days_since >= 7:
-                        msg = f"Hello {row['name']}! Your car {row['plate']} is due for a wash at RideBoss. See you soon?"
-                        url = format_whatsapp(row['phone'], msg)
-                        st.markdown(f'<a href="{url}" target="_blank" style="text-decoration:none;"><div style="background-color:#25D366; color:white; padding:12px; text-align:center; border-radius:5px; font-weight:bold; font-size:13px;">WHATSAPP 📲</div></a>', unsafe_allow_html=True)
-            except Exception as e:
-                # This helps you see if a specific row is crashing the loop
-                # st.write(f"Error on row {idx}: {e}")
+                        msg = f"Hello {row['name']}! This is RideBoss. Your car ({row['plate']}) is due for a wash. Ready for a shine today?"
+                        wa_url = format_whatsapp(row['phone'], msg)
+                        st.markdown(f'<a href="{wa_url}" target="_blank" style="text-decoration:none;"><div style="background-color:#25D366; color:white; padding:12px; text-align:center; border-radius:5px; font-weight:bold; font-size:13px; margin-top:5px;">WHATSAPP 📲</div></a>', unsafe_allow_html=True)
+            except:
                 continue
 elif choice == "NOTIFICATIONS":
     st.subheader("SYSTEM HISTORY")
