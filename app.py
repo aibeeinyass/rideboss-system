@@ -768,6 +768,23 @@ if choice == "COMMAND CENTER":
             full_phone = f"{COUNTRY_CODES[c_code].replace('+', '')}{phone_raw}" if not d_phone else d_phone
 
         with col2:
+# FIND THIS IN COMMAND CENTER -> tab_trans -> col2
+if mode == "CAR WASH":
+    selected = st.multiselect("SERVICES", list(SERVICES.keys()))
+    
+    # --- ADD THIS NEW CHECKBOX HERE ---
+    is_promo = st.checkbox("🎟️ COMPLIMENTARY (FREE WASH)")
+    
+    # Update total_price logic
+    if is_promo:
+        total_price = 0.0
+        mode = "PROMO" # Changes the type to PROMO for the database
+    else:
+        total_price = sum([SERVICES[s] for s in selected])
+    # ----------------------------------
+
+    item_summary = ", ".join(selected)
+
             # FIX: Initialize variables before use to prevent NameError
             total_price = 0.0
             item_summary = ""
