@@ -974,7 +974,7 @@ elif choice == "LIVE U-FLOW":
     # Fetch Live Data
     live_cars = conn.query("SELECT * FROM live_bays", ttl=0)
     
-   if view_mode == "External Flight Board":
+    if view_mode == "External Flight Board":
         # 1. FIXED FULLSCREEN BUTTON (Targets the Parent Window)
         st.button("📺 ACTIVATE FULLSCREEN", on_click=None, use_container_width=True, help="Click to expand to TV view")
         
@@ -1002,21 +1002,18 @@ elif choice == "LIVE U-FLOW":
         # 2. HIDE UI
         st.markdown("<style>header, footer, .stAppDeployButton {display:none !important;}</style>", unsafe_allow_html=True)
         
-        # --- REST OF YOUR CLOCK & MONITOR HTML CODE ---
-        # (Keep the rest of the code I gave you previously starting from the st.markdown("<h1>..."))
-        # --- FLIGHT BOARD DISPLAY ---
+        # 3. FLIGHT BOARD DISPLAY WITH CLOCK
         st.markdown("<h1 style='text-align:center; color:#00d4ff; margin:0;'>WORKFLOW MONITOR</h1>", unsafe_allow_html=True)
         
         if live_cars.empty:
             st.info("ALL BAYS CLEAR.")
         else:
-            # Generating HTML for the Scrolling Monitor with Clock
+            # Generating HTML for the Scrolling Monitor with Clock overlay
             monitor_html = f"""
             <style>
                 body {{ background-color: #050505; margin: 0; padding: 0; font-family: sans-serif; overflow: hidden; }}
                 .monitor-container {{ background: #000; height: 100vh; width: 100%; position: relative; overflow: hidden; }}
                 
-                /* Digital Clock Styling */
                 .clock-overlay {{
                     position: absolute; top: 10px; right: 20px; text-align: right;
                     color: white; font-family: monospace; z-index: 100; background: rgba(0,0,0,0.5);
@@ -1040,7 +1037,6 @@ elif choice == "LIVE U-FLOW":
                     <div id="time"></div>
                     <div id="date"></div>
                 </div>
-
                 <div class="scroll-content">"""
             
             # Duplicate data to create seamless scroll loop
@@ -1064,21 +1060,31 @@ elif choice == "LIVE U-FLOW":
             <script>
                 function updateClock() {
                     var now = new Date();
-                    var timeStr = now.getHours().toString().padStart(2, '0') + ':' + 
-                                  now.getMinutes().toString().padStart(2, '0') + ':' + 
-                                  now.getSeconds().toString().padStart(2, '0');
-                    var dateStr = now.toDateString().toUpperCase();
-                    document.getElementById('time').innerHTML = timeStr;
-                    document.getElementById('date').innerHTML = dateStr;
+                    var h = now.getHours().toString().padStart(2, '0');
+                    var m = now.getMinutes().toString().padStart(2, '0');
+                    var s = now.getSeconds().toString().padStart(2, '0');
+                    document.getElementById('time').innerHTML = h + ':' + m + ':' + s;
+                    document.getElementById('date').innerHTML = now.toDateString().toUpperCase();
                 }
                 setInterval(updateClock, 1000);
                 updateClock();
             </script>
             """
-            
             import streamlit.components.v1 as components
             components.html(monitor_html, height=800)
 
+    else:
+        # --- MANAGEMENT CONTROLS LOGIC ---
+        st.subheader("BAYS MANAGEMENT")
+        if st.session_state.wa_pending:
+            st.info(f"PENDING NOTIFICATION: {st.session_state.wa_pending['plate']}")
+            st.link_button("SEND WHATSAPP MESSAGE", st.session_state.wa_pending['url'])
+
+        if live_cars.empty:
+            st.info("No vehicles currently in process.")
+        else:
+            st.dataframe(live_cars, use_container_width=True)
+            # Your existing Move/Release button logic would follow here
     else:
         # --- MANAGEMENT CONTROLS ---
         
