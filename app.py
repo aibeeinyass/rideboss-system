@@ -1505,41 +1505,36 @@ elif choice == "INVENTORY & STAFF" and st.session_state.user_role == "MANAGER":
                         s.commit()
                     st.rerun()
                     
-   with t3:
-        st.subheader("STAFF PERFORMANCE")
-        
-        # 1. Peek at the table columns to see what is available without crashing
+    with t3:
+        st.subheader("STAFF RANKING (TOTAL TASKS)")
+        # This query "taps" into both staff columns from your sales table
+        perf_query = """
+            SELECT staff_member, COUNT(*) as tasks, SUM(total) as revenue_impact
+            FROM (
+                SELECT staff as staff_member, total FROM sales WHERE staff IS NOT NULL AND staff != ''
+                UNION ALL
+                SELECT dry_staff as staff_member, 0 FROM sales WHERE dry_staff IS NOT NULL AND dry_staff != ''
+            ) AS combined_data
+            GROUP BY staff_member
+            ORDER BY tasks DESC
+        """
         try:
-            check_df = conn.query("SELECT * FROM sales LIMIT 0", ttl=0)
-            
-            # 2. If 'dry_staff' isn't in your table, only query 'staff'
-            if 'dry_staff' in check_df.columns:
-                perf_query = """
-                    SELECT name, COUNT(*) as jobs FROM (
-                        SELECT staff as name FROM sales WHERE staff IS NOT NULL AND staff != ''
-                        UNION ALL
-                        SELECT dry_staff as name FROM sales WHERE dry_staff IS NOT NULL AND dry_staff != ''
-                    ) AS combined GROUP BY name ORDER BY jobs DESC
-                """
-            else:
-                perf_query = """
-                    SELECT staff as name, COUNT(*) as jobs 
-                    FROM sales 
-                    WHERE staff IS NOT NULL AND staff != ''
-                    GROUP BY staff 
-                    ORDER BY jobs DESC
-                """
-            
             perf_df = conn.query(perf_query, ttl=0)
-            
             if not perf_df.empty:
-                st.bar_chart(perf_df.set_index('name')['jobs'])
-                st.dataframe(perf_df, use_container_width=True, hide_index=True)
+                st.bar_chart(perf_df.set_index('staff_member')['tasks'])
+                st.dataframe(
+                    perf_df, 
+                    use_container_width=True,
+                    column_config={
+                        "staff_member": "Staff Name",
+                        "tasks": "Cars Handled",
+                        "revenue_impact": st.column_config.NumberColumn("Revenue (Wet Bay)", format="₦%.2f")
+                    }
+                )
             else:
-                st.info("No performance data found yet.")
-                
-        except Exception as e:
-            st.error("Waiting for initial sales data...")
+                st.info("No performance data yet.")
+        except:
+            st.info("Performance system ready. Data will appear as soon as cars are released.")
 # ==============================================================================
 # 6. FINANCIALS (INTELLIGENCE CENTER)
 # ==============================================================================
