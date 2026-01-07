@@ -1689,7 +1689,7 @@ elif choice == "FINANCIALS" and st.session_state.user_role == "MANAGER":
 elif choice == "CRM & RETENTION":
     st.subheader("CUSTOMER RETENTION PANEL")
     
-    # Query the database
+    # Get customer data
     cust_df = conn.query("SELECT * FROM customers", ttl=0)
     
     if cust_df is None or cust_df.empty:
@@ -1697,7 +1697,7 @@ elif choice == "CRM & RETENTION":
     else:
         for idx, row in cust_df.iterrows():
             try:
-                # Ensure date exists
+                # Calculate days since last visit
                 if not row['last_visit']:
                     continue
                     
@@ -1705,8 +1705,12 @@ elif choice == "CRM & RETENTION":
                 days_since = (datetime.now() - last_v).days
                 
                 # Logic-based coloring
-                color = "#00d4ff" if days_since < 7 else "#FFD700" if days_since < 14 else "#FF3B30"
-                status_text = "Active" if days_since < 7 else "Needs Follow-up" if days_since < 14 else "At Risk"
+                if days_since < 7:
+                    color, status_text = "#00d4ff", "Active"
+                elif days_since < 14:
+                    color, status_text = "#FFD700", "Needs Follow-up"
+                else:
+                    color, status_text = "#FF3B30", "At Risk"
 
                 col1, col2 = st.columns([3, 1])
                 
@@ -1720,10 +1724,19 @@ elif choice == "CRM & RETENTION":
                     """, unsafe_allow_html=True)
                 
                 with col2:
+                    # WhatsApp button triggers at 7 days or more
                     if days_since >= 7:
-                        msg = f"Hello {row['name']}! This is RideBoss. Your car ({row['plate']}) is due for a wash. Ready for a shine today?"
-                        wa_url = format_whatsapp(row['phone'], msg)
-                        st.markdown(f'<a href="{wa_url}" target="_blank" style="text-decoration:none;"><div style="background-color:#25D366; color:white; padding:12px; text-align:center; border-radius:5px; font-weight:bold; font-size:13px; margin-top:5px;">WHATSAPP 📲</div></a>', unsafe_allow_html=True)
+                        message = f"Hello {row['name']}! This is RideBoss. We noticed your car ({row['plate']}) hasn't been in for a wash in {days_since} days. We'd love to see you today!"
+                        wa_url = format_whatsapp(row['phone'], message)
+                        
+                        st.markdown(f"""
+                            <a href="{wa_url}" target="_blank" style="text-decoration:none;">
+                                <div style="background-color:#25D366; color:white; padding:12px; text-align:center; 
+                                     border-radius:5px; font-weight:bold; margin-top:5px; font-size:13px;">
+                                    WHATSAPP 📲
+                                </div>
+                            </a>
+                        """, unsafe_allow_html=True)
             except:
                 continue
 elif choice == "NOTIFICATIONS":
