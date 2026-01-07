@@ -666,9 +666,10 @@ if st.sidebar.button("LOGOUT"):
     st.session_state.logged_in = False
     st.rerun()
 
-# --- FACTORY RESET (MANAGER ONLY) ---
+# --- FACTORY RESET (MANAGER ONLY + SECRETS PROTECTED) ---
 if st.session_state.user_role == "MANAGER":
-    st.sidebar.markdown("### SYSTEM ADMIN")
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("### 🔐 SYSTEM ADMIN")
     
     if "reset_mode" not in st.session_state:
         st.session_state.reset_mode = False
@@ -677,36 +678,43 @@ if st.session_state.user_role == "MANAGER":
         st.session_state.reset_mode = True
 
     if st.session_state.reset_mode:
-        st.sidebar.error("⚠️ STARTING FRESH...")
+        st.sidebar.warning("Master Admin Key Required")
         
-        if st.sidebar.button("✅ CONFIRM: WIPE ALL DATA"):
-            try:
-                with conn.session as s:
-                    # 1. Get all table names
-                    result = s.execute(text("""
-                        SELECT tablename FROM pg_catalog.pg_tables 
-                        WHERE schemaname = 'public';
-                    """))
-                    all_tables = [row[0] for row in result]
+        # 1. Password Input Field
+        master_key_input = st.sidebar.text_input("Enter Master Key", type="password")
+        
+        # 2. Pull the key from Streamlit Secrets
+        OWNER_PASSWORD = st.secrets["MASTER_KEY"]
 
-                    # 2. Use DELETE instead of TRUNCATE to avoid lock timeouts
-                    for table in all_tables:
-                        if table == 'users':
-                            s.execute(text("DELETE FROM users WHERE role != 'MANAGER'"))
-                        else:
-                            # DELETE is safer on shared hosting/managed DBs
-                            s.execute(text(f"DELETE FROM {table}"))
-                            # Optional: This resets the ID counter to 1
-                            s.execute(text(f"ALTER SEQUENCE IF EXISTS {table}_id_seq RESTART WITH 1"))
+        if st.sidebar.button("✅ CONFIRM: WIPE ALL DATA"):
+            if master_key_input == OWNER_PASSWORD:
+                try:
+                    with conn.session as s:
+                        # Get all table names
+                        result = s.execute(text("""
+                            SELECT tablename FROM pg_catalog.pg_tables 
+                            WHERE schemaname = 'public';
+                        """))
+                        all_tables = [row[0] for row in result]
+
+                        for table in all_tables:
+                            if table == 'users':
+                                # Keep yourself, delete the rest
+                                s.execute(text("DELETE FROM users WHERE role != 'MANAGER'"))
+                            else:
+                                s.execute(text(f"DELETE FROM {table}"))
+                                s.execute(text(f"ALTER SEQUENCE IF EXISTS {table}_id_seq RESTART WITH 1"))
+                        
+                        s.commit()
                     
-                    s.commit()
-                
-                st.session_state.reset_mode = False
-                st.sidebar.success("System Wiped!")
-                st.rerun()
-                
-            except Exception as e:
-                st.sidebar.error(f"Reset Failed: {e}")
+                    st.session_state.reset_mode = False
+                    st.sidebar.success("System Wiped!")
+                    st.rerun()
+                    
+                except Exception as e:
+                    st.sidebar.error(f"Reset Failed: {e}")
+            else:
+                st.sidebar.error("❌ INVALID MASTER KEY")
 
         if st.sidebar.button("❌ CANCEL"):
             st.session_state.reset_mode = False
