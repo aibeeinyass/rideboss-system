@@ -1487,7 +1487,6 @@ elif choice == "INVENTORY & STAFF" and st.session_state.user_role == "MANAGER":
             
             if sub_col1.form_submit_button("SAVE SERVICE"):
                 with conn.session as s:
-                    # Rename logic: if name changed, delete old and insert new
                     if svc_to_edit != "-- ADD NEW --" and new_name != svc_to_edit:
                         s.execute(text("DELETE FROM wash_prices WHERE service=:s"), {"s": svc_to_edit})
                     
@@ -1507,14 +1506,37 @@ elif choice == "INVENTORY & STAFF" and st.session_state.user_role == "MANAGER":
                     st.rerun()
                     
     with t3:
-        perf_query = "SELECT staff, COUNT(*) as washes, SUM(total) as revenue FROM sales WHERE type='CAR WASH' GROUP BY staff"
+        st.subheader("STAFF PERFORMANCE (WET & DRY BAYS)")
+        # This query combines 'staff' (Wet Bay) and 'dry_staff' (Dry Bay) into one ranking
+        perf_query = """
+            SELECT staff_member, COUNT(*) as tasks, SUM(total) as revenue_impact
+            FROM (
+                SELECT staff as staff_member, total FROM sales WHERE staff IS NOT NULL
+                UNION ALL
+                SELECT dry_staff as staff_member, total FROM sales WHERE dry_staff IS NOT NULL
+            ) AS combined_data
+            GROUP BY staff_member
+            ORDER BY tasks DESC
+        """
         perf_df = conn.query(perf_query, ttl=0)
+        
         if not perf_df.empty:
-            st.bar_chart(perf_df.set_index('staff')['washes'])
-            st.dataframe(perf_df, use_container_width=True)
+            # Chart based on number of cars handled
+            st.bar_chart(perf_df.set_index('staff_member')['tasks'])
+            
+            # Formatted Dataframe
+            st.dataframe(
+                perf_df, 
+                column_config={
+                    "staff_member": "Staff Name",
+                    "tasks": "Cars Handled",
+                    "revenue_impact": st.column_config.NumberColumn("Revenue Impact", format="₦%.2f")
+                },
+                use_container_width=True,
+                hide_index=True
+            )
         else:
             st.info("No performance data yet.")
-
 # ==============================================================================
 # 6. FINANCIALS (INTELLIGENCE CENTER)
 # ==============================================================================
