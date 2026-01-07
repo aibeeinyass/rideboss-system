@@ -661,9 +661,34 @@ else:
 
 choice = st.sidebar.radio("NAVIGATE", menu)
 st.sidebar.markdown("---")
+
 if st.sidebar.button("LOGOUT"):
     st.session_state.logged_in = False
     st.rerun()
+
+# --- FACTORY RESET (MANAGER ONLY) ---
+if st.session_state.user_role == "MANAGER":
+    st.sidebar.markdown("### SYSTEM ADMIN")
+    if st.sidebar.button("⚠️ FACTORY RESET SYSTEM", help="Wipe all data for a new start"):
+        st.warning("ARE YOU SURE? This will delete ALL sales, staff, and customer data.")
+        if st.button("YES, DELETE EVERYTHING"):
+            with conn.session as s:
+                # List of tables to clear
+                tables = [
+                    "live_bays", "earnings_log", "sales", 
+                    "notifications", "membership_cards", "customers", 
+                    "staff_profiles", "staff_payroll_config"
+                ]
+                for table in tables:
+                    # TRUNCATE + CASCADE + RESTART IDENTITY wipes data and resets IDs to 1
+                    s.execute(text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE;"))
+                
+                # Delete all users except you
+                s.execute(text("DELETE FROM users WHERE role != 'MANAGER'"))
+                s.commit()
+                
+            st.success("System Reset Complete! All records wiped.")
+            st.rerun()
 
 # --- TOP NOTIFICATION FEED ---
 latest_note = conn.query("SELECT message FROM notifications ORDER BY id DESC LIMIT 1", ttl=0)
