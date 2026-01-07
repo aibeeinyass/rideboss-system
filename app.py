@@ -974,33 +974,36 @@ elif choice == "LIVE U-FLOW":
     # Fetch Live Data
     live_cars = conn.query("SELECT * FROM live_bays", ttl=0)
     
-    if view_mode == "External Flight Board":
-        # --- FULLSCREEN & UI OVERRIDE ---
+   if view_mode == "External Flight Board":
+        # 1. FIXED FULLSCREEN BUTTON (Targets the Parent Window)
+        st.button("📺 ACTIVATE FULLSCREEN", on_click=None, use_container_width=True, help="Click to expand to TV view")
+        
         st.markdown("""
             <script>
-                function toggleFullScreen() {
-                    var doc = window.parent.document;
-                    var elem = doc.documentElement;
-                    if (!doc.fullscreenElement) {
-                        elem.requestFullscreen();
-                    } else {
-                        doc.exitFullscreen();
-                    }
+                // This script runs in the parent context to bypass iframe sandbox
+                const doc = window.parent.document;
+                const button = Array.from(doc.querySelectorAll('button')).find(el => el.innerText.includes('ACTIVATE FULLSCREEN'));
+                
+                if (button) {
+                    button.onclick = function() {
+                        const elem = doc.documentElement;
+                        if (!doc.fullscreenElement) {
+                            elem.requestFullscreen().catch(err => {
+                                console.error(`Error attempting to enable full-screen mode: ${err.message}`);
+                            });
+                        } else {
+                            doc.exitFullscreen();
+                        }
+                    };
                 }
             </script>
-            <style>
-                header, footer, .stAppDeployButton {display:none !important;}
-            </style>
-            <div style="text-align:center; margin-bottom: 10px;">
-                <button onclick="toggleFullScreen()" style="
-                    background: #00d4ff; color: black; border: none; 
-                    padding: 10px 25px; border-radius: 5px; font-weight: bold; 
-                    cursor: pointer; letter-spacing: 1px;">
-                    📺 TOGGLE FULLSCREEN
-                </button>
-            </div>
         """, unsafe_allow_html=True)
 
+        # 2. HIDE UI
+        st.markdown("<style>header, footer, .stAppDeployButton {display:none !important;}</style>", unsafe_allow_html=True)
+        
+        # --- REST OF YOUR CLOCK & MONITOR HTML CODE ---
+        # (Keep the rest of the code I gave you previously starting from the st.markdown("<h1>..."))
         # --- FLIGHT BOARD DISPLAY ---
         st.markdown("<h1 style='text-align:center; color:#00d4ff; margin:0;'>WORKFLOW MONITOR</h1>", unsafe_allow_html=True)
         
