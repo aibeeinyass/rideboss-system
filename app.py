@@ -1083,35 +1083,57 @@ elif choice == "LIVE U-FLOW":
                 
                 # --- AUTOMATED COMMISSION RELEASE LOGIC ---
                 if st.button(f"RELEASE {row['plate']}", key=f"rel_{idx}"):
-                    # 1. Commission Logic
-                    # Fetch total sale amount
-                    # FIX: Removed text() wrapper from conn.query call
+                    # 1. Fetch the latest sale amount for this plate
                     sale_data = conn.query("SELECT total FROM sales WHERE plate=:p ORDER BY id DESC LIMIT 1", params={"p": row['plate']}, ttl=0)
                     
                     if not sale_data.empty:
-                        sale_total = sale_data.iloc[0]['total']
+                        # Ensure numeric types for calculation
+                        sale_total = float(sale_data.iloc[0]['total'])
                         current_staff = row['staff']
                         prev_staff = row['wet_staff_history']
                         
-                        # Identify who gets paid
-                        staff_to_pay = [s for s in [current_staff, prev_staff] if s is not None]
+                        # Filter out empty or 'None' staff entries
+                        staff_to_pay = [s for s in [current_staff, prev_staff] if s and str(s).lower() != 'none' and str(s).strip() != '']
                         
                         with conn.session as s:
                             for s_member in staff_to_pay:
-                                # Get bonus %
+                                # Look up this specific staff's bonus percentage
                                 p_res = s.execute(text("SELECT bonus_pc FROM staff_payroll_config WHERE username=:u"), {"u": s_member}).fetchone()
                                 
-                                if p_res and p_res[0] > 0:
-                                    comm_amt = sale_total * (p_res[0] / 100)
-                                    now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+                                # Only insert if staff has a config and bonus > 0
+                                if p_res and p_res[0] is not None and p_res[0] > 0:
+                                    comm_amt = sale_total * (float(p_res[0]) / 100)
                                     
+                                    # POSTGRES FIX: Use native datetime object, not a string
                                     s.execute(text("""
                                         INSERT INTO earnings_log (username, amount, ref_plate, timestamp) 
                                         VALUES (:u, :a, :r, :t)
                                     """), {
-                                        "u": s_member, "a": comm_amt, "r": row['plate'], "t": now_str
+                                        "u": s_member, 
+                                        "a": comm_amt, 
+                                        "r": str(row['plate']), 
+                                        "t": datetime.now() 
                                     })
                             s.commit()
+
+                    # 2. WhatsApp Notification Setup
+                    cust_info = conn.query("SELECT name, phone FROM customers WHERE plate=:p", params={"p": row['plate']}, ttl=0)
+                    if not cust_info.empty:
+                        c_name = cust_info.iloc[0]['name']
+                        c_phone = cust_info.iloc[0]['phone']
+                        wa_msg = f"Hi {c_name}, your vehicle ({row['plate']}) is ready for pickup! Thank you for choosing RideBoss Autos."
+                        st.session_state.wa_pending = {
+                            "url": format_whatsapp(c_phone, wa_msg),
+                            "plate": row['plate']
+                        }
+
+                    # 3. Final Removal from Live Bays
+                    with conn.session as s:
+                        s.execute(text("DELETE FROM live_bays WHERE plate=:p"), {"p": row['plate']})
+                        s.commit()
+                        
+                    add_event(f"RELEASED: {row['plate']}")
+                    st.rerun()
 
                     # 2. Capture WhatsApp Info BEFORE deleting car
                     # FIX: Removed text() wrapper from conn.query call
