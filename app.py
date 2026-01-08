@@ -1194,60 +1194,41 @@ elif choice == "LIVE U-FLOW":
                                 st.rerun()
                 
                 # REPLACE THE EXISTING COMMISSION RELEASE BLOCK WITH THIS:
-                                if st.button(f"RELEASE {row['plate']}", key=f"rel_{idx}"):
-    # 1. Fetch the sale details
-    sale_data = conn.query("SELECT total, services, type FROM sales WHERE plate=:p ORDER BY id DESC LIMIT 1", params={"p": row['plate']}, ttl=0)
-    
-    if not sale_data.empty:
-        sale_total = float(sale_data.iloc[0]['total'])
-        sale_type = sale_data.iloc[0]['type']
-        services_run = sale_data.iloc[0]['services'].split(", ")
-        
-        # LOGIC: If total is 0 and it's NOT a PROMO, it's a Membership. 
-        # We calculate commission based on the dictionary price.
-        if sale_total == 0 and sale_type != "PROMO":
-            commissionable_value = sum([SERVICES.get(s, 0) for s in services_run])
-        else:
-            # If it's a PROMO (Free wash), value remains 0 (No commission)
-            # If it's a normal cash wash, use the actual total.
-            commissionable_value = sale_total
-
-        current_staff = row['staff']
-        prev_staff = row['wet_staff_history']
-        staff_to_pay = [s for s in [current_staff, prev_staff] if s and str(s).lower() != 'none' and str(s).strip() != '']
-        
-        with conn.session as s:
-            for s_member in staff_to_pay:
-                p_res = s.execute(text("SELECT bonus_pc FROM staff_payroll_config WHERE username=:u"), {"u": s_member}).fetchone()
-                
-                # Pay commission only if value > 0 (excludes Promo washes)
-                if p_res and p_res[0] > 0 and commissionable_value > 0:
-                    comm_amt = commissionable_value * (float(p_res[0]) / 100)
-                    s.execute(text("""
-                        INSERT INTO earnings_log (username, amount, ref_plate, timestamp) 
-                        VALUES (:u, :a, :r, :t)
-                    """), {"u": s_member, "a": comm_amt, "r": str(row['plate']), "t": datetime.now()})
-            s.commit()
-
-
-                    # 2. WhatsApp Notification Setup
-                    cust_info = conn.query("SELECT name, phone FROM customers WHERE plate=:p", params={"p": row['plate']}, ttl=0)
-                    if not cust_info.empty:
-                        c_name = cust_info.iloc[0]['name']
-                        c_phone = cust_info.iloc[0]['phone']
-                        wa_msg = f"Hi {c_name}, your vehicle ({row['plate']}) is ready for pickup! Thank you for choosing RideBoss Autos."
-                        st.session_state.wa_pending = {
-                            "url": format_whatsapp(c_phone, wa_msg),
-                            "plate": row['plate']
-                        }
-
-                    # 3. Final Removal from Live Bays
-                    with conn.session as s:
-                        s.execute(text("DELETE FROM live_bays WHERE plate=:p"), {"p": row['plate']})
-                        s.commit()
+                if st.button(f"RELEASE {row['plate']}", key=f"rel_{idx}"):
+                    # 1. Fetch the sale details
+                    sale_data = conn.query("SELECT total, services, type FROM sales WHERE plate=:p ORDER BY id DESC LIMIT 1", params={"p": row['plate']}, ttl=0)
+                    
+                    if not sale_data.empty:
+                        sale_total = float(sale_data.iloc[0]['total'])
+                        sale_type = sale_data.iloc[0]['type']
+                        services_run = sale_data.iloc[0]['services'].split(", ")
                         
-                    add_event(f"RELEASED: {row['plate']}")
-                    st.rerun()
+                        # LOGIC: If total is 0 and it's NOT a PROMO, it's a Membership. 
+                        # We calculate commission based on the dictionary price.
+                        if sale_total == 0 and sale_type != "PROMO":
+                            commissionable_value = sum([SERVICES.get(s, 0) for s in services_run])
+                        else:
+                            # If it's a PROMO (Free wash), value remains 0 (No commission)
+                            # If it's a normal cash wash, use the actual total.
+                            commissionable_value = sale_total
+
+                        current_staff = row['staff']
+                        prev_staff = row['wet_staff_history']
+                        staff_to_pay = [s for s in [current_staff, prev_staff] if s and str(s).lower() != 'none' and str(s).strip() != '']
+                        
+                        with conn.session as s:
+                            for s_member in staff_to_pay:
+                                p_res = s.execute(text("SELECT bonus_pc FROM staff_payroll_config WHERE username=:u"), {"u": s_member}).fetchone()
+                                
+                                # Pay commission only if value > 0 (excludes Promo washes)
+                                if p_res and p_res[0] > 0 and commissionable_value > 0:
+                                    comm_amt = commissionable_value * (float(p_res[0]) / 100)
+                                    s.execute(text("""
+                                        INSERT INTO earnings_log (username, amount, ref_plate, timestamp) 
+                                        VALUES (:u, :a, :r, :t)
+                                    """), {"u": s_member, "a": comm_amt, "r": str(row['plate']), "t": datetime.now()})
+                            s.commit()
+
 
                     # 2. Capture WhatsApp Info BEFORE deleting car
                     # FIX: Removed text() wrapper from conn.query call
