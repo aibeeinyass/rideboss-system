@@ -1491,13 +1491,13 @@ elif choice == "INVENTORY & STAFF" and st.session_state.user_role == "MANAGER":
                     
     with t3:
         st.subheader("STAFF RANKING (TOTAL TASKS)")
-        # This query "taps" into both staff columns from your sales table
+        # FIXED QUERY: Pulls from Sales (for Revenue) and Earnings Log (for total activity count)
         perf_query = """
-            SELECT staff_member, COUNT(*) as tasks, SUM(total) as revenue_impact
+            SELECT staff_member, COUNT(*) as tasks, SUM(revenue_impact) as revenue_impact
             FROM (
-                SELECT staff as staff_member, total FROM sales WHERE staff IS NOT NULL AND staff != ''
+                SELECT staff as staff_member, total as revenue_impact FROM sales WHERE staff IS NOT NULL AND staff != ''
                 UNION ALL
-                SELECT dry_staff as staff_member, 0 FROM sales WHERE dry_staff IS NOT NULL AND dry_staff != ''
+                SELECT username as staff_member, 0 as revenue_impact FROM earnings_log WHERE username IS NOT NULL AND username != ''
             ) AS combined_data
             GROUP BY staff_member
             ORDER BY tasks DESC
@@ -1511,14 +1511,15 @@ elif choice == "INVENTORY & STAFF" and st.session_state.user_role == "MANAGER":
                     use_container_width=True,
                     column_config={
                         "staff_member": "Staff Name",
-                        "tasks": "Cars Handled",
-                        "revenue_impact": st.column_config.NumberColumn("Revenue (Wet Bay)", format="₦%.2f")
+                        "tasks": "Total Jobs Logged",
+                        "revenue_impact": st.column_config.NumberColumn("Revenue Generated", format="₦%.2f")
                     }
                 )
             else:
                 st.info("No performance data yet.")
-        except:
-            st.info("Performance system ready. Data will appear as soon as cars are released.")
+        except Exception as e:
+            st.info(f"Performance system ready. {e}")
+
 # ==============================================================================
 # 6. FINANCIALS (INTELLIGENCE CENTER)
 # ==============================================================================
