@@ -1489,7 +1489,7 @@ elif choice == "INVENTORY & STAFF" and st.session_state.user_role == "MANAGER":
                         s.commit()
                     st.rerun()
                     
-        with t3:
+    with t3:
         st.subheader("STAFF RANKING (TOTAL TASKS)")
         # REWRITTEN QUERY: Uses permanent records only
         perf_query = """
@@ -1528,6 +1528,7 @@ elif choice == "INVENTORY & STAFF" and st.session_state.user_role == "MANAGER":
         except Exception as e:
             # This will now show the actual error if it fails again
             st.error(f"Performance Query Error: {e}")
+
 
 
 # ==============================================================================
