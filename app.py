@@ -1775,7 +1775,16 @@ elif choice == "FINANCIALS" and st.session_state.user_role == "MANAGER":
 elif choice == "CRM & RETENTION":
     st.subheader("CUSTOMER RETENTION PANEL")
     
-    # Get customer data
+    # 1. Get System Rules (For VIP Logic)
+    sett_df = conn.query("SELECT * FROM system_settings", ttl=0)
+    try:
+        vip_milestone = int(sett_df[sett_df['setting_key'] == 'vip_milestone'].iloc[0]['setting_value'])
+        vip_discount = float(sett_df[sett_df['setting_key'] == 'vip_discount'].iloc[0]['setting_value'])
+    except:
+        vip_milestone = 10
+        vip_discount = 20.0 # Default fallback
+
+    # 2. Get customer data
     cust_df = conn.query("SELECT * FROM customers", ttl=0)
     
     if cust_df is None or cust_df.empty:
@@ -1801,9 +1810,15 @@ elif choice == "CRM & RETENTION":
                     
                 last_v = datetime.strptime(str(row['last_visit']), "%Y-%m-%d")
                 days_since = (datetime.now() - last_v).days
+                visit_count = row['visits']
+
+                # --- INTELLIGENCE LOGIC ---
+                is_vip_milestone = (visit_count > 0) and (visit_count % vip_milestone == 0)
                 
                 # Logic-based coloring
-                if days_since < 7:
+                if is_vip_milestone:
+                    color, status_text = "#E0AA3E", "👑 VIP MILESTONE REACHED"
+                elif days_since < 7:
                     color, status_text = "#00d4ff", "Active"
                 elif days_since < 14:
                     color, status_text = "#FFD700", "Needs Follow-up"
@@ -1817,7 +1832,7 @@ elif choice == "CRM & RETENTION":
                     with st.popover(f"🔍 {row['name']} | {row['plate']}", use_container_width=True):
                         st.markdown(f"### Customer Details")
                         st.write(f"**Phone:** {row['phone']}")
-                        st.write(f"**Total Visits:** {row['visits']}")
+                        st.write(f"**Total Visits:** {visit_count}")
                         st.write(f"**Last Visit:** {row['last_visit']}")
                         st.divider()
                         st.write("**Service History & Records**")
@@ -1853,8 +1868,34 @@ elif choice == "CRM & RETENTION":
                     """, unsafe_allow_html=True)
                 
                 with col2:
-                    # WhatsApp button triggers at 7 days or more
-                    if days_since >= 7:
+                    # --- DYNAMIC ACTION BUTTON ---
+                    if is_vip_milestone:
+                        # 👑 VIP BUTTON LOGIC: Generate code and send reward
+                        if st.button("🎁 SEND REWARD", key=f"vip_{row['plate']}"):
+                            # 1. Generate Unique Code
+                            suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
+                            new_code = f"RBA-VIP-{suffix}"
+                            
+                            # 2. Save to DB
+                            with conn.session as s:
+                                s.execute(text("""
+                                    INSERT INTO promotions (code, discount_pc, created_for_plate, created_at, status)
+                                    VALUES (:c, :d, :p, :t, 'ACTIVE')
+                                """), {
+                                    "c": new_code, "d": vip_discount, 
+                                    "p": row['plate'], "t": datetime.now().strftime("%Y-%m-%d")
+                                })
+                                s.commit()
+                            
+                            # 3. Generate WhatsApp Link
+                            msg = f"Congrats {row['name']}! You've hit {visit_count} visits at RideBoss! To celebrate, here is a {vip_discount}% OFF code for your next wash: *{new_code}*. See you soon!"
+                            url = format_whatsapp(row['phone'], msg)
+                            
+                            st.markdown(f"<script>window.open('{url}', '_blank');</script>", unsafe_allow_html=True)
+                            st.success(f"Generated: {new_code}")
+
+                    elif days_since >= 7:
+                        # STANDARD RETENTION LOGIC
                         message = f"Hello {row['name']}! This is RideBoss. We noticed your car ({row['plate']}) hasn't been in for a wash in {days_since} days. We'd love to see you today!"
                         wa_url = format_whatsapp(row['phone'], message)
                         
@@ -1866,7 +1907,7 @@ elif choice == "CRM & RETENTION":
                                 </div>
                             </a>
                         """, unsafe_allow_html=True)
-            except:
+            except Exception as e:
                 continue
 
 elif choice == "NOTIFICATIONS":
@@ -1874,10 +1915,6 @@ elif choice == "NOTIFICATIONS":
     notes = conn.query('SELECT timestamp as "TIME", message as "EVENT" FROM notifications ORDER BY id DESC LIMIT 50', ttl=0)
     st.table(notes)
 
-elif choice == "NOTIFICATIONS":
-    st.subheader("SYSTEM HISTORY")
-    notes = conn.query('SELECT timestamp as "TIME", message as "EVENT" FROM notifications ORDER BY id DESC LIMIT 50', ttl=0)
-    st.table(notes)
 
 # ==============================================================================
 # NEW SECTION: MARKETING & PROMOS (MANAGER ONLY)
