@@ -1489,36 +1489,46 @@ elif choice == "INVENTORY & STAFF" and st.session_state.user_role == "MANAGER":
                         s.commit()
                     st.rerun()
                     
-    with t3:
+        with t3:
         st.subheader("STAFF RANKING (TOTAL TASKS)")
-        # FIXED QUERY: Pulls from Sales (for Revenue) and Earnings Log (for total activity count)
+        # REWRITTEN QUERY: Uses permanent records only
         perf_query = """
             SELECT staff_member, COUNT(*) as tasks, SUM(revenue_impact) as revenue_impact
             FROM (
-                SELECT staff as staff_member, total as revenue_impact FROM sales WHERE staff IS NOT NULL AND staff != ''
+                SELECT staff AS staff_member, total AS revenue_impact 
+                FROM sales 
+                WHERE staff IS NOT NULL AND staff != ''
+                
                 UNION ALL
-                SELECT username as staff_member, 0 as revenue_impact FROM earnings_log WHERE username IS NOT NULL AND username != ''
+                
+                SELECT username AS staff_member, 0 AS revenue_impact 
+                FROM earnings_log 
+                WHERE username IS NOT NULL AND username != ''
             ) AS combined_data
             GROUP BY staff_member
             ORDER BY tasks DESC
         """
         try:
             perf_df = conn.query(perf_query, ttl=0)
-            if not perf_df.empty:
+            
+            # Check if we actually have rows with tasks > 0
+            if not perf_df.empty and perf_df['tasks'].sum() > 0:
                 st.bar_chart(perf_df.set_index('staff_member')['tasks'])
                 st.dataframe(
                     perf_df, 
                     use_container_width=True,
                     column_config={
                         "staff_member": "Staff Name",
-                        "tasks": "Total Jobs Logged",
-                        "revenue_impact": st.column_config.NumberColumn("Revenue Generated", format="₦%.2f")
+                        "tasks": "Total Activities",
+                        "revenue_impact": st.column_config.NumberColumn("Direct Sales (₦)", format="₦%.2f")
                     }
                 )
             else:
-                st.info("No performance data yet.")
+                st.warning("📊 No activity recorded yet. Ensure staff are assigned during checkout and 'Released' in the U-Flow.")
         except Exception as e:
-            st.info(f"Performance system ready. {e}")
+            # This will now show the actual error if it fails again
+            st.error(f"Performance Query Error: {e}")
+
 
 # ==============================================================================
 # 6. FINANCIALS (INTELLIGENCE CENTER)
