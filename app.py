@@ -1153,6 +1153,7 @@ elif choice == "LIVE U-FLOW":
                 .monitor-meta {{ text-align: right; }}
                 .monitor-staff {{ font-size: 20px; color: #888; text-transform: uppercase; }}
                 .monitor-svc {{ color: #00d4ff; font-style: italic; font-size: 22px; }}
+                .status-waiting {{ color: #FF3B30 !important; }}
             </style>
 
             <div class="monitor-container">
@@ -1166,12 +1167,13 @@ elif choice == "LIVE U-FLOW":
             scroll_data = pd.concat([live_cars, live_cars])
             
             for _, row in scroll_data.iterrows():
+                status_class = "status-waiting" if row['status'] == "WAITING" else ""
                 monitor_html += f"""
                 <div class="monitor-row">
                     <div class="monitor-plate">{row['plate']}<br><span style="font-size:18px; color:#555;">{row['vehicle_type']}</span></div>
                     <div style="flex:1; padding-left:40px;"><div class="monitor-svc">SERVICE: {row['service_detail']}</div></div>
                     <div class="monitor-meta">
-                        <div class="monitor-status">{row['status']}</div>
+                        <div class="monitor-status {status_class}">{row['status']}</div>
                         <div class="monitor-staff">ASSIGNED: {row['staff']}</div>
                     </div>
                 </div>"""
@@ -1220,6 +1222,10 @@ elif choice == "LIVE U-FLOW":
         if live_cars.empty:
             st.info("No vehicles currently in the bays.")
             
+        # Count active bays for limit logic
+        active_wet = len(live_cars[live_cars['status'] == 'WET BAY'])
+        active_dry = len(live_cars[live_cars['status'] == 'DRY BAY'])
+            
         for idx, row in live_cars.iterrows():
             # Calculate time spent
             try:
@@ -1227,8 +1233,12 @@ elif choice == "LIVE U-FLOW":
                 time_spent = (datetime.now() - entry_dt).seconds // 60
             except:
                 time_spent = 0
-                
-            border_color = "#00d4ff" if time_spent < 40 else "#FF3B30"
+            
+            # Border color: Waiting (Grey), Normal (Blue), Overdue (Red)
+            if row['status'] == "WAITING":
+                border_color = "#555555"
+            else:
+                border_color = "#00d4ff" if time_spent < 40 else "#FF3B30"
             
             st.markdown(f'<div class="status-card" style="border-left: 10px solid {border_color};">', unsafe_allow_html=True)
             c1, c2, c3 = st.columns([2, 2, 1])
@@ -1240,86 +1250,96 @@ elif choice == "LIVE U-FLOW":
                 st.write(f"**DETAILER:** {row['staff']}")
                 st.write(f"**ELAPSED:** {time_spent} mins")
             with c3:
+                # --- WAITING LIST TO WET BAY LOGIC ---
+                if row['status'] == "WAITING":
+                    if active_wet < 3:
+                        with st.popover("ASSIGN TO WET BAY"):
+                            wet_staff = get_free_staff_by_dept("WET BAY")
+                            new_wet_detailer = st.selectbox("Assign Detailer", wet_staff if wet_staff else ["NO FREE STAFF"], key=f"wait_wet_{idx}")
+                            if st.button("Move to Wet Bay", key=f"move_wet_{idx}"):
+                                if new_wet_detailer != "NO FREE STAFF":
+                                    with conn.session as s:
+                                        s.execute(text("UPDATE live_bays SET status='WET BAY', staff=:s WHERE plate=:p"), {"s": new_wet_detailer, "p": row['plate']})
+                                        s.commit()
+                                    st.rerun()
+                    else:
+                        st.caption("🚨 WET BAYS FULL (3/3)")
+
                 # --- WET TO DRY LOGIC ---
                 if row['status'] == "WET BAY":
-                    with st.popover("TO DRY BAY"):
-                        dry_staff = get_free_staff_by_dept("DRY BAY")
-                        new_dry_detailer = st.selectbox("Assign Dry Bay", dry_staff if dry_staff else ["NO FREE STAFF"], key=f"dry_{idx}")
-                        
-                        if st.button("Confirm Handover", key=f"hnd_{idx}"):
-                            if new_dry_detailer != "NO FREE STAFF":
-                                with conn.session as s:
-                                    s.execute(text("""
-                                        UPDATE live_bays 
-                                        SET status='DRY BAY', staff=:ns, wet_staff_history=:ws 
-                                        WHERE plate=:p
-                                    """), {
-                                        "ns": new_dry_detailer, "ws": row['staff'], "p": row['plate']
-                                    })
-                                    s.commit()
-                                add_event(f"{row['plate']} moved to Dry Bay")
-                                st.rerun()
-                
-                # REPLACE THE EXISTING COMMISSION RELEASE BLOCK WITH THIS:
-                if st.button(f"RELEASE {row['plate']}", key=f"rel_{idx}"):
-                    # 1. Fetch the sale details
-                    sale_data = conn.query("SELECT total, services, type FROM sales WHERE plate=:p ORDER BY id DESC LIMIT 1", params={"p": row['plate']}, ttl=0)
-                    
-                    if not sale_data.empty:
-                        sale_total = float(sale_data.iloc[0]['total'])
-                        sale_type = sale_data.iloc[0]['type']
-                        services_run = sale_data.iloc[0]['services'].split(", ")
-                        
-                        # LOGIC: If total is 0 and it's NOT a PROMO, it's a Membership. 
-                        # We calculate commission based on the dictionary price.
-                        if sale_total == 0 and sale_type != "PROMO":
-                            commissionable_value = sum([SERVICES.get(s, 0) for s in services_run])
-                        else:
-                            # If it's a PROMO (Free wash), value remains 0 (No commission)
-                            # If it's a normal cash wash, use the actual total.
-                            commissionable_value = sale_total
+                    if active_dry < 3:
+                        with st.popover("TO DRY BAY"):
+                            dry_staff = get_free_staff_by_dept("DRY BAY")
+                            new_dry_detailer = st.selectbox("Assign Dry Bay", dry_staff if dry_staff else ["NO FREE STAFF"], key=f"dry_{idx}")
+                            
+                            if st.button("Confirm Handover", key=f"hnd_{idx}"):
+                                if new_dry_detailer != "NO FREE STAFF":
+                                    with conn.session as s:
+                                        s.execute(text("""
+                                            UPDATE live_bays 
+                                            SET status='DRY BAY', staff=:ns, wet_staff_history=:ws 
+                                            WHERE plate=:p
+                                        """), {
+                                            "ns": new_dry_detailer, "ws": row['staff'], "p": row['plate']
+                                        })
+                                        s.commit()
+                                    add_event(f"{row['plate']} moved to Dry Bay")
+                                    st.rerun()
+                    else:
+                        if st.button("PARK (DRY FULL)", key=f"park_{idx}"):
+                             with conn.session as s:
+                                s.execute(text("UPDATE live_bays SET status='WAITING', staff='PENDING', wet_staff_history=:ws WHERE plate=:p"), {"ws": row['staff'], "p": row['plate']})
+                                s.commit()
+                             st.rerun()
 
-                        current_staff = row['staff']
-                        prev_staff = row['wet_staff_history']
-                        staff_to_pay = [s for s in [current_staff, prev_staff] if s and str(s).lower() != 'none' and str(s).strip() != '']
+                # --- RELEASE LOGIC (DRY BAY ONLY) ---
+                if row['status'] == "DRY BAY":
+                    if st.button(f"RELEASE {row['plate']}", key=f"rel_{idx}"):
+                        # 1. Fetch the sale details
+                        sale_data = conn.query("SELECT total, services, type FROM sales WHERE plate=:p ORDER BY id DESC LIMIT 1", params={"p": row['plate']}, ttl=0)
                         
+                        if not sale_data.empty:
+                            sale_total = float(sale_data.iloc[0]['total'])
+                            sale_type = sale_data.iloc[0]['type']
+                            services_run = sale_data.iloc[0]['services'].split(", ")
+                            
+                            if sale_total == 0 and sale_type != "PROMO":
+                                commissionable_value = sum([SERVICES.get(s, 0) for s in services_run])
+                            else:
+                                commissionable_value = sale_total
+
+                            current_staff = row['staff']
+                            prev_staff = row['wet_staff_history']
+                            staff_to_pay = [s for s in [current_staff, prev_staff] if s and str(s).lower() != 'none' and str(s).strip() != '']
+                            
+                            with conn.session as s:
+                                for s_member in staff_to_pay:
+                                    p_res = s.execute(text("SELECT bonus_pc FROM staff_payroll_config WHERE username=:u"), {"u": s_member}).fetchone()
+                                    if p_res and p_res[0] > 0 and commissionable_value > 0:
+                                        comm_amt = commissionable_value * (float(p_res[0]) / 100)
+                                        s.execute(text("""
+                                            INSERT INTO earnings_log (username, amount, ref_plate, timestamp) 
+                                            VALUES (:u, :a, :r, :t)
+                                        """), {"u": s_member, "a": comm_amt, "r": str(row['plate']), "t": datetime.now()})
+                                s.commit()
+
+                        # 2. Capture WhatsApp Info
+                        cust_info = conn.query("SELECT name, phone FROM customers WHERE plate=:p", params={"p": row['plate']}, ttl=0)
+                        if not cust_info.empty:
+                            c_name = cust_info.iloc[0]['name']
+                            c_phone = cust_info.iloc[0]['phone']
+                            wa_msg = f"Hi {c_name}, your vehicle ({row['plate']}) is ready for pickup! Thank you for choosing RideBoss Autos."
+                            st.session_state.wa_pending = {"url": format_whatsapp(c_phone, wa_msg), "plate": row['plate']}
+
+                        # 3. Complete Release
                         with conn.session as s:
-                            for s_member in staff_to_pay:
-                                p_res = s.execute(text("SELECT bonus_pc FROM staff_payroll_config WHERE username=:u"), {"u": s_member}).fetchone()
-                                
-                                # Pay commission only if value > 0 (excludes Promo washes)
-                                if p_res and p_res[0] > 0 and commissionable_value > 0:
-                                    comm_amt = commissionable_value * (float(p_res[0]) / 100)
-                                    s.execute(text("""
-                                        INSERT INTO earnings_log (username, amount, ref_plate, timestamp) 
-                                        VALUES (:u, :a, :r, :t)
-                                    """), {"u": s_member, "a": comm_amt, "r": str(row['plate']), "t": datetime.now()})
+                            s.execute(text("DELETE FROM live_bays WHERE plate=:p"), {"p": row['plate']})
                             s.commit()
-
-
-                    # 2. Capture WhatsApp Info BEFORE deleting car
-                    # FIX: Removed text() wrapper from conn.query call
-                    cust_info = conn.query("SELECT name, phone FROM customers WHERE plate=:p", params={"p": row['plate']}, ttl=0)
-                    
-                    if not cust_info.empty:
-                        c_name = cust_info.iloc[0]['name']
-                        c_phone = cust_info.iloc[0]['phone']
-                        wa_msg = f"Hi {c_name}, your vehicle ({row['plate']}) is ready for pickup! Thank you for choosing RideBoss Autos."
-                        
-                        # Set the sticky notification data
-                        st.session_state.wa_pending = {
-                            "url": format_whatsapp(c_phone, wa_msg),
-                            "plate": row['plate']
-                        }
-
-                    # 3. Complete Release (Delete from Live Bays)
-                    with conn.session as s:
-                        s.execute(text("DELETE FROM live_bays WHERE plate=:p"), {"p": row['plate']})
-                        s.commit()
-                        
-                    add_event(f"{row['plate']} Released.")
-                    st.rerun()
+                            
+                        add_event(f"{row['plate']} Released.")
+                        st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
+
 
 # ==============================================================================
 # 3. ONBOARD STAFF (MANAGER ONLY)
