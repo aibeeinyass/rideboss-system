@@ -1821,6 +1821,57 @@ elif choice == "NOTIFICATIONS":
     st.table(notes)
 
 # ==============================================================================
+# NEW SECTION: MARKETING & PROMOS (MANAGER ONLY)
+# ==============================================================================
+elif choice == "MARKETING & PROMOS" and st.session_state.user_role == "MANAGER":
+    st.subheader("📢 MARKETING ENGINE & VIP CONFIG")
+    
+    m_tab1, m_tab2 = st.tabs(["VIP RULES CONFIG", "ACTIVE PROMO CODES"])
+    
+    with m_tab1:
+        st.markdown("""
+            <div style="background:#111; padding:20px; border-left:4px solid #00d4ff;">
+                <strong>HOW IT WORKS:</strong><br>
+                The system automatically detects when a customer hits a "Milestone Visit" (e.g., 10th, 20th).
+                It generates a unique code for that specific customer via WhatsApp.
+            </div>
+        """, unsafe_allow_html=True)
+        st.divider()
+
+        # Fetch Current Settings
+        sett_df = conn.query("SELECT * FROM system_settings", ttl=0)
+        curr_milestone = "10"
+        curr_disc = "20"
+        
+        if not sett_df.empty:
+            # Safe parsing
+            m_row = sett_df[sett_df['setting_key'] == 'vip_milestone']
+            d_row = sett_df[sett_df['setting_key'] == 'vip_discount']
+            if not m_row.empty: curr_milestone = m_row.iloc[0]['setting_value']
+            if not d_row.empty: curr_disc = d_row.iloc[0]['setting_value']
+
+        with st.form("vip_config_form"):
+            new_milestone = st.number_input("Trigger Reward Every X Visits", value=int(curr_milestone))
+            new_disc = st.number_input("Discount Percentage (%)", value=float(curr_disc))
+            
+            if st.form_submit_button("UPDATE MARKETING RULES"):
+                with conn.session as s:
+                    s.execute(text("UPDATE system_settings SET setting_value=:v WHERE setting_key='vip_milestone'"), {"v": str(new_milestone)})
+                    s.execute(text("UPDATE system_settings SET setting_value=:v WHERE setting_key='vip_discount'"), {"v": str(new_disc)})
+                    s.commit()
+                st.success("Rules Updated! The CRM will now use these settings.")
+                st.rerun()
+
+    with m_tab2:
+        st.write("### 🎫 GENERATED CODES TRACKER")
+        codes_df = conn.query("SELECT * FROM promotions ORDER BY created_at DESC", ttl=0)
+        
+        if codes_df.empty:
+            st.info("No promo codes generated yet.")
+        else:
+            st.dataframe(codes_df, use_container_width=True)
+
+# ==============================================================================
 # 8. MY EARNINGS (STAFF VIEW)
 # ==============================================================================
 elif choice == "MY EARNINGS":
