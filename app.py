@@ -755,7 +755,7 @@ message_text = latest_note.iloc[0]['message'] if not latest_note.empty else "SYS
 st.markdown(f'<div class="notification-bar">SYSTEM LOG: {message_text}</div>', unsafe_allow_html=True)
 
 # ==============================================================================
-# 1. COMMAND CENTER (TRANSACTION HUB)
+# 4. COMMAND CENTER (TRANSACTION HUB)
 # ==============================================================================
 if choice == "COMMAND CENTER":
     tab_trans, tab_mem = st.tabs(["NEW TRANSACTION", "REGISTER MEMBERSHIP"])
@@ -802,31 +802,65 @@ if choice == "COMMAND CENTER":
             lounge_items_sold = []
             staff_assigned = "UNKNOWN"
             transaction_type = mode # Default type is current mode
+            discount_amount = 0.0
+            applied_code = None
             
             if mode == "CAR WASH":
                 selected = st.multiselect("SERVICES", list(SERVICES.keys()))
                 
-                # --- NEW COMPLIMENTARY TOGGLE ---
+                # --- COMPLIMENTARY TOGGLE ---
                 is_promo = st.checkbox("🎟️ COMPLIMENTARY (FREE WASH)")
                 
+                # Base Calculation
+                base_total = sum([SERVICES[s] for s in selected]) if selected else 0.0
+
+                # --- PROMO CODE LOGIC ---
+                st.write("---")
+                promo_code_input = st.text_input("ENTER PROMO CODE (Optional)").strip()
+                
+                if promo_code_input:
+                    p_query = "SELECT * FROM promotions WHERE code=:c AND status='ACTIVE'"
+                    p_res = conn.query(p_query, params={"c": promo_code_input}, ttl=0)
+                    
+                    if not p_res.empty:
+                        code_plate = p_res.iloc[0]['created_for_plate']
+                        disc_pc = p_res.iloc[0]['discount_pc']
+                        
+                        if code_plate == plate:
+                            st.success(f"✅ CODE APPLIED: {disc_pc}% OFF")
+                            discount_amount = base_total * (disc_pc / 100)
+                            applied_code = promo_code_input
+                        else:
+                            st.error(f"❌ Code belongs to vehicle {code_plate}")
+                    else:
+                        st.error("❌ Invalid or Used Code")
+
                 # Upsell Logic
                 if selected and "Standard Wash" in selected and "Ceramic Wax" not in selected:
                     st.warning("💡 PROMPT: Ask client if they want Ceramic Wax for long-lasting shine!")
                 
-                # Calculate Price based on Toggle
+                # Final Price Calculation
                 if is_promo:
                     total_price = 0.0
                     transaction_type = "PROMO"
                 else:
-                    total_price = sum([SERVICES[s] for s in selected])
+                    total_price = base_total - discount_amount
                 
                 item_summary = ", ".join(selected)
 
-                # Staff Assignment Logic
+                # --- WAITING LIST & BAY LIMIT LOGIC ---
+                bays_query = "SELECT COUNT(*) FROM live_bays WHERE status NOT IN ('WAITING')"
+                res_bays = conn.query(bays_query, ttl=0)
+                active_bays_count = res_bays.iloc[0].iloc[0] if not res_bays.empty else 0
+                
                 free_staff = get_free_staff_by_dept("WET BAY")
-                if not free_staff:
-                    st.error("⚠️ NO WET BAY STAFF AVAILABLE")
-                    staff_assigned = "NO FREE STAFF"
+                
+                if active_bays_count >= 3:
+                    st.warning(f"🚨 ALL 3 BAYS BUSY ({active_bays_count} Active). Auto-adding to WAITING LIST.")
+                    staff_assigned = "WAITING LIST"
+                elif not free_staff:
+                    st.warning("⚠️ NO WET BAY STAFF AVAILABLE. Auto-adding to WAITING LIST.")
+                    staff_assigned = "WAITING LIST"
                 else:
                     staff_assigned = st.selectbox("ASSIGN WET BAY DETAILER", free_staff)
             
@@ -845,32 +879,34 @@ if choice == "COMMAND CENTER":
                     total_price += (inv_dict[item] * qty)
                 
                 item_summary = ", ".join([f"{q}x {i}" for i, q in lounge_items_sold])
-                staff_assigned = st.session_state.user_name # Receptionist serves lounge
+                staff_assigned = st.session_state.user_name
 
+            # DISPLAY TOTALS
+            if discount_amount > 0:
+                st.caption(f"SUBTOTAL: ₦{base_total:,}")
+                st.caption(f"DISCOUNT: -₦{discount_amount:,}")
+            
             st.markdown(f"### TOTAL: ₦{total_price:,}")
             pay_method = st.selectbox("PAYMENT METHOD", ["Moniepoint POS", "Bank Transfer", "Cash", "Gold Card Credit"])
 
         if st.button(f"AUTHORIZE {transaction_type} TRANSACTION", use_container_width=True):
-            if staff_assigned == "NO FREE STAFF" and mode == "CAR WASH":
-                st.error("Cannot authorize. No available staff in the Wet Bay.")
+            if mode == "CAR WASH" and not staff_assigned:
+                st.error("Cannot authorize. Issue with staff assignment.")
             elif (plate or mode == "LOUNGE") and (mode == "LOUNGE" or (mode == "CAR WASH" and item_summary)):
                 
                 can_proceed = True
                 low_bal = False
                 final_sales_total = total_price
                 
-                # Handle Gold Card Credit Logic
                 if pay_method == "Gold Card Credit":
                     q_mem = "SELECT balance_washes FROM memberships WHERE plate=:p"
                     m_res = conn.query(q_mem, params={"p": plate}, ttl=0)
                     
                     if not m_res.empty and m_res.iloc[0]['balance_washes'] > 0:
                         new_bal = int(m_res.iloc[0]['balance_washes']) - 1
-                        
                         with conn.session as s:
                             s.execute(text("UPDATE memberships SET balance_washes=:nb WHERE plate=:p"), {"nb": new_bal, "p": plate})
                             s.commit()
-                            
                         final_sales_total = 0.0
                         transaction_type = "MEMBERSHIP"
                         if new_bal <= 1: low_bal = True
@@ -881,8 +917,11 @@ if choice == "COMMAND CENTER":
                 if can_proceed:
                     now = datetime.now().strftime("%Y-%m-%d %H:%M")
                     new_sales_id = 0
+                    initial_status = "WAITING" if staff_assigned == "WAITING LIST" else "WET BAY"
+                    db_staff_val = "PENDING" if staff_assigned == "WAITING LIST" else staff_assigned
                     
                     with conn.session as s:
+                        # 1. Insert Sales
                         res = s.execute(
                             text("""
                                 INSERT INTO sales (plate, services, total, method, staff, timestamp, type) 
@@ -896,6 +935,11 @@ if choice == "COMMAND CENTER":
                         )
                         new_sales_id = res.fetchone()[0]
                         
+                        # 2. Update Promo Code Status
+                        if applied_code:
+                            s.execute(text("UPDATE promotions SET status='USED' WHERE code=:c"), {"c": applied_code})
+
+                        # 3. Update Customer Stats
                         curr_v_res = s.execute(text("SELECT visits FROM customers WHERE plate=:p"), {"p": plate}).fetchone()
                         curr_visits = curr_v_res[0] if curr_v_res else 0
                         
@@ -909,15 +953,16 @@ if choice == "COMMAND CENTER":
                             "v": curr_visits + 1, "lv": now.split()[0]
                         })
 
+                        # 4. Update Live Bays or Inventory
                         if mode == "CAR WASH":
                             s.execute(text("""
                                 INSERT INTO live_bays 
                                 (plate, status, entry_time, staff, vehicle_type, service_detail, wet_staff_history) 
-                                VALUES (:p, 'WET BAY', :t, :s, :vt, :sd, NULL)
+                                VALUES (:p, :stat, :t, :s, :vt, :sd, NULL)
                                 ON CONFLICT (plate) DO UPDATE 
-                                SET status='WET BAY', entry_time=:t, staff=:s, service_detail=:sd
+                                SET status=:stat, entry_time=:t, staff=:s, service_detail=:sd
                             """), {
-                                "p": plate, "t": now, "s": staff_assigned, 
+                                "p": plate, "stat": initial_status, "t": now, "s": db_staff_val, 
                                 "vt": v_type, "sd": item_summary
                             })
                         else:
@@ -927,20 +972,14 @@ if choice == "COMMAND CENTER":
                         s.commit()
                     
                     st.session_state['last_receipt'] = {
-                        "id": new_sales_id, 
-                        "mode": transaction_type, 
-                        "name": name, 
-                        "plate": plate, 
-                        "phone": full_phone,
-                        "items": item_summary, 
-                        "total": final_sales_total, 
-                        "staff": staff_assigned, 
-                        "date": now, 
-                        "low_bal": low_bal
+                        "id": new_sales_id, "mode": transaction_type, "name": name, "plate": plate, 
+                        "phone": full_phone, "items": item_summary, "total": final_sales_total, 
+                        "staff": staff_assigned, "date": now, "low_bal": low_bal
                     }
                     
-                    add_event(f"{transaction_type} AUTH: {plate if plate else 'Lounge'} via {pay_method}")
+                    add_event(f"{transaction_type} AUTH: {plate if plate else 'Lounge'} via {pay_method} ({'WAITLIST' if staff_assigned=='WAITING LIST' else 'DIRECT'})")
                     st.rerun()
+
 
 # ... continue part 2
     with tab_mem:
