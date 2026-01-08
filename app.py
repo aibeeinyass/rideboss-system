@@ -667,7 +667,8 @@ if st.session_state.user_role == "MANAGER":
         "ONBOARD STAFF", 
         "BOSS HR", 
         "FINANCIALS", 
-        "INVENTORY & STAFF", 
+        "INVENTORY & STAFF",
+        "MARKETING & PROMOS", 
         "CRM & RETENTION", 
         "NOTIFICATIONS"
     ]
