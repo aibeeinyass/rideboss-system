@@ -1694,7 +1694,19 @@ elif choice == "CRM & RETENTION":
     if cust_df is None or cust_df.empty:
         st.info("No customer records found yet.")
     else:
-        for idx, row in cust_df.iterrows():
+        # --- NEW SEARCH BAR ---
+        search_term = st.text_input("🔍 SEARCH CUSTOMER (PLATE OR NAME)", "").upper()
+        
+        # Apply filter if search term is provided
+        if search_term:
+            display_df = cust_df[
+                (cust_df['plate'].str.contains(search_term, na=False)) | 
+                (cust_df['name'].str.upper().str.contains(search_term, na=False))
+            ]
+        else:
+            display_df = cust_df
+
+        for idx, row in display_df.iterrows():
             try:
                 # Calculate days since last visit
                 if not row['last_visit']:
@@ -1714,10 +1726,41 @@ elif choice == "CRM & RETENTION":
                 col1, col2 = st.columns([3, 1])
                 
                 with col1:
+                    # SMART FEATURE: Click the name popover to see full history
+                    with st.popover(f"🔍 {row['name']} | {row['plate']}", use_container_width=True):
+                        st.markdown(f"### Customer Details")
+                        st.write(f"**Phone:** {row['phone']}")
+                        st.write(f"**Total Visits:** {row['visits']}")
+                        st.write(f"**Last Visit:** {row['last_visit']}")
+                        st.divider()
+                        st.write("**Service History & Records**")
+                        
+                        # Fetch all past sales for this specific plate
+                        history = conn.query("SELECT id, timestamp, services, total FROM sales WHERE plate = :p ORDER BY id DESC", params={"p": row['plate']}, ttl=0)
+                        
+                        if not history.empty:
+                            for h_idx, h_row in history.iterrows():
+                                h_col1, h_col2 = st.columns([3, 1])
+                                h_col1.write(f"📅 {h_row['timestamp']} | ₦{h_row['total']:,}")
+                                h_col1.caption(f"Services: {h_row['services']}")
+                                
+                                # Print Receipt for this specific historical visit
+                                if h_col2.button("PRINT 🖨️", key=f"prnt_{row['plate']}_{h_row['id']}"):
+                                    receipt_json = json.dumps({
+                                        "id": h_row['id'],
+                                        "date": h_row['timestamp'],
+                                        "plate": row['plate'],
+                                        "items": h_row['services'],
+                                        "total": h_row['total']
+                                    })
+                                    st.query_params["print_receipt"] = receipt_json
+                                    st.rerun()
+                                st.divider()
+                        else:
+                            st.info("No detailed history found for this plate.")
+
                     st.markdown(f"""
-                        <div style='padding:12px; border-radius:5px; border-left: 5px solid {color}; background:#1e1e1e; margin-bottom:8px;'>
-                            <b style='color:white; font-size:16px;'>{row['name']}</b> 
-                            <span style='color:#888;'> | {row['plate']}</span><br>
+                        <div style='padding:12px; border-radius:5px; border-left: 5px solid {color}; background:#1e1e1e; margin-bottom:8px; margin-top:-10px;'>
                             <small style='color:{color}; font-weight:bold;'>{days_since} days since last visit ({status_text})</small>
                         </div>
                     """, unsafe_allow_html=True)
@@ -1738,6 +1781,12 @@ elif choice == "CRM & RETENTION":
                         """, unsafe_allow_html=True)
             except:
                 continue
+
+elif choice == "NOTIFICATIONS":
+    st.subheader("SYSTEM HISTORY")
+    notes = conn.query('SELECT timestamp as "TIME", message as "EVENT" FROM notifications ORDER BY id DESC LIMIT 50', ttl=0)
+    st.table(notes)
+
 elif choice == "NOTIFICATIONS":
     st.subheader("SYSTEM HISTORY")
     notes = conn.query('SELECT timestamp as "TIME", message as "EVENT" FROM notifications ORDER BY id DESC LIMIT 50', ttl=0)
