@@ -181,7 +181,7 @@ def init_db():
     3. Used session.execute(text(...)) for DDL commands.
     """
     with conn.session as s:
-        # 1. USERS TABLE
+                # 1. USERS TABLE
         s.execute(text("""
             CREATE TABLE IF NOT EXISTS users (
                 username TEXT PRIMARY KEY, 
@@ -312,8 +312,35 @@ def init_db():
                 timestamp TEXT
             )
         """))
+
+        # 13. PROMOTIONS TABLE (NEW - FOR VIP CODES)
+        s.execute(text("""
+            CREATE TABLE IF NOT EXISTS promotions (
+                code TEXT PRIMARY KEY, 
+                discount_pc REAL, 
+                status TEXT DEFAULT 'ACTIVE', 
+                created_for_plate TEXT,
+                created_at TEXT
+            )
+        """))
+
+        # 14. SYSTEM SETTINGS (NEW - FOR VIP RULES)
+        s.execute(text("""
+            CREATE TABLE IF NOT EXISTS system_settings (
+                setting_key TEXT PRIMARY KEY, 
+                setting_value TEXT
+            )
+        """))
+        
+        # Seed Default Settings (Defaults: 10 visits = 20% off)
+        s.execute(text("""
+            INSERT INTO system_settings (setting_key, setting_value) 
+            VALUES ('vip_milestone', '10'), ('vip_discount', '20')
+            ON CONFLICT (setting_key) DO NOTHING
+        """))
         
         s.commit()
+
 
 # --- SEED INITIAL DATA ---
 def seed_data():
