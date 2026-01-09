@@ -1747,197 +1747,180 @@ elif choice == "INVENTORY & STAFF" and st.session_state.user_role == "MANAGER":
 
 
 # ==============================================================================
-# 6. FINANCIALS (INTELLIGENCE CENTER)
+# 6. FINANCIALS (INTELLIGENCE CENTER) - ENHANCED UI VERSION
 # ==============================================================================
 elif choice == "FINANCIALS" and st.session_state.user_role == "MANAGER":
-    st.subheader("FINANCIAL INTELLIGENCE CENTER")
-    tab_fin, tab_cards_hub = st.tabs(["TRANSPARENT REVENUE", "MEMBERSHIP HUB"])
+    st.title("📊 FINANCIAL INTELLIGENCE CENTER")
+    st.markdown("---")
+    
+    tab_fin, tab_cards_hub = st.tabs(["📈 REVENUE ANALYTICS", "💳 MEMBERSHIP REGISTRY"])
     
     with tab_fin:
-        col_f1, col_f2 = st.columns([1, 2])
-        view_scope = col_f1.radio("REPORTING SCOPE", ["DAILY", "MONTHLY", "YEARLY"], horizontal=True)
-        
-        # Load raw data into Pandas for flexible filtering without complex SQL
-        sales_raw = conn.query("SELECT * FROM sales", ttl=0)
-        exp_raw = conn.query("SELECT * FROM expenses", ttl=0)
-        m_sales_raw = conn.query("SELECT plate, card_type, sale_price FROM memberships", ttl=0)
-        
-        # Add dummy timestamp for membership sales since table doesn't have one (per requirements)
-        # Assuming membership sales count towards current year for simplicity or added date logic
-        m_sales_raw['timestamp'] = datetime.now() 
-        
-        # Convert timestamps
-        sales_raw['timestamp'] = pd.to_datetime(sales_raw['timestamp'])
-        exp_raw['timestamp'] = pd.to_datetime(exp_raw['timestamp'])
-        
-        now = datetime.now()
-        label = ""
-        
-        # Filtering Logic
-        if view_scope == "DAILY":
-            selected_date = col_f2.date_input("SELECT DAY", now.date())
-            f_sales = sales_raw[sales_raw['timestamp'].dt.date == selected_date]
-            f_exps = exp_raw[exp_raw['timestamp'].dt.date == selected_date]
-            label = f"REPORT FOR {selected_date}"
+        # --- Analytics Control Panel ---
+        with st.container():
+            col_f1, col_f2 = st.columns([1, 2])
+            view_scope = col_f1.radio("**REPORTING SCOPE**", ["DAILY", "MONTHLY", "YEARLY"], horizontal=True)
             
-            # FIXED: If viewing 'Today', include the current membership sales in the daily total
-            if selected_date == now.date():
+            # Data Loading
+            sales_raw = conn.query("SELECT * FROM sales", ttl=0)
+            exp_raw = conn.query("SELECT * FROM expenses", ttl=0)
+            m_sales_raw = conn.query("SELECT plate, card_type, sale_price FROM memberships", ttl=0)
+            
+            m_sales_raw['timestamp'] = datetime.now() 
+            sales_raw['timestamp'] = pd.to_datetime(sales_raw['timestamp'])
+            exp_raw['timestamp'] = pd.to_datetime(exp_raw['timestamp'])
+            
+            now = datetime.now()
+            label = ""
+            
+            # Filtering Logic
+            if view_scope == "DAILY":
+                selected_date = col_f2.date_input("📅 SELECT DAY", now.date())
+                f_sales = sales_raw[sales_raw['timestamp'].dt.date == selected_date]
+                f_exps = exp_raw[exp_raw['timestamp'].dt.date == selected_date]
+                label = f"DAILY PERFORMANCE: {selected_date}"
+                card_total = m_sales_raw['sale_price'].sum() if selected_date == now.date() else 0 
+                
+            elif view_scope == "MONTHLY":
+                months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+                selected_month_name = col_f2.selectbox("🗓️ SELECT MONTH", months, index=now.month-1)
+                selected_month = months.index(selected_month_name) + 1
+                f_sales = sales_raw[(sales_raw['timestamp'].dt.month == selected_month) & (sales_raw['timestamp'].dt.year == now.year)]
+                f_exps = exp_raw[(exp_raw['timestamp'].dt.month == selected_month) & (exp_raw['timestamp'].dt.year == now.year)]
+                label = f"MONTHLY PERFORMANCE: {selected_month_name} {now.year}"
                 card_total = m_sales_raw['sale_price'].sum()
+                
             else:
-                card_total = 0 
-            
-        elif view_scope == "MONTHLY":
-            months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
-            selected_month_name = col_f2.selectbox("SELECT MONTH", months, index=now.month-1)
-            selected_month = months.index(selected_month_name) + 1
-            
-            f_sales = sales_raw[(sales_raw['timestamp'].dt.month == selected_month) & (sales_raw['timestamp'].dt.year == now.year)]
-            f_exps = exp_raw[(exp_raw['timestamp'].dt.month == selected_month) & (exp_raw['timestamp'].dt.year == now.year)]
-            label = f"REPORT FOR {selected_month_name} {now.year}"
-            # Assume cards count for the running year, or show all if simpler
-            card_total = m_sales_raw['sale_price'].sum() # Showing total lifetime card sales as per original logic approximation
-            
-        else:
-            current_year = now.year
-            year_options = list(range(2024, current_year + 1))
-            selected_year = col_f2.selectbox("SELECT YEAR", year_options, index=len(year_options)-1)
-            
-            f_sales = sales_raw[sales_raw['timestamp'].dt.year == selected_year]
-            f_exps = exp_raw[exp_raw['timestamp'].dt.year == selected_year]
-            label = f"ANNUAL REPORT {selected_year}"
-            card_total = m_sales_raw['sale_price'].sum()
+                current_year = now.year
+                year_options = list(range(2024, current_year + 1))
+                selected_year = col_f2.selectbox("📂 SELECT YEAR", year_options, index=len(year_options)-1)
+                f_sales = sales_raw[sales_raw['timestamp'].dt.year == selected_year]
+                f_exps = exp_raw[exp_raw['timestamp'].dt.year == selected_year]
+                label = f"ANNUAL PERFORMANCE: {selected_year}"
+                card_total = m_sales_raw['sale_price'].sum()
 
+        # --- Financial Summary Board ---
         rev_wash = f_sales[f_sales['type'] == 'CAR WASH']['total'].sum()
         rev_lounge = f_sales[f_sales['type'] == 'LOUNGE']['total'].sum()
         total_exp = f_exps['amount'].sum()
         net_profit = (rev_wash + rev_lounge + card_total) - total_exp
 
-        st.markdown(f"### {label}")
+        st.info(f"#### {label}")
         m1, m2, m3, m4, m5 = st.columns(5)
-        m1.metric("WASH REVENUE", f"₦{rev_wash:,}")
-        m2.metric("LOUNGE REVENUE", f"₦{rev_lounge:,}")
-        m3.metric("CARD SALES", f"₦{card_total:,}") # Removed 'LIFETIME' to stay accurate for daily view
+        m1.metric("WASH", f"₦{rev_wash:,}")
+        m2.metric("LOUNGE", f"₦{rev_lounge:,}")
+        m3.metric("CARDS", f"₦{card_total:,}")
         m4.metric("EXPENSES", f"₦{total_exp:,}")
-        m5.metric("NET PROFIT/LOSS", f"₦{net_profit:,}", delta=float(net_profit), delta_color="normal")
+        m5.metric("NET PROFIT", f"₦{net_profit:,}", delta=float(net_profit))
         
-        st.markdown("---")
+        # --- Visualization ---
+        st.markdown("### 📊 Revenue Breakdown")
         chart_data = pd.DataFrame({
             'Category': ['Wash', 'Lounge', 'Cards', 'Expenses'], 
             'Amount': [rev_wash, rev_lounge, card_total, total_exp]
         })
         st.bar_chart(chart_data.set_index('Category'))
         
-        st.subheader("Detailed Transaction Log")
-        st.dataframe(f_sales, use_container_width=True)
-        
-        csv = f_sales.to_csv(index=False).encode('utf-8')
-        st.download_button("📥 DOWNLOAD FILTERED REPORT (CSV)", csv, f"RideBoss_{view_scope}_{label}.csv", "text/csv")
-        
-        with st.expander("LOG NEW EXPENSE"):
-            e_desc = st.text_input("Description")
-            e_amt = st.number_input("Amount", min_value=0.0)
-            if st.button("LOG EXPENSE"):
-                with conn.session as s:
-                    s.execute(text("INSERT INTO expenses (description, amount, timestamp) VALUES (:d, :a, :t)"), 
-                              {"d": e_desc, "a": e_amt, "t": datetime.now().strftime("%Y-%m-%d")})
-                    s.commit()
-                st.success("Expense Logged.")
-                st.rerun()
+        # --- Detail Tabs ---
+        det_tab1, det_tab2 = st.tabs(["🧾 Transaction Log", "💸 Expense Management"])
+        with det_tab1:
+            st.dataframe(f_sales, use_container_width=True)
+            csv = f_sales.to_csv(index=False).encode('utf-8')
+            st.download_button("📥 DOWNLOAD REPORT", csv, f"RideBoss_{label}.csv", "text/csv")
+            
+        with det_tab2:
+            with st.form("expense_form"):
+                e_desc = st.text_input("Expense Description")
+                e_amt = st.number_input("Amount (₦)", min_value=0.0)
+                if st.form_submit_button("LOG EXPENSE"):
+                    with conn.session as s:
+                        s.execute(text("INSERT INTO expenses (description, amount, timestamp) VALUES (:d, :a, :t)"), 
+                                  {"d": e_desc, "a": e_amt, "t": datetime.now().strftime("%Y-%m-%d")})
+                        s.commit()
+                    st.success("Expense Recorded Successfully!")
+                    st.rerun()
 
     with tab_cards_hub:
-        st.subheader("📋 MEMBERSHIP CARD REGISTRY")
+        # --- Header & Search ---
+        head_col, search_col = st.columns([1, 1])
+        with head_col:
+            st.subheader("📋 MEMBERSHIP REGISTRY")
+        with search_col:
+            search_query = st.text_input("🔍 Search Registry", placeholder="Enter Plate or Serial...", key="search_cards_hub")
         
-        # --- SEARCH & FILTER SECTION ---
-        search_col1, search_col2 = st.columns([2, 1])
-        search_query = search_col1.text_input("🔍 SEARCH BY PLATE OR SERIAL", placeholder="e.g. ABC-123 or RB-1001", key="search_cards_hub")
-        
-        # Query Database
         m_df = conn.query("SELECT * FROM memberships", ttl=0)
         
         if m_df.empty:
-            st.info("No Active Memberships found in the system.")
+            st.warning("No Active Memberships found.")
         else:
-            # Apply Search Filter
             if search_query:
                 m_df = m_df[
                     m_df['plate'].str.contains(search_query, case=False, na=False) | 
                     m_df['card_serial'].astype(str).str.contains(search_query, case=False, na=False)
                 ]
 
-            # --- SUMMARY METRICS ---
+            # Summary Bar
             total_cards = len(m_df)
             total_washes = m_df['balance_washes'].sum()
-            m_col1, m_col2 = st.columns(2)
-            m_col1.metric("Active Members", total_cards)
-            m_col2.metric("Total Wash Credits Owed", f"{int(total_washes)} Washes")
+            stat1, stat2, stat3 = st.columns([1,1,2])
+            stat1.metric("Total Members", total_cards)
+            stat2.metric("Owed Washes", f"{int(total_washes)}")
             st.markdown("---")
 
-            # --- DATA HEADERS ---
+            # --- Styled List Header ---
             h1, h2, h3, h4 = st.columns([2, 1.5, 1, 1])
-            h1.markdown("**PLATE / SERIAL**")
-            h2.markdown("**BALANCE / TIER**")
-            h3.markdown("**TOP-UP**")
-            h4.markdown("**ACTION**")
-            st.write("")
+            h1.markdown("**MEMBER / IDENTITY**")
+            h2.markdown("**STATUS & BALANCE**")
+            h3.markdown("**REFILL**")
+            h4.markdown("**MANAGE**")
+            st.markdown('<div style="margin-top: -10px;"><hr></div>', unsafe_allow_html=True)
 
-            # --- CARD LIST ---
+            # --- Membership Row Display ---
             for idx, row in m_df.iterrows():
                 with st.container():
                     c1, c2, c3, c4 = st.columns([2, 1.5, 1, 1])
                     
                     # Column 1: Identity
-                    serial_disp = row.get('card_serial', 'NO SERIAL')
+                    serial_disp = row.get('card_serial', 'N/A')
                     c1.markdown(f"🚗 **{row['plate']}**")
-                    c1.caption(f"ID: {serial_disp}")
+                    c1.caption(f"SERIAL: {serial_disp}")
                     
                     # Column 2: Status & Balance
                     bal = row['balance_washes']
                     status_color = "green" if bal > 2 else "orange" if bal > 0 else "red"
-                    c2.markdown(f":{status_color}[**{bal} Washes Left**]")
+                    c2.markdown(f":{status_color}[**{bal} Washes**]")
                     c2.caption(f"Tier: {row['card_type']}")
                     
                     # Column 3: Quick Refill
                     if c3.button(f"➕ REFILL", key=f"up_{idx}", use_container_width=True):
-                        # Determine refill qty based on original tier
                         top_up_qty = 5
                         if "Gold" in row['card_type']: top_up_qty = 10
                         elif "Platinum" in row['card_type']: top_up_qty = 25
                         
                         with conn.session as s:
-                            # Logic changed to ADD to balance (+), not just reset it
                             s.execute(text("UPDATE memberships SET balance_washes = balance_washes + :q WHERE plate=:p"), 
                                       {"q": top_up_qty, "p": row['plate']})
-                        
-                            # Log Commission for receptionist
                             receptionist = st.session_state.user_name
                             p_res = s.execute(text("SELECT bonus_pc FROM staff_payroll_config WHERE username=:u"), 
                                               {"u": receptionist}).fetchone()
                             
                             if p_res and p_res[0] > 0:
                                 comm_amt = row['sale_price'] * (p_res[0] / 100)
-                                now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
-                                s.execute(text("""
-                                    INSERT INTO earnings_log (username, amount, ref_plate, timestamp) 
-                                    VALUES (:u, :a, :r, :t)
-                                """), {
-                                    "u": receptionist, "a": comm_amt, 
-                                    "r": f"TOPUP:{row['plate']}", "t": now_str
-                                })
+                                s.execute(text("INSERT INTO earnings_log (username, amount, ref_plate, timestamp) VALUES (:u, :a, :r, :t)"), 
+                                          {"u": receptionist, "a": comm_amt, "r": f"TOPUP:{row['plate']}", "t": datetime.now().strftime("%Y-%m-%d %H:%M")})
                             s.commit()
-                        st.success(f"Added {top_up_qty} washes to {row['plate']}!")
+                        st.success(f"Added {top_up_qty} washes!")
                         st.rerun()
 
-                    # Column 4: Delete/Deactivate
-                    if c4.button(f"🗑️", key=f"del_{idx}", use_container_width=True, help="Delete Membership"):
+                    # Column 4: Delete
+                    if c4.button(f"🗑️", key=f"del_{idx}", use_container_width=True):
                         with conn.session as s:
                             s.execute(text("DELETE FROM memberships WHERE plate=:p"), {"p": row['plate']})
                             s.commit()
                         st.rerun()
                     
-                    st.markdown('<div style="margin-top: -15px;"><hr></div>', unsafe_allow_html=True)
+                    st.markdown('<hr style="margin: 0px;">', unsafe_allow_html=True)
 
-
-     
 
 # ==============================================================================
 # 7. CRM & RETENTION
