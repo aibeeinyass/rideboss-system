@@ -1062,16 +1062,15 @@ if choice == "COMMAND CENTER":
                     except Exception as e:
                         st.error(f"System Error: {e}")
 
-        # Main Button Triggers the Dialog
+                # Main Button Triggers the Dialog
         if st.button(f"AUTHORIZE {transaction_type} TRANSACTION", use_container_width=True):
             if mode == "CAR WASH" and not staff_assigned:
                 st.error("Cannot authorize. Issue with staff assignment.")
             elif (plate or mode == "LOUNGE") and (mode == "LOUNGE" or (mode == "CAR WASH" and item_summary)):
                 confirm_transaction_dialog()
 
-
-# ... continue part 2
-                        with tab_mem:
+        # ... continue part 2
+        with tab_mem:
             st.subheader("💳 MEMBERSHIP MANAGEMENT")
             
             mem_action = st.radio("SELECT ACTION", ["ISSUE NEW CARD", "TOP-UP EXISTING CARD"], horizontal=True)
@@ -1147,65 +1146,6 @@ if choice == "COMMAND CENTER":
                     else:
                         st.error("Please enter a Plate or Scan a Card.")
 
-
-            else:
-                # TOP-UP LOGIC
-                st.caption("Add washes to an existing card")
-                t_input = st.text_input("SCAN CARD OR ENTER PLATE").upper()
-                t_washes = st.number_input("WASHES TO ADD", min_value=1, value=10)
-                t_price = st.number_input("TOP-UP AMOUNT (₦)", min_value=0.0, step=500.0)
-                t_pay_method = st.selectbox("PAYMENT METHOD", ["Moniepoint POS", "Bank Transfer", "Cash"], key="topup_pay")
-
-                @st.dialog("CONFIRM TOP-UP")
-                def confirm_topup():
-                    st.warning(f"Confirm receipt of ₦{t_price:,} for {t_washes} washes?")
-                    if st.button("CONFIRM PAYMENT & ADD WASHES", use_container_width=True, type="primary"):
-                        with conn.session as s:
-                            # Check if card exists by serial or plate
-                            s.execute(text("""
-                                UPDATE memberships 
-                                SET balance_washes = balance_washes + :qty 
-                                WHERE plate = :t OR card_serial = :t
-                            """), {"qty": t_washes, "t": t_input})
-                            s.commit()
-                        st.success(f"Added {t_washes} washes to {t_input}!")
-                        st.rerun()
-
-                if st.button("AUTHORIZE TOP-UP", use_container_width=True):
-                    if t_input:
-                        confirm_topup()
-                    else:
-                        st.error("Please enter a Plate or Scan a Card.")
-
-
-        else:
-            # TOP-UP LOGIC
-            st.caption("Add washes to an existing card")
-            t_input = st.text_input("SCAN CARD OR ENTER PLATE").upper()
-            t_washes = st.number_input("WASHES TO ADD", min_value=1, value=10)
-            t_price = st.number_input("TOP-UP AMOUNT (₦)", min_value=0.0, step=500.0)
-            t_pay_method = st.selectbox("PAYMENT METHOD", ["Moniepoint POS", "Bank Transfer", "Cash"], key="topup_pay")
-
-            @st.dialog("CONFIRM TOP-UP")
-            def confirm_topup():
-                st.warning(f"Confirm receipt of ₦{t_price:,} for {t_washes} washes?")
-                if st.button("CONFIRM PAYMENT & ADD WASHES", use_container_width=True, type="primary"):
-                    with conn.session as s:
-                        # Check if card exists by serial or plate
-                        s.execute(text("""
-                            UPDATE memberships 
-                            SET balance_washes = balance_washes + :qty 
-                            WHERE plate = :t OR card_serial = :t
-                        """), {"qty": t_washes, "t": t_input})
-                        s.commit()
-                    st.success(f"Added {t_washes} washes to {t_input}!")
-                    st.rerun()
-
-            if st.button("AUTHORIZE TOP-UP", use_container_width=True):
-                if t_input:
-                    confirm_topup()
-                else:
-                    st.error("Please enter a Plate or Scan a Card.")
               
     # --- RECEIPT MODAL LOGIC ---
     if 'last_receipt' in st.session_state and st.session_state.last_receipt:
