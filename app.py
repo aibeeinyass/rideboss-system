@@ -790,8 +790,13 @@ if choice == "COMMAND CENTER":
         if not cust_data.empty:
             search_options += [f"{r['plate']} - {r['name']} ({r['phone']})" for _, r in cust_data.iterrows()]
         
-        # Added 'key' to enable proper typing and filtering
-        search_selection = st.selectbox("SEARCH EXISTING CLIENT", search_options, key="customer_search_bar")
+        # Added key and index to prevent the bar from "jumping" or losing focus while typing
+        search_selection = st.selectbox(
+            "SEARCH EXISTING CLIENT", 
+            options=search_options, 
+            index=0, 
+            key="cc_search_bar"
+        )
         
         # Pre-fill data if existing customer selected
         d_plate, d_name, d_phone = "", "", ""
@@ -800,6 +805,7 @@ if choice == "COMMAND CENTER":
             # Use Pandas filtering on the fetched dataframe
             match = cust_data[cust_data['plate'] == p_key].iloc[0]
             d_plate, d_name, d_phone = match['plate'], match['name'], match['phone']
+
 
 
         col1, col2 = st.columns(2)
