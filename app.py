@@ -1804,6 +1804,10 @@ elif choice == "FINANCIALS" and st.session_state.user_role == "MANAGER":
 elif choice == "CRM & RETENTION":
     st.subheader("CUSTOMER RETENTION PANEL")
     
+    # Ensure necessary libraries are available for code generation
+    import random
+    import string
+
     # 1. Get System Rules (For VIP Logic)
     sett_df = conn.query("SELECT * FROM system_settings", ttl=0)
     try:
@@ -1920,8 +1924,16 @@ elif choice == "CRM & RETENTION":
                             msg = f"Congrats {row['name']}! You've hit {visit_count} visits at RideBoss! To celebrate, here is a {vip_discount}% OFF code for your next wash: *{new_code}*. See you soon!"
                             url = format_whatsapp(row['phone'], msg)
                             
-                            st.markdown(f"<script>window.open('{url}', '_blank');</script>", unsafe_allow_html=True)
+                            # FIX: Use a visible button instead of blocked JavaScript
                             st.success(f"Generated: {new_code}")
+                            st.markdown(f"""
+                                <a href="{url}" target="_blank" style="text-decoration:none;">
+                                    <div style="background-color:#E0AA3E; color:black; padding:12px; text-align:center; 
+                                         border-radius:5px; font-weight:bold; margin-top:5px; font-size:13px; box-shadow: 0px 0px 10px #E0AA3E;">
+                                        👉 CLICK TO SEND CODE
+                                    </div>
+                                </a>
+                            """, unsafe_allow_html=True)
 
                     elif days_since >= 7:
                         # STANDARD RETENTION LOGIC
@@ -1937,7 +1949,9 @@ elif choice == "CRM & RETENTION":
                             </a>
                         """, unsafe_allow_html=True)
             except Exception as e:
+                # Optional: print(e) for debugging if needed, otherwise continue
                 continue
+
 
 elif choice == "NOTIFICATIONS":
     st.subheader("SYSTEM HISTORY")
