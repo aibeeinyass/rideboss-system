@@ -1903,37 +1903,56 @@ elif choice == "CRM & RETENTION":
                 with col2:
                     # --- DYNAMIC ACTION BUTTON ---
                     if is_vip_milestone:
-                        # 👑 VIP BUTTON LOGIC: Generate code and send reward
-                        if st.button("🎁 SEND REWARD", key=f"vip_{row['plate']}"):
-                            # 1. Generate Unique Code
-                            suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
-                            new_code = f"RBA-VIP-{suffix}"
-                            
-                            # 2. Save to DB
-                            with conn.session as s:
-                                s.execute(text("""
-                                    INSERT INTO promotions (code, discount_pc, created_for_plate, created_at, status)
-                                    VALUES (:c, :d, :p, :t, 'ACTIVE')
-                                """), {
-                                    "c": new_code, "d": vip_discount, 
-                                    "p": row['plate'], "t": datetime.now().strftime("%Y-%m-%d")
-                                })
-                                s.commit()
-                            
-                            # 3. Generate WhatsApp Link
-                            msg = f"Congrats {row['name']}! You've hit {visit_count} visits at RideBoss! To celebrate, here is a {vip_discount}% OFF code for your next wash: *{new_code}*. See you soon!"
-                            url = format_whatsapp(row['phone'], msg)
-                            
-                            # FIX: Use a visible button instead of blocked JavaScript
-                            st.success(f"Generated: {new_code}")
+                        # CHECK: Has a reward already been sent and is still active?
+                        # This prevents the button from showing if they already have a code for this milestone.
+                        existing_promo = conn.query(
+                            "SELECT code FROM promotions WHERE created_for_plate=:p AND status='ACTIVE'", 
+                            params={"p": row['plate']}
+                        )
+                        
+                        if not existing_promo.empty:
+                            # If they have an active code, show that instead of the button 
+                            active_code = existing_promo.iloc[0]['code']
                             st.markdown(f"""
-                                <a href="{url}" target="_blank" style="text-decoration:none;">
-                                    <div style="background-color:#E0AA3E; color:black; padding:12px; text-align:center; 
-                                         border-radius:5px; font-weight:bold; margin-top:5px; font-size:13px; box-shadow: 0px 0px 10px #E0AA3E;">
-                                        👉 CLICK TO SEND CODE
-                                    </div>
-                                </a>
+                                <div style="background-color:#1e1e1e; border:1px solid #E0AA3E; color:#E0AA3E; padding:10px; 
+                                     text-align:center; border-radius:5px; font-size:12px;">
+                                    <strong>REWARD ACTIVE</strong><br>{active_code}
+                                </div>
                             """, unsafe_allow_html=True)
+                        else:
+                            # 👑 VIP BUTTON LOGIC: Generate code and send reward
+                            if st.button("🎁 SEND REWARD", key=f"vip_{row['plate']}"):
+                                # 1. Generate Unique Code
+                                suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
+                                new_code = f"RBA-VIP-{suffix}"
+                                
+                                # 2. Save to DB
+                                with conn.session as s:
+                                    s.execute(text("""
+                                        INSERT INTO promotions (code, discount_pc, created_for_plate, created_at, status)
+                                        VALUES (:c, :d, :p, :t, 'ACTIVE')
+                                    """), {
+                                        "c": new_code, "d": vip_discount, 
+                                        "p": row['plate'], "t": datetime.now().strftime("%Y-%m-%d")
+                                    })
+                                    s.commit()
+                                
+                                # 3. Generate WhatsApp Link
+                                msg = f"Congrats {row['name']}! You've hit {visit_count} visits at RideBoss! To celebrate, here is a {vip_discount}% OFF code for your next wash: *{new_code}*. See you soon!"
+                                url = format_whatsapp(row['phone'], msg)
+                                
+                                # FIX: Use a visible button instead of blocked JavaScript
+                                st.success(f"Generated: {new_code}")
+                                st.markdown(f"""
+                                    <a href="{url}" target="_blank" style="text-decoration:none;">
+                                        <div style="background-color:#E0AA3E; color:black; padding:12px; text-align:center; 
+                                             border-radius:5px; font-weight:bold; margin-top:5px; font-size:13px; box-shadow: 0px 0px 10px #E0AA3E;">
+                                            👉 CLICK TO SEND CODE
+                                        </div>
+                                    </a>
+                                """, unsafe_allow_html=True)
+                                # Force rerun to hide the button immediately
+                                st.rerun()
 
                     elif days_since >= 7:
                         # STANDARD RETENTION LOGIC
@@ -1951,7 +1970,6 @@ elif choice == "CRM & RETENTION":
             except Exception as e:
                 # Optional: print(e) for debugging if needed, otherwise continue
                 continue
-
 
 elif choice == "NOTIFICATIONS":
     st.subheader("SYSTEM HISTORY")
