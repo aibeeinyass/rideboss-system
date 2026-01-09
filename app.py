@@ -1844,97 +1844,98 @@ elif choice == "FINANCIALS" and st.session_state.user_role == "MANAGER":
                 st.success("Expense Logged.")
                 st.rerun()
 
-    with tab_cards_hub:
-    st.subheader("📋 MEMBERSHIP CARD REGISTRY")
-    
-    # --- SEARCH & FILTER SECTION ---
-    search_col1, search_col2 = st.columns([2, 1])
-    search_query = search_col1.text_input("🔍 SEARCH BY PLATE OR SERIAL", placeholder="e.g. ABC-123 or RB-1001")
-    
-    # Query Database
-    m_df = conn.query("SELECT * FROM memberships", ttl=0)
-    
-    if m_df.empty:
-        st.info("No Active Memberships found in the system.")
-    else:
-        # Apply Search Filter
-        if search_query:
-            m_df = m_df[
-                m_df['plate'].str.contains(search_query, case=False, na=False) | 
-                m_df['card_serial'].str.contains(search_query, case=False, na=False)
-            ]
+        with tab_cards_hub:
+        st.subheader("📋 MEMBERSHIP CARD REGISTRY")
+        
+        # --- SEARCH & FILTER SECTION ---
+        search_col1, search_col2 = st.columns([2, 1])
+        search_query = search_col1.text_input("🔍 SEARCH BY PLATE OR SERIAL", placeholder="e.g. ABC-123 or RB-1001", key="search_cards_hub")
+        
+        # Query Database
+        m_df = conn.query("SELECT * FROM memberships", ttl=0)
+        
+        if m_df.empty:
+            st.info("No Active Memberships found in the system.")
+        else:
+            # Apply Search Filter
+            if search_query:
+                m_df = m_df[
+                    m_df['plate'].str.contains(search_query, case=False, na=False) | 
+                    m_df['card_serial'].astype(str).str.contains(search_query, case=False, na=False)
+                ]
 
-        # --- SUMMARY METRICS ---
-        total_cards = len(m_df)
-        total_washes = m_df['balance_washes'].sum()
-        m_col1, m_col2 = st.columns(2)
-        m_col1.metric("Active Members", total_cards)
-        m_col2.metric("Total Wash Credits Owed", f"{int(total_washes)} Washes")
-        st.markdown("---")
+            # --- SUMMARY METRICS ---
+            total_cards = len(m_df)
+            total_washes = m_df['balance_washes'].sum()
+            m_col1, m_col2 = st.columns(2)
+            m_col1.metric("Active Members", total_cards)
+            m_col2.metric("Total Wash Credits Owed", f"{int(total_washes)} Washes")
+            st.markdown("---")
 
-        # --- DATA HEADERS ---
-        h1, h2, h3, h4 = st.columns([2, 1.5, 1, 1])
-        h1.markdown("**PLATE / SERIAL**")
-        h2.markdown("**BALANCE / TIER**")
-        h3.markdown("**TOP-UP**")
-        h4.markdown("**ACTION**")
-        st.write("")
+            # --- DATA HEADERS ---
+            h1, h2, h3, h4 = st.columns([2, 1.5, 1, 1])
+            h1.markdown("**PLATE / SERIAL**")
+            h2.markdown("**BALANCE / TIER**")
+            h3.markdown("**TOP-UP**")
+            h4.markdown("**ACTION**")
+            st.write("")
 
-        # --- CARD LIST ---
-        for idx, row in m_df.iterrows():
-            with st.container():
-                c1, c2, c3, c4 = st.columns([2, 1.5, 1, 1])
-                
-                # Column 1: Identity
-                serial_disp = row.get('card_serial', 'NO SERIAL')
-                c1.markdown(f"🚗 **{row['plate']}**")
-                c1.caption(f"ID: {serial_disp}")
-                
-                # Column 2: Status & Balance
-                bal = row['balance_washes']
-                status_color = "green" if bal > 2 else "orange" if bal > 0 else "red"
-                c2.markdown(f":{status_color}[**{bal} Washes Left**]")
-                c2.caption(f"Tier: {row['card_type']}")
-                
-                # Column 3: Quick Refill
-                if c3.button(f"➕ REFILL", key=f"up_{idx}", use_container_width=True):
-                    # Determine refill qty based on original tier
-                    top_up_qty = 5
-                    if "Gold" in row['card_type']: top_up_qty = 10
-                    elif "Platinum" in row['card_type']: top_up_qty = 25
+            # --- CARD LIST ---
+            for idx, row in m_df.iterrows():
+                with st.container():
+                    c1, c2, c3, c4 = st.columns([2, 1.5, 1, 1])
                     
-                    with conn.session as s:
-                        # Logic changed to ADD to balance (+), not just reset it
-                        s.execute(text("UPDATE memberships SET balance_washes = balance_washes + :q WHERE plate=:p"), 
-                                  {"q": top_up_qty, "p": row['plate']})
+                    # Column 1: Identity
+                    serial_disp = row.get('card_serial', 'NO SERIAL')
+                    c1.markdown(f"🚗 **{row['plate']}**")
+                    c1.caption(f"ID: {serial_disp}")
                     
-                        # Log Commission for receptionist
-                        receptionist = st.session_state.user_name
-                        p_res = s.execute(text("SELECT bonus_pc FROM staff_payroll_config WHERE username=:u"), 
-                                          {"u": receptionist}).fetchone()
+                    # Column 2: Status & Balance
+                    bal = row['balance_washes']
+                    status_color = "green" if bal > 2 else "orange" if bal > 0 else "red"
+                    c2.markdown(f":{status_color}[**{bal} Washes Left**]")
+                    c2.caption(f"Tier: {row['card_type']}")
+                    
+                    # Column 3: Quick Refill
+                    if c3.button(f"➕ REFILL", key=f"up_{idx}", use_container_width=True):
+                        # Determine refill qty based on original tier
+                        top_up_qty = 5
+                        if "Gold" in row['card_type']: top_up_qty = 10
+                        elif "Platinum" in row['card_type']: top_up_qty = 25
                         
-                        if p_res and p_res[0] > 0:
-                            comm_amt = row['sale_price'] * (p_res[0] / 100)
-                            now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
-                            s.execute(text("""
-                                INSERT INTO earnings_log (username, amount, ref_plate, timestamp) 
-                                VALUES (:u, :a, :r, :t)
-                            """), {
-                                "u": receptionist, "a": comm_amt, 
-                                "r": f"TOPUP:{row['plate']}", "t": now_str
-                            })
-                        s.commit()
-                    st.success(f"Added {top_up_qty} washes to {row['plate']}!")
-                    st.rerun()
+                        with conn.session as s:
+                            # Logic changed to ADD to balance (+), not just reset it
+                            s.execute(text("UPDATE memberships SET balance_washes = balance_washes + :q WHERE plate=:p"), 
+                                      {"q": top_up_qty, "p": row['plate']})
+                        
+                            # Log Commission for receptionist
+                            receptionist = st.session_state.user_name
+                            p_res = s.execute(text("SELECT bonus_pc FROM staff_payroll_config WHERE username=:u"), 
+                                              {"u": receptionist}).fetchone()
+                            
+                            if p_res and p_res[0] > 0:
+                                comm_amt = row['sale_price'] * (p_res[0] / 100)
+                                now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+                                s.execute(text("""
+                                    INSERT INTO earnings_log (username, amount, ref_plate, timestamp) 
+                                    VALUES (:u, :a, :r, :t)
+                                """), {
+                                    "u": receptionist, "a": comm_amt, 
+                                    "r": f"TOPUP:{row['plate']}", "t": now_str
+                                })
+                            s.commit()
+                        st.success(f"Added {top_up_qty} washes to {row['plate']}!")
+                        st.rerun()
 
-                # Column 4: Delete/Deactivate
-                if c4.button(f"🗑️", key=f"del_{idx}", use_container_width=True, help="Delete Membership"):
-                    with conn.session as s:
-                        s.execute(text("DELETE FROM memberships WHERE plate=:p"), {"p": row['plate']})
-                        s.commit()
-                    st.rerun()
-                
-                st.markdown('<div style="margin-top: -15px;"><hr></div>', unsafe_allow_html=True)
+                    # Column 4: Delete/Deactivate
+                    if c4.button(f"🗑️", key=f"del_{idx}", use_container_width=True, help="Delete Membership"):
+                        with conn.session as s:
+                            s.execute(text("DELETE FROM memberships WHERE plate=:p"), {"p": row['plate']})
+                            s.commit()
+                        st.rerun()
+                    
+                    st.markdown('<div style="margin-top: -15px;"><hr></div>', unsafe_allow_html=True)
+
      
 
 # ==============================================================================
