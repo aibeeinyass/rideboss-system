@@ -959,8 +959,15 @@ if choice == "COMMAND CENTER":
                     
                     try:
                         with conn.session as s:
+                            # --- FIX: COMBINE PREVIOUS STAFF WITH CURRENT STAFF ---
+                            final_staff_for_log = staff_assigned
+                            if mode == "CAR WASH":
+                                hist_q = s.execute(text("SELECT staff FROM live_bays WHERE plate=:p"), {"p": plate}).fetchone()
+                                prev_staff = hist_q[0] if hist_q else None
+                                if prev_staff and prev_staff != "PENDING" and prev_staff != staff_assigned:
+                                    final_staff_for_log = f"{prev_staff} & {staff_assigned}"
+
                             # 1. Insert Sales
-                            # FIXED: Wrapped final_sales_total in float() to fix numpy schema error
                             res = s.execute(
                                 text("""
                                     INSERT INTO sales (plate, services, total, method, staff, timestamp, type, status) 
@@ -970,7 +977,7 @@ if choice == "COMMAND CENTER":
                                 {
                                     "p": plate, "svc": item_summary, 
                                     "tot": float(final_sales_total), 
-                                    "meth": pay_method, "st": staff_assigned, "ts": now, 
+                                    "meth": pay_method, "st": final_staff_for_log, "ts": now, 
                                     "typ": transaction_type_final
                                 }
                             )
@@ -1015,7 +1022,7 @@ if choice == "COMMAND CENTER":
                         st.session_state['last_receipt'] = {
                             "id": new_sales_id, "mode": transaction_type_final, "name": name, "plate": plate, 
                             "phone": full_phone, "items": item_summary, "total": final_sales_total, 
-                            "staff": staff_assigned, "date": now, "low_bal": low_bal
+                            "staff": final_staff_for_log, "date": now, "low_bal": low_bal
                         }
                         
                         add_event(f"{transaction_type_final} AUTH: {plate if plate else 'Lounge'} via {pay_method}")
@@ -1029,6 +1036,7 @@ if choice == "COMMAND CENTER":
                 st.error("Cannot authorize. Issue with staff assignment.")
             elif (plate or mode == "LOUNGE") and (mode == "LOUNGE" or (mode == "CAR WASH" and item_summary)):
                 confirm_transaction_dialog()
+
 
 
 # ... continue part 2
