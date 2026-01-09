@@ -960,7 +960,7 @@ if choice == "COMMAND CENTER":
                     try:
                         with conn.session as s:
                             # 1. Insert Sales
-                            # FIXED: Changed 'payment_method' column name to 'method' to match DB schema
+                            # FIXED: Wrapped final_sales_total in float() to fix numpy schema error
                             res = s.execute(
                                 text("""
                                     INSERT INTO sales (plate, services, total, method, staff, timestamp, type, status) 
@@ -968,7 +968,8 @@ if choice == "COMMAND CENTER":
                                     RETURNING id
                                 """), 
                                 {
-                                    "p": plate, "svc": item_summary, "tot": final_sales_total, 
+                                    "p": plate, "svc": item_summary, 
+                                    "tot": float(final_sales_total), 
                                     "meth": pay_method, "st": staff_assigned, "ts": now, 
                                     "typ": transaction_type_final
                                 }
@@ -1028,6 +1029,7 @@ if choice == "COMMAND CENTER":
                 st.error("Cannot authorize. Issue with staff assignment.")
             elif (plate or mode == "LOUNGE") and (mode == "LOUNGE" or (mode == "CAR WASH" and item_summary)):
                 confirm_transaction_dialog()
+
 
 # ... continue part 2
     with tab_mem:
