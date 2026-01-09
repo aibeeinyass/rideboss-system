@@ -823,6 +823,7 @@ if choice == "COMMAND CENTER":
             transaction_type = mode # Default type is current mode
             discount_amount = 0.0
             applied_code = None
+            base_total = 0.0 # Added to ensure it exists for the display logic below
             
             if mode == "CAR WASH":
                 selected = st.multiselect("SERVICES", list(SERVICES.keys()))
@@ -1026,7 +1027,6 @@ if choice == "COMMAND CENTER":
                 st.error("Cannot authorize. Issue with staff assignment.")
             elif (plate or mode == "LOUNGE") and (mode == "LOUNGE" or (mode == "CAR WASH" and item_summary)):
                 confirm_transaction_dialog()
-
 
 # ... continue part 2
     with tab_mem:
