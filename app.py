@@ -779,6 +779,35 @@ if choice == "COMMAND CENTER":
     tab_trans, tab_mem = st.tabs(["NEW TRANSACTION", "REGISTER MEMBERSHIP"])
     
     with tab_trans:
+        # --- NEW: FAST SCAN SECTION ---
+        st.subheader("💳 QUICK SCAN / CARD SEARCH")
+        scan_input = st.text_input("SCAN CARD OR TYPE SERIAL", placeholder="e.g., RB-1001", key="membership_scanner").strip()
+        
+        # Initialize default values for auto-fill
+        d_plate, d_name, d_phone = "", "", ""
+        auto_payment = "Moniepoint POS" # Default
+
+        if scan_input:
+            # Query membership to find the plate
+            m_data = conn.query("SELECT plate FROM memberships WHERE card_serial=:s", params={"s": scan_input}, ttl=0)
+            
+            if not m_data.empty:
+                found_plate = m_data.iloc[0]['plate']
+                # Now fetch customer details based on that plate
+                c_data = conn.query("SELECT * FROM customers WHERE plate=:p", params={"p": found_plate}, ttl=0)
+                
+                if not c_data.empty:
+                    d_plate = c_data.iloc[0]['plate']
+                    d_name = c_data.iloc[0]['name']
+                    d_phone = c_data.iloc[0]['phone']
+                    auto_payment = "Gold Card Credit" # Auto-select the card payment
+                    st.success(f"✅ Card Linked to {d_plate} ({d_name})")
+                else:
+                    st.error("Card found, but no customer record exists for that plate.")
+            else:
+                st.error("Invalid Card Serial or Unregistered Card.")
+
+        st.markdown("---")
         mode = st.radio("SELECT MODE", ["CAR WASH", "LOUNGE"], horizontal=True)
         st.markdown("---")
         
@@ -793,8 +822,7 @@ if choice == "COMMAND CENTER":
         # FIXED: Added a unique key to allow typing/searching without losing focus
         search_selection = st.selectbox("SEARCH EXISTING CLIENT", search_options, key="cc_search_bar_main")
         
-        # Pre-fill data if existing customer selected
-        d_plate, d_name, d_phone = "", "", ""
+        # Pre-fill data if existing customer selected (Overrides Scan if used)
         if search_selection != "NEW CUSTOMER":
             p_key = search_selection.split(" - ")[0]
             # Use Pandas filtering on the fetched dataframe
@@ -907,7 +935,11 @@ if choice == "COMMAND CENTER":
                 st.caption(f"DISCOUNT: -₦{discount_amount:,}")
             
             st.markdown(f"### TOTAL: ₦{total_price:,}")
-            pay_method = st.selectbox("PAYMENT METHOD", ["Moniepoint POS", "Bank Transfer", "Cash", "Gold Card Credit"])
+            
+            # --- UPDATED: AUTO-SELECT PAYMENT METHOD ---
+            pay_options = ["Moniepoint POS", "Bank Transfer", "Cash", "Gold Card Credit"]
+            default_pay_index = pay_options.index(auto_payment) if auto_payment in pay_options else 0
+            pay_method = st.selectbox("PAYMENT METHOD", pay_options, index=default_pay_index)
 
         # --- TRANSACTION CONFIRMATION DIALOG ---
         @st.dialog("CONFIRM TRANSACTION")
@@ -1038,56 +1070,83 @@ if choice == "COMMAND CENTER":
                 confirm_transaction_dialog()
 
 
-
 # ... continue part 2
-    with tab_mem:
-        st.subheader("ACTIVATE MEMBERSHIP CARD")
-        m_plate = st.text_input("SCAN/ENTER PLATE FOR CARD").upper()
-        tier = st.selectbox("CARD TIER", ["Silver (5 Washes)", "Gold (10 Washes)", "Platinum (25 Washes)"])
-        card_sale_price = st.number_input("CARD SALE PRICE (₦)", min_value=0.0)
+        with tab_mem:
+        st.subheader("💳 MEMBERSHIP MANAGEMENT")
         
-        # Determine Wash Quantity
-        qty = 5
-        if "Gold" in tier: qty = 10
-        elif "Platinum" in tier: qty = 25
-        
-        if st.button("ISSUE CARD"):
-            if m_plate:
-                # 1. Upsert Membership
-                # MIGRATION NOTE: Postgres uses ON CONFLICT instead of INSERT OR REPLACE
-                with conn.session as s:
-                    s.execute(text("""
-                        INSERT INTO memberships (plate, balance_washes, card_type, sale_price) 
-                        VALUES (:p, :b, :c, :s)
-                        ON CONFLICT (plate) DO UPDATE 
-                        SET balance_washes=:b, card_type=:c, sale_price=:s
-                    """), {"p": m_plate, "b": qty, "c": tier, "s": card_sale_price})
-                    
-                    # 2. Commission Logic for Receptionist
-                    receptionist = st.session_state.user_name
-                    
-                    # Fetch bonus percentage
-                    res_p = s.execute(text("SELECT bonus_pc FROM staff_payroll_config WHERE username=:u"), {"u": receptionist}).fetchone()
-                    
-                    if res_p and res_p[0] > 0:
-                        comm_amt = card_sale_price * (res_p[0] / 100)
-                        now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
-                        s.execute(text("""
-                            INSERT INTO earnings_log (username, amount, ref_plate, timestamp) 
-                            VALUES (:u, :a, :r, :t)
-                        """), {
-                            "u": receptionist, "a": comm_amt, 
-                            "r": f"NEW_CARD:{m_plate}", "t": now_str
-                        })
-                    
-                    s.commit()
-                
-                add_event(f"CARD ISSUED: {tier} to {m_plate}")
-                st.success(f"Activated {tier} for {m_plate}!")
-            else:
-                st.error("Plate number required.")
-                
+        mem_action = st.radio("SELECT ACTION", ["ISSUE NEW CARD", "TOP-UP EXISTING CARD"], horizontal=True)
+        st.markdown("---")
 
+        if mem_action == "ISSUE NEW CARD":
+            st.caption("Link a new physical card to a vehicle")
+            m_plate = st.text_input("VEHICLE PLATE").upper()
+            m_serial = st.text_input("CARD SERIAL NUMBER (Scan/Type)", placeholder="e.g., RB-1001")
+            tier = st.selectbox("CARD TIER", ["Silver (5 Washes)", "Gold (10 Washes)", "Platinum (25 Washes)"])
+            card_sale_price = st.number_input("CARD SALE PRICE (₦)", min_value=0.0, step=500.0)
+            m_pay_method = st.selectbox("PAYMENT METHOD", ["Moniepoint POS", "Bank Transfer", "Cash"], key="new_mem_pay")
+            
+            qty = 5
+            if "Gold" in tier: qty = 10
+            elif "Platinum" in tier: qty = 25
+            
+            @st.dialog("CONFIRM CARD ISSUANCE")
+            def confirm_issue():
+                st.warning(f"Confirm you have received ₦{card_sale_price:,} via {m_pay_method}?")
+                if st.button("YES, PAYMENT RECEIVED - ACTIVATE", use_container_width=True, type="primary"):
+                    with conn.session as s:
+                        s.execute(text("""
+                            INSERT INTO memberships (plate, balance_washes, card_type, sale_price, card_serial, status) 
+                            VALUES (:p, :b, :c, :s, :ser, 'ACTIVE')
+                            ON CONFLICT (plate) DO UPDATE 
+                            SET balance_washes=:b, card_type=:c, sale_price=:s, card_serial=:ser, status='ACTIVE'
+                        """), {"p": m_plate, "b": qty, "c": tier, "s": card_sale_price, "ser": m_serial})
+                        
+                        # Commission Logic
+                        receptionist = st.session_state.user_name
+                        res_p = s.execute(text("SELECT bonus_pc FROM staff_payroll_config WHERE username=:u"), {"u": receptionist}).fetchone()
+                        if res_p and res_p[0] > 0:
+                            comm_amt = card_sale_price * (res_p[0] / 100)
+                            s.execute(text("INSERT INTO earnings_log (username, amount, ref_plate, timestamp) VALUES (:u, :a, :r, :t)"),
+                                     {"u": receptionist, "a": comm_amt, "r": f"NEW_CARD:{m_plate}", "t": datetime.now().strftime("%Y-%m-%d %H:%M")})
+                        s.commit()
+                    st.success(f"Successfully linked {m_serial} to {m_plate}!")
+                    st.rerun()
+
+            if st.button("ISSUE CARD", use_container_width=True):
+                if m_plate and m_serial:
+                    confirm_issue()
+                else:
+                    st.error("Please provide both Plate and Card Serial Number.")
+
+        else:
+            # TOP-UP LOGIC
+            st.caption("Add washes to an existing card")
+            t_input = st.text_input("SCAN CARD OR ENTER PLATE").upper()
+            t_washes = st.number_input("WASHES TO ADD", min_value=1, value=10)
+            t_price = st.number_input("TOP-UP AMOUNT (₦)", min_value=0.0, step=500.0)
+            t_pay_method = st.selectbox("PAYMENT METHOD", ["Moniepoint POS", "Bank Transfer", "Cash"], key="topup_pay")
+
+            @st.dialog("CONFIRM TOP-UP")
+            def confirm_topup():
+                st.warning(f"Confirm receipt of ₦{t_price:,} for {t_washes} washes?")
+                if st.button("CONFIRM PAYMENT & ADD WASHES", use_container_width=True, type="primary"):
+                    with conn.session as s:
+                        # Check if card exists by serial or plate
+                        s.execute(text("""
+                            UPDATE memberships 
+                            SET balance_washes = balance_washes + :qty 
+                            WHERE plate = :t OR card_serial = :t
+                        """), {"qty": t_washes, "t": t_input})
+                        s.commit()
+                    st.success(f"Added {t_washes} washes to {t_input}!")
+                    st.rerun()
+
+            if st.button("AUTHORIZE TOP-UP", use_container_width=True):
+                if t_input:
+                    confirm_topup()
+                else:
+                    st.error("Please enter a Plate or Scan a Card.")
+              
     # --- RECEIPT MODAL LOGIC ---
     if 'last_receipt' in st.session_state and st.session_state.last_receipt:
         r = st.session_state['last_receipt']
@@ -1786,30 +1845,70 @@ elif choice == "FINANCIALS" and st.session_state.user_role == "MANAGER":
                 st.rerun()
 
     with tab_cards_hub:
-        m_df = conn.query("SELECT * FROM memberships", ttl=0)
-        
-        if m_df.empty:
-            st.info("No Active Memberships")
-            
+    st.subheader("📋 MEMBERSHIP CARD REGISTRY")
+    
+    # --- SEARCH & FILTER SECTION ---
+    search_col1, search_col2 = st.columns([2, 1])
+    search_query = search_col1.text_input("🔍 SEARCH BY PLATE OR SERIAL", placeholder="e.g. ABC-123 or RB-1001")
+    
+    # Query Database
+    m_df = conn.query("SELECT * FROM memberships", ttl=0)
+    
+    if m_df.empty:
+        st.info("No Active Memberships found in the system.")
+    else:
+        # Apply Search Filter
+        if search_query:
+            m_df = m_df[
+                m_df['plate'].str.contains(search_query, case=False, na=False) | 
+                m_df['card_serial'].str.contains(search_query, case=False, na=False)
+            ]
+
+        # --- SUMMARY METRICS ---
+        total_cards = len(m_df)
+        total_washes = m_df['balance_washes'].sum()
+        m_col1, m_col2 = st.columns(2)
+        m_col1.metric("Active Members", total_cards)
+        m_col2.metric("Total Wash Credits Owed", f"{int(total_washes)} Washes")
+        st.markdown("---")
+
+        # --- DATA HEADERS ---
+        h1, h2, h3, h4 = st.columns([2, 1.5, 1, 1])
+        h1.markdown("**PLATE / SERIAL**")
+        h2.markdown("**BALANCE / TIER**")
+        h3.markdown("**TOP-UP**")
+        h4.markdown("**ACTION**")
+        st.write("")
+
+        # --- CARD LIST ---
         for idx, row in m_df.iterrows():
             with st.container():
-                c1, c2, c3, c4 = st.columns([2, 1, 1, 1])
-                c1.write(f"**{row['plate']}** ({row['card_type']})")
-                c2.write(f"Bal: {row['balance_washes']} left")
+                c1, c2, c3, c4 = st.columns([2, 1.5, 1, 1])
                 
-                # Top Up Button
-                if c3.button(f"TOP UP {row['plate']}", key=f"up_{idx}"):
-                    # 1. Update Balance (Reset to standard pack size or add? Original code set to 10/fixed)
-                    # Let's derive top up amount based on card type string
+                # Column 1: Identity
+                serial_disp = row.get('card_serial', 'NO SERIAL')
+                c1.markdown(f"🚗 **{row['plate']}**")
+                c1.caption(f"ID: {serial_disp}")
+                
+                # Column 2: Status & Balance
+                bal = row['balance_washes']
+                status_color = "green" if bal > 2 else "orange" if bal > 0 else "red"
+                c2.markdown(f":{status_color}[**{bal} Washes Left**]")
+                c2.caption(f"Tier: {row['card_type']}")
+                
+                # Column 3: Quick Refill
+                if c3.button(f"➕ REFILL", key=f"up_{idx}", use_container_width=True):
+                    # Determine refill qty based on original tier
                     top_up_qty = 5
                     if "Gold" in row['card_type']: top_up_qty = 10
                     elif "Platinum" in row['card_type']: top_up_qty = 25
                     
                     with conn.session as s:
-                        s.execute(text("UPDATE memberships SET balance_washes = :b WHERE plate=:p"), 
-                                  {"b": top_up_qty, "p": row['plate']})
+                        # Logic changed to ADD to balance (+), not just reset it
+                        s.execute(text("UPDATE memberships SET balance_washes = balance_washes + :q WHERE plate=:p"), 
+                                  {"q": top_up_qty, "p": row['plate']})
                     
-                        # 2. Log Commission
+                        # Log Commission for receptionist
                         receptionist = st.session_state.user_name
                         p_res = s.execute(text("SELECT bonus_pc FROM staff_payroll_config WHERE username=:u"), 
                                           {"u": receptionist}).fetchone()
@@ -1822,21 +1921,21 @@ elif choice == "FINANCIALS" and st.session_state.user_role == "MANAGER":
                                 VALUES (:u, :a, :r, :t)
                             """), {
                                 "u": receptionist, "a": comm_amt, 
-                                "r": f"REFILL:{row['plate']}", "t": now_str
+                                "r": f"TOPUP:{row['plate']}", "t": now_str
                             })
                         s.commit()
-                        
-                    st.success(f"Refilled {row['plate']} & Commission Logged!")
+                    st.success(f"Added {top_up_qty} washes to {row['plate']}!")
                     st.rerun()
 
-                # Delete Button
-                if c4.button(f"DELETE {row['plate']}", key=f"del_{idx}"):
+                # Column 4: Delete/Deactivate
+                if c4.button(f"🗑️", key=f"del_{idx}", use_container_width=True, help="Delete Membership"):
                     with conn.session as s:
                         s.execute(text("DELETE FROM memberships WHERE plate=:p"), {"p": row['plate']})
                         s.commit()
                     st.rerun()
                 
-                st.markdown("---")     
+                st.markdown('<div style="margin-top: -15px;"><hr></div>', unsafe_allow_html=True)
+     
 
 # ==============================================================================
 # 7. CRM & RETENTION
