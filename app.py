@@ -1330,7 +1330,17 @@ elif choice == "LIVE U-FLOW":
                             prev_staff = row['wet_staff_history']
                             staff_to_pay = [s for s in [current_staff, prev_staff] if s and str(s).lower() != 'none' and str(s).strip() != '']
                             
+                            # Create label for the financial record
+                            report_names = f"{prev_staff} & {current_staff}" if prev_staff and prev_staff != current_staff else current_staff
+
                             with conn.session as s:
+                                # Update the sales table to replace WAITING LIST with actual staff names
+                                s.execute(text("""
+                                    UPDATE sales 
+                                    SET staff = :actual 
+                                    WHERE plate = :p AND (staff = 'WAITING LIST' OR staff = 'PENDING')
+                                """), {"actual": report_names, "p": row['plate']})
+
                                 for s_member in staff_to_pay:
                                     p_res = s.execute(text("SELECT bonus_pc FROM staff_payroll_config WHERE username=:u"), {"u": s_member}).fetchone()
                                     if p_res and p_res[0] > 0 and commissionable_value > 0:
@@ -1357,6 +1367,7 @@ elif choice == "LIVE U-FLOW":
                         add_event(f"{row['plate']} Released.")
                         st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
+
 
 
 # ==============================================================================
