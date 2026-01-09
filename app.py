@@ -908,14 +908,32 @@ if choice == "COMMAND CENTER":
             st.markdown(f"### TOTAL: ₦{total_price:,}")
             pay_method = st.selectbox("PAYMENT METHOD", ["Moniepoint POS", "Bank Transfer", "Cash", "Gold Card Credit"])
 
-        if st.button(f"AUTHORIZE {transaction_type} TRANSACTION", use_container_width=True):
-            if mode == "CAR WASH" and not staff_assigned:
-                st.error("Cannot authorize. Issue with staff assignment.")
-            elif (plate or mode == "LOUNGE") and (mode == "LOUNGE" or (mode == "CAR WASH" and item_summary)):
-                
+        # --- TRANSACTION CONFIRMATION DIALOG ---
+        @st.dialog("CONFIRM TRANSACTION")
+        def confirm_transaction_dialog():
+            st.warning("Please verify the details before finalizing:")
+            st.write(f"**Customer:** {name} ({plate})")
+            st.write(f"**Mode:** {transaction_type}")
+            st.write(f"**Services/Items:** {item_summary}")
+            st.write(f"**Grand Total:** ₦{total_price:,}")
+            st.write(f"**Payment:** {pay_method}")
+            st.write(f"**Staff:** {staff_assigned}")
+            
+            # Show Membership Warning in Dialog
+            if pay_method == "Gold Card Credit":
+                q_mem = "SELECT balance_washes FROM memberships WHERE plate=:p"
+                m_res = conn.query(q_mem, params={"p": plate}, ttl=0)
+                if not m_res.empty:
+                    bal = m_res.iloc[0]['balance_washes']
+                    if bal <= 1:
+                        st.error(f"⚠️ LOW BALANCE: Only {bal} wash(es) remaining!")
+
+            if st.button("CONFIRM & AUTHORIZE", type="primary", use_container_width=True):
+                # EXECUTE TRANSACTION LOGIC
                 can_proceed = True
                 low_bal = False
                 final_sales_total = total_price
+                transaction_type_final = transaction_type
                 
                 if pay_method == "Gold Card Credit":
                     q_mem = "SELECT balance_washes FROM memberships WHERE plate=:p"
@@ -927,7 +945,7 @@ if choice == "COMMAND CENTER":
                             s.execute(text("UPDATE memberships SET balance_washes=:nb WHERE plate=:p"), {"nb": new_bal, "p": plate})
                             s.commit()
                         final_sales_total = 0.0
-                        transaction_type = "MEMBERSHIP"
+                        transaction_type_final = "MEMBERSHIP"
                         if new_bal <= 1: low_bal = True
                     else:
                         st.error("No active card or zero balance for this plate.")
@@ -935,69 +953,80 @@ if choice == "COMMAND CENTER":
 
                 if can_proceed:
                     now = datetime.now().strftime("%Y-%m-%d %H:%M")
-                    new_sales_id = 0
                     initial_status = "WAITING" if staff_assigned == "WAITING LIST" else "WET BAY"
                     db_staff_val = "PENDING" if staff_assigned == "WAITING LIST" else staff_assigned
                     
-                    with conn.session as s:
-                        # 1. Insert Sales
-                        res = s.execute(
-                            text("""
-                                INSERT INTO sales (plate, services, total, method, staff, timestamp, type) 
-                                VALUES (:p, :svc, :tot, :meth, :st, :ts, :typ) 
-                                RETURNING id
-                            """), 
-                            {
-                                "p": plate, "svc": item_summary, "tot": final_sales_total, 
-                                "meth": pay_method, "st": staff_assigned, "ts": now, "typ": transaction_type
-                            }
-                        )
-                        new_sales_id = res.fetchone()[0]
-                        
-                        # 2. Update Promo Code Status (FIXED: Simplified to prevent ProgrammingError)
-                        if applied_code:
-                            s.execute(text("UPDATE promotions SET status='USED' WHERE code=:c"), {"c": applied_code})
+                    try:
+                        with conn.session as s:
+                            # 1. Insert Sales
+                            res = s.execute(
+                                text("""
+                                    INSERT INTO sales (plate, services, total, payment_method, staff, timestamp, type, status) 
+                                    VALUES (:p, :svc, :tot, :meth, :st, :ts, :typ, 'COMPLETED') 
+                                    RETURNING id
+                                """), 
+                                {
+                                    "p": plate, "svc": item_summary, "tot": final_sales_total, 
+                                    "meth": pay_method, "st": staff_assigned, "ts": now, 
+                                    "typ": transaction_type_final
+                                }
+                            )
+                            new_sales_id = res.fetchone()[0]
+                            
+                            # 2. Update Promo Code Status
+                            if applied_code:
+                                s.execute(text("UPDATE promotions SET status='USED' WHERE code=:c"), {"c": applied_code})
 
-                        # 3. Update Customer Stats
-                        curr_v_res = s.execute(text("SELECT visits FROM customers WHERE plate=:p"), {"p": plate}).fetchone()
-                        curr_visits = curr_v_res[0] if curr_v_res else 0
-                        
-                        s.execute(text("""
-                            INSERT INTO customers (plate, name, phone, visits, last_visit) 
-                            VALUES (:p, :n, :ph, :v, :lv)
-                            ON CONFLICT (plate) DO UPDATE 
-                            SET visits = :v, last_visit = :lv, name = :n, phone = :ph
-                        """), {
-                            "p": plate, "n": name, "ph": full_phone, 
-                            "v": curr_visits + 1, "lv": now.split()[0]
-                        })
-
-                        # 4. Update Live Bays or Inventory
-                        if mode == "CAR WASH":
+                            # 3. Update Customer Stats
+                            curr_v_res = s.execute(text("SELECT visits FROM customers WHERE plate=:p"), {"p": plate}).fetchone()
+                            curr_visits = curr_v_res[0] if curr_v_res else 0
+                            
                             s.execute(text("""
-                                INSERT INTO live_bays 
-                                (plate, status, entry_time, staff, vehicle_type, service_detail, wet_staff_history) 
-                                VALUES (:p, :stat, :t, :s, :vt, :sd, NULL)
+                                INSERT INTO customers (plate, name, phone, visits, last_visit) 
+                                VALUES (:p, :n, :ph, :v, :lv)
                                 ON CONFLICT (plate) DO UPDATE 
-                                SET status=:stat, entry_time=:t, staff=:s, service_detail=:sd
+                                SET visits = :v, last_visit = :lv, name = :n, phone = :ph
                             """), {
-                                "p": plate, "stat": initial_status, "t": now, "s": db_staff_val, 
-                                "vt": v_type, "sd": item_summary
+                                "p": plate, "n": name, "ph": full_phone, 
+                                "v": curr_visits + 1, "lv": now.split()[0]
                             })
-                        else:
-                            for item, qty in lounge_items_sold:
-                                s.execute(text("UPDATE inventory SET stock = stock - :q WHERE item = :i"), {"q": qty, "i": item})
+
+                            # 4. Update Live Bays or Inventory
+                            if mode == "CAR WASH":
+                                s.execute(text("""
+                                    INSERT INTO live_bays 
+                                    (plate, status, entry_time, staff, vehicle_type, service_detail, wet_staff_history) 
+                                    VALUES (:p, :stat, :t, :s, :vt, :sd, NULL)
+                                    ON CONFLICT (plate) DO UPDATE 
+                                    SET status=:stat, entry_time=:t, staff=:s, service_detail=:sd
+                                """), {
+                                    "p": plate, "stat": initial_status, "t": now, "s": db_staff_val, 
+                                    "vt": v_type, "sd": item_summary
+                                })
+                            else:
+                                for item, qty in lounge_items_sold:
+                                    s.execute(text("UPDATE inventory SET stock = stock - :q WHERE item = :i"), {"q": qty, "i": item})
+                            
+                            s.commit()
                         
-                        s.commit()
-                    
-                    st.session_state['last_receipt'] = {
-                        "id": new_sales_id, "mode": transaction_type, "name": name, "plate": plate, 
-                        "phone": full_phone, "items": item_summary, "total": final_sales_total, 
-                        "staff": staff_assigned, "date": now, "low_bal": low_bal
-                    }
-                    
-                    add_event(f"{transaction_type} AUTH: {plate if plate else 'Lounge'} via {pay_method} ({'WAITLIST' if staff_assigned=='WAITING LIST' else 'DIRECT'})")
-                    st.rerun()
+                        st.session_state['last_receipt'] = {
+                            "id": new_sales_id, "mode": transaction_type_final, "name": name, "plate": plate, 
+                            "phone": full_phone, "items": item_summary, "total": final_sales_total, 
+                            "staff": staff_assigned, "date": now, "low_bal": low_bal
+                        }
+                        
+                        add_event(f"{transaction_type_final} AUTH: {plate if plate else 'Lounge'} via {pay_method}")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"System Error: {e}")
+
+        # Main Button Triggers the Dialog
+        if st.button(f"AUTHORIZE {transaction_type} TRANSACTION", use_container_width=True):
+            if mode == "CAR WASH" and not staff_assigned:
+                st.error("Cannot authorize. Issue with staff assignment.")
+            elif (plate or mode == "LOUNGE") and (mode == "LOUNGE" or (mode == "CAR WASH" and item_summary)):
+                confirm_transaction_dialog()
+
 
 # ... continue part 2
     with tab_mem:
