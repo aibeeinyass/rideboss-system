@@ -782,69 +782,52 @@ if choice == "COMMAND CENTER":
         mode = st.radio("SELECT MODE", ["CAR WASH", "LOUNGE"], horizontal=True)
         st.markdown("---")
 
-        # --- HELPER FUNCTION: Clears the search box ---
-        # This function sets the session state key to an empty string
-        def clear_search():
-            st.session_state["cc_search_filter"] = ""
+        # Function to clear search when finished
+        def reset_selection():
+            st.session_state.cc_search = None
 
         # Load Customer Data
-        @st.cache_data(ttl=60)
-        def get_customers():
-            return conn.query("SELECT * FROM customers")
-            
-        cust_data = get_customers()
+        cust_data = conn.query("SELECT * FROM customers", ttl=60)
         
-        # Step 1: Text Input (The Filter)
-        search_filter = st.text_input(
-            "SEARCH EXISTING CLIENT", 
-            placeholder="Type Name or Plate to filter list...",
-            key="cc_search_filter" # This key allows us to clear it remotely
-        )
-        
-        # Step 2: Build Filtered List
-        search_options = ["NEW CUSTOMER"]
+        # 1. Build Search Options
+        search_options = []
         if not cust_data.empty:
-            all_clients = [f"{r['plate']} - {r['name']} ({r['phone']})" for _, r in cust_data.iterrows()]
-            
-            if search_filter:
-                # Filter matches based on typing
-                filtered_clients = [c for c in all_clients if search_filter.lower() in c.lower()]
-                search_options += filtered_clients
-            else:
-                # Show all if typing is empty
-                search_options += all_clients
+            search_options = [f"{r['plate']} - {r['name']} ({r['phone']})" for _, r in cust_data.iterrows()]
         
-        # Step 3: Selection Box
+        # 2. THE ALL-IN-ONE SEARCH BAR
+        # Using index=None and a placeholder makes it behave like a search field
         search_selection = st.selectbox(
-            "SELECT RESULT", 
+            "SEARCH CLIENT (Type Plate or Name)", 
             options=search_options, 
-            index=0,
-            key="cc_search_bar"
+            index=None,
+            placeholder="Search here...",
+            key="cc_search"
         )
         
-        # Pre-fill Logic
+        # 3. Handle data based on selection
         d_plate, d_name, d_phone = "", "", ""
-        if search_selection and search_selection != "NEW CUSTOMER":
-            p_key = search_selection.split(" - ")[0]
-            # Safety check to ensure the plate actually exists in the data
-            if not cust_data[cust_data['plate'] == p_key].empty:
-                match = cust_data[cust_data['plate'] == p_key].iloc[0]
-                d_plate, d_name, d_phone = match['plate'], match['name'], match['phone']
-
-        # --- YOUR FORM LOGIC (Example) ---
-        # Add the 'on_click=clear_search' to your actual submit button
+        customer_label = "New Walk-in"
         
-        with st.form("transaction_entry"):
-            st.write(f"**Customer:** {d_name if d_name else 'New Walk-in'}")
-            # ... (Your other form fields like Service, Amount, etc.) ...
+        if search_selection:
+            p_key = search_selection.split(" - ")[0]
+            match = cust_data[cust_data['plate'] == p_key].iloc[0]
+            d_plate, d_name, d_phone = match['plate'], match['name'], match['phone']
+            customer_label = f"{d_name} ({d_plate})"
+
+        # 4. Transaction Form
+        with st.form("transaction_entry", clear_on_submit=True):
+            st.info(f"Selected: **{customer_label}**")
             
-            # KEY FIX: The on_click parameter resets the search bar when you submit
-            submit_btn = st.form_submit_button("COMPLETE TRANSACTION", on_click=clear_search)
+            # --- Input fields for the transaction (Amount, Service, etc) ---
+            # amount = st.number_input("Amount", min_value=0)
+            
+            submit_btn = st.form_submit_button("COMPLETE TRANSACTION", on_click=reset_selection)
             
             if submit_btn:
-                # ... (Your Database Insert Code Here) ...
-                st.success("Transaction Saved!")
-                # The search bar will be empty on the next refresh
+                # Save to database logic here
+                st.success(f"Transaction for {customer_label} recorded!")
+
+
         col1, col2 = st.columns(2)
         with col1:
             plate = st.text_input("PLATE NUMBER", value=d_plate).upper()
