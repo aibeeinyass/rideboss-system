@@ -412,8 +412,26 @@ def format_whatsapp(phone, message):
 
 def get_free_staff_by_dept(dept_name):
     """
-    Returns a list of active, verified staff in a department who are not currently busy.
+    Returns a list of active staff in a department who are NOT currently in any bay.
     """
+    # 1. Get names of staff currently working on a car in live_bays
+    busy_df = conn.query("SELECT staff FROM live_bays WHERE staff IS NOT NULL", ttl=0)
+    busy_list = busy_df['staff'].tolist() if not busy_df.empty else []
+    
+    # 2. Get all verified staff in department
+    query = "SELECT username FROM users WHERE dept = :d AND status = 'ACTIVE' AND verified = 1"
+    try:
+        staff_df = conn.query(query, params={"d": dept_name}, ttl=0)
+        if staff_df.empty:
+            return []
+        
+        all_dept_staff = staff_df['username'].tolist()
+        
+        # 3. Filter: Only return staff NOT in the busy_list
+        return [s for s in all_dept_staff if s not in busy_list]
+    except:
+        return []
+
     # Get busy staff from live_bays
     busy_df = conn.query("SELECT staff FROM live_bays", ttl=0)
     busy_list = busy_df['staff'].tolist() if not busy_df.empty else []
