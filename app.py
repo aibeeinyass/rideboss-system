@@ -790,15 +790,32 @@ if choice == "COMMAND CENTER":
         if not cust_data.empty:
             search_options += [f"{r['plate']} - {r['name']} ({r['phone']})" for _, r in cust_data.iterrows()]
         
-        search_selection = st.selectbox("SEARCH EXISTING CLIENT", search_options)
+        # Search UI with Clear Button
+        col_search, col_clear = st.columns([4, 1])
+        
+        with col_search:
+            search_selection = st.selectbox(
+                "SEARCH EXISTING CLIENT (Type Plate or Name)", 
+                search_options, 
+                key="client_search_main"
+            )
+            
+        with col_clear:
+            st.write(" ") # Alignment
+            if st.button("RESET ✖", use_container_width=True):
+                st.session_state.client_search_main = "NEW CUSTOMER"
+                st.rerun()
         
         # Pre-fill data if existing customer selected
         d_plate, d_name, d_phone = "", "", ""
         if search_selection != "NEW CUSTOMER":
-            p_key = search_selection.split(" - ")[0]
-            # Use Pandas filtering on the fetched dataframe
-            match = cust_data[cust_data['plate'] == p_key].iloc[0]
-            d_plate, d_name, d_phone = match['plate'], match['name'], match['phone']
+            try:
+                p_key = search_selection.split(" - ")[0]
+                match = cust_data[cust_data['plate'] == p_key].iloc[0]
+                d_plate, d_name, d_phone = match['plate'], match['name'], match['phone']
+            except Exception:
+                pass # Fallback for unexpected format
+
 
         col1, col2 = st.columns(2)
         with col1:
