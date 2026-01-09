@@ -800,13 +800,18 @@ if choice == "COMMAND CENTER":
             match = cust_data[cust_data['plate'] == p_key].iloc[0]
             d_plate, d_name, d_phone = match['plate'], match['name'], match['phone']
 
-
         col1, col2 = st.columns(2)
         with col1:
             plate = st.text_input("PLATE NUMBER", value=d_plate).upper()
             v_type = st.selectbox("VEHICLE TYPE", ["Sedan", "SUV", "Truck", "Crossover", "Bike", "Other"])
             name = st.text_input("CLIENT NAME", value=d_name)
             c_code = st.selectbox("COUNTRY CODE", list(COUNTRY_CODES.keys()))
+            
+            # Handle phone number format
+            phone_val = d_phone[3:] if d_phone and len(d_phone) > 3 else ""
+            phone_raw = st.text_input("PHONE (No leading zero)", value=phone_val)
+            
+            full_phone = f"{COUNTRY_CODES[c_code].replace('+', '')}{phone_raw}" if not d_phone else d_phone
 
         with col2:
             # FIX: Initialize variables before use to prevent NameError
