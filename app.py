@@ -960,9 +960,10 @@ if choice == "COMMAND CENTER":
                     try:
                         with conn.session as s:
                             # 1. Insert Sales
+                            # FIXED: Changed 'payment_method' column name to 'method' to match DB schema
                             res = s.execute(
                                 text("""
-                                    INSERT INTO sales (plate, services, total, payment_method, staff, timestamp, type, status) 
+                                    INSERT INTO sales (plate, services, total, method, staff, timestamp, type, status) 
                                     VALUES (:p, :svc, :tot, :meth, :st, :ts, :typ, 'COMPLETED') 
                                     RETURNING id
                                 """), 
