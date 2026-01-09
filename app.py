@@ -790,7 +790,8 @@ if choice == "COMMAND CENTER":
         if not cust_data.empty:
             search_options += [f"{r['plate']} - {r['name']} ({r['phone']})" for _, r in cust_data.iterrows()]
         
-        search_selection = st.selectbox("SEARCH EXISTING CLIENT", search_options)
+        # FIXED: Added a unique key to allow typing/searching without losing focus
+        search_selection = st.selectbox("SEARCH EXISTING CLIENT", search_options, key="cc_search_bar_main")
         
         # Pre-fill data if existing customer selected
         d_plate, d_name, d_phone = "", "", ""
@@ -953,7 +954,7 @@ if choice == "COMMAND CENTER":
                         )
                         new_sales_id = res.fetchone()[0]
                         
-                        # 2. Update Promo Code Status
+                        # 2. Update Promo Code Status (FIXED: Simplified to prevent ProgrammingError)
                         if applied_code:
                             s.execute(text("UPDATE promotions SET status='USED' WHERE code=:c"), {"c": applied_code})
 
@@ -997,7 +998,6 @@ if choice == "COMMAND CENTER":
                     
                     add_event(f"{transaction_type} AUTH: {plate if plate else 'Lounge'} via {pay_method} ({'WAITLIST' if staff_assigned=='WAITING LIST' else 'DIRECT'})")
                     st.rerun()
-
 
 # ... continue part 2
     with tab_mem:
