@@ -1844,7 +1844,7 @@ elif choice == "FINANCIALS" and st.session_state.user_role == "MANAGER":
                 st.success("Expense Logged.")
                 st.rerun()
 
-        with tab_cards_hub:
+    with tab_cards_hub:
         st.subheader("📋 MEMBERSHIP CARD REGISTRY")
         
         # --- SEARCH & FILTER SECTION ---
@@ -1935,6 +1935,7 @@ elif choice == "FINANCIALS" and st.session_state.user_role == "MANAGER":
                         st.rerun()
                     
                     st.markdown('<div style="margin-top: -15px;"><hr></div>', unsafe_allow_html=True)
+
 
      
 
