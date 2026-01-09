@@ -1071,52 +1071,82 @@ if choice == "COMMAND CENTER":
 
 
 # ... continue part 2
-        with tab_mem:
-        st.subheader("💳 MEMBERSHIP MANAGEMENT")
-        
-        mem_action = st.radio("SELECT ACTION", ["ISSUE NEW CARD", "TOP-UP EXISTING CARD"], horizontal=True)
-        st.markdown("---")
-
-        if mem_action == "ISSUE NEW CARD":
-            st.caption("Link a new physical card to a vehicle")
-            m_plate = st.text_input("VEHICLE PLATE").upper()
-            m_serial = st.text_input("CARD SERIAL NUMBER (Scan/Type)", placeholder="e.g., RB-1001")
-            tier = st.selectbox("CARD TIER", ["Silver (5 Washes)", "Gold (10 Washes)", "Platinum (25 Washes)"])
-            card_sale_price = st.number_input("CARD SALE PRICE (₦)", min_value=0.0, step=500.0)
-            m_pay_method = st.selectbox("PAYMENT METHOD", ["Moniepoint POS", "Bank Transfer", "Cash"], key="new_mem_pay")
+                with tab_mem:
+            st.subheader("💳 MEMBERSHIP MANAGEMENT")
             
-            qty = 5
-            if "Gold" in tier: qty = 10
-            elif "Platinum" in tier: qty = 25
-            
-            @st.dialog("CONFIRM CARD ISSUANCE")
-            def confirm_issue():
-                st.warning(f"Confirm you have received ₦{card_sale_price:,} via {m_pay_method}?")
-                if st.button("YES, PAYMENT RECEIVED - ACTIVATE", use_container_width=True, type="primary"):
-                    with conn.session as s:
-                        s.execute(text("""
-                            INSERT INTO memberships (plate, balance_washes, card_type, sale_price, card_serial, status) 
-                            VALUES (:p, :b, :c, :s, :ser, 'ACTIVE')
-                            ON CONFLICT (plate) DO UPDATE 
-                            SET balance_washes=:b, card_type=:c, sale_price=:s, card_serial=:ser, status='ACTIVE'
-                        """), {"p": m_plate, "b": qty, "c": tier, "s": card_sale_price, "ser": m_serial})
-                        
-                        # Commission Logic
-                        receptionist = st.session_state.user_name
-                        res_p = s.execute(text("SELECT bonus_pc FROM staff_payroll_config WHERE username=:u"), {"u": receptionist}).fetchone()
-                        if res_p and res_p[0] > 0:
-                            comm_amt = card_sale_price * (res_p[0] / 100)
-                            s.execute(text("INSERT INTO earnings_log (username, amount, ref_plate, timestamp) VALUES (:u, :a, :r, :t)"),
-                                     {"u": receptionist, "a": comm_amt, "r": f"NEW_CARD:{m_plate}", "t": datetime.now().strftime("%Y-%m-%d %H:%M")})
-                        s.commit()
-                    st.success(f"Successfully linked {m_serial} to {m_plate}!")
-                    st.rerun()
+            mem_action = st.radio("SELECT ACTION", ["ISSUE NEW CARD", "TOP-UP EXISTING CARD"], horizontal=True)
+            st.markdown("---")
 
-            if st.button("ISSUE CARD", use_container_width=True):
-                if m_plate and m_serial:
-                    confirm_issue()
-                else:
-                    st.error("Please provide both Plate and Card Serial Number.")
+            if mem_action == "ISSUE NEW CARD":
+                st.caption("Link a new physical card to a vehicle")
+                m_plate = st.text_input("VEHICLE PLATE").upper()
+                m_serial = st.text_input("CARD SERIAL NUMBER (Scan/Type)", placeholder="e.g., RB-1001")
+                tier = st.selectbox("CARD TIER", ["Silver (5 Washes)", "Gold (10 Washes)", "Platinum (25 Washes)"])
+                card_sale_price = st.number_input("CARD SALE PRICE (₦)", min_value=0.0, step=500.0)
+                m_pay_method = st.selectbox("PAYMENT METHOD", ["Moniepoint POS", "Bank Transfer", "Cash"], key="new_mem_pay")
+                
+                qty = 5
+                if "Gold" in tier: qty = 10
+                elif "Platinum" in tier: qty = 25
+                
+                @st.dialog("CONFIRM CARD ISSUANCE")
+                def confirm_issue():
+                    st.warning(f"Confirm you have received ₦{card_sale_price:,} via {m_pay_method}?")
+                    if st.button("YES, PAYMENT RECEIVED - ACTIVATE", use_container_width=True, type="primary"):
+                        with conn.session as s:
+                            s.execute(text("""
+                                INSERT INTO memberships (plate, balance_washes, card_type, sale_price, card_serial, status) 
+                                VALUES (:p, :b, :c, :s, :ser, 'ACTIVE')
+                                ON CONFLICT (plate) DO UPDATE 
+                                SET balance_washes=:b, card_type=:c, sale_price=:s, card_serial=:ser, status='ACTIVE'
+                            """), {"p": m_plate, "b": qty, "c": tier, "s": card_sale_price, "ser": m_serial})
+                            
+                            # Commission Logic
+                            receptionist = st.session_state.user_name
+                            res_p = s.execute(text("SELECT bonus_pc FROM staff_payroll_config WHERE username=:u"), {"u": receptionist}).fetchone()
+                            if res_p and res_p[0] > 0:
+                                comm_amt = card_sale_price * (res_p[0] / 100)
+                                s.execute(text("INSERT INTO earnings_log (username, amount, ref_plate, timestamp) VALUES (:u, :a, :r, :t)"),
+                                         {"u": receptionist, "a": comm_amt, "r": f"NEW_CARD:{m_plate}", "t": datetime.now().strftime("%Y-%m-%d %H:%M")})
+                            s.commit()
+                        st.success(f"Successfully linked {m_serial} to {m_plate}!")
+                        st.rerun()
+
+                if st.button("ISSUE CARD", use_container_width=True):
+                    if m_plate and m_serial:
+                        confirm_issue()
+                    else:
+                        st.error("Please provide both Plate and Card Serial Number.")
+
+            else:
+                # TOP-UP LOGIC
+                st.caption("Add washes to an existing card")
+                t_input = st.text_input("SCAN CARD OR ENTER PLATE").upper()
+                t_washes = st.number_input("WASHES TO ADD", min_value=1, value=10)
+                t_price = st.number_input("TOP-UP AMOUNT (₦)", min_value=0.0, step=500.0)
+                t_pay_method = st.selectbox("PAYMENT METHOD", ["Moniepoint POS", "Bank Transfer", "Cash"], key="topup_pay")
+
+                @st.dialog("CONFIRM TOP-UP")
+                def confirm_topup():
+                    st.warning(f"Confirm receipt of ₦{t_price:,} for {t_washes} washes?")
+                    if st.button("CONFIRM PAYMENT & ADD WASHES", use_container_width=True, type="primary"):
+                        with conn.session as s:
+                            # Check if card exists by serial or plate
+                            s.execute(text("""
+                                UPDATE memberships 
+                                SET balance_washes = balance_washes + :qty 
+                                WHERE plate = :t OR card_serial = :t
+                            """), {"qty": t_washes, "t": t_input})
+                            s.commit()
+                        st.success(f"Added {t_washes} washes to {t_input}!")
+                        st.rerun()
+
+                if st.button("AUTHORIZE TOP-UP", use_container_width=True):
+                    if t_input:
+                        confirm_topup()
+                    else:
+                        st.error("Please enter a Plate or Scan a Card.")
+
 
         else:
             # TOP-UP LOGIC
