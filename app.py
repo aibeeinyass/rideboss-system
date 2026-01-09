@@ -845,6 +845,12 @@ if choice == "COMMAND CENTER":
                 # ... (Your Database Insert Code Here) ...
                 st.success("Transaction Saved!")
                 # The search bar will be empty on the next refresh
+        col1, col2 = st.columns(2)
+        with col1:
+            plate = st.text_input("PLATE NUMBER", value=d_plate).upper()
+            v_type = st.selectbox("VEHICLE TYPE", ["Sedan", "SUV", "Truck", "Crossover", "Bike", "Other"])
+            name = st.text_input("CLIENT NAME", value=d_name)
+            c_code = st.selectbox("COUNTRY CODE", list(COUNTRY_CODES.keys()))
 
         with col2:
             # FIX: Initialize variables before use to prevent NameError
