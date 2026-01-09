@@ -781,51 +781,24 @@ if choice == "COMMAND CENTER":
     with tab_trans:
         mode = st.radio("SELECT MODE", ["CAR WASH", "LOUNGE"], horizontal=True)
         st.markdown("---")
-
-        # Function to clear search when finished
-        def reset_selection():
-            st.session_state.cc_search = None
-
-        # Load Customer Data
-        cust_data = conn.query("SELECT * FROM customers", ttl=60)
         
-        # 1. Build Search Options
-        search_options = []
+        # Load Customer Data for Search
+        cust_data = conn.query("SELECT * FROM customers", ttl=0)
+        
+        # Build Search Options
+        search_options = ["NEW CUSTOMER"]
         if not cust_data.empty:
-            search_options = [f"{r['plate']} - {r['name']} ({r['phone']})" for _, r in cust_data.iterrows()]
+            search_options += [f"{r['plate']} - {r['name']} ({r['phone']})" for _, r in cust_data.iterrows()]
         
-        # 2. THE ALL-IN-ONE SEARCH BAR
-        # Using index=None and a placeholder makes it behave like a search field
-        search_selection = st.selectbox(
-            "SEARCH CLIENT (Type Plate or Name)", 
-            options=search_options, 
-            index=None,
-            placeholder="Search here...",
-            key="cc_search"
-        )
+        search_selection = st.selectbox("SEARCH EXISTING CLIENT", search_options)
         
-        # 3. Handle data based on selection
+        # Pre-fill data if existing customer selected
         d_plate, d_name, d_phone = "", "", ""
-        customer_label = "New Walk-in"
-        
-        if search_selection:
+        if search_selection != "NEW CUSTOMER":
             p_key = search_selection.split(" - ")[0]
+            # Use Pandas filtering on the fetched dataframe
             match = cust_data[cust_data['plate'] == p_key].iloc[0]
             d_plate, d_name, d_phone = match['plate'], match['name'], match['phone']
-            customer_label = f"{d_name} ({d_plate})"
-
-        # 4. Transaction Form
-        with st.form("transaction_entry", clear_on_submit=True):
-            st.info(f"Selected: **{customer_label}**")
-            
-            # --- Input fields for the transaction (Amount, Service, etc) ---
-            # amount = st.number_input("Amount", min_value=0)
-            
-            submit_btn = st.form_submit_button("COMPLETE TRANSACTION", on_click=reset_selection)
-            
-            if submit_btn:
-                # Save to database logic here
-                st.success(f"Transaction for {customer_label} recorded!")
 
 
         col1, col2 = st.columns(2)
