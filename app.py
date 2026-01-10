@@ -32,173 +32,127 @@ except Exception as e:
     st.error(f"Database Connection Error: {e}")
     st.stop()
 
-# --- THE "PIXEL-PERFECT" RIDEBOSS ULTRA CSS ---
+# --- THE ULTIMATE RIDEBOSS ULTRA CSS ---
 st.markdown("""
     <style>
-    /* 1. TYPOGRAPHY & CORE AMBIENCE */
-    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&display=swap');
+    /* 1. GLOBAL FONT & BACKGROUND ORBS */
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&display=swap');
     
     .stApp { 
         background-color: #05070a;
-        /* Recreating the teal glow (left) and purple haze (right) from the photo */
+        /* Recreating the teal glow (left) and purple glow (right) from your image */
         background-image: 
-            radial-gradient(at 0% 50%, rgba(0, 212, 255, 0.12) 0px, transparent 45%),
-            radial-gradient(at 100% 50%, rgba(147, 51, 234, 0.12) 0px, transparent 45%);
+            radial-gradient(at 0% 50%, rgba(0, 255, 255, 0.1) 0px, transparent 40%),
+            radial-gradient(at 100% 50%, rgba(147, 51, 234, 0.1) 0px, transparent 40%);
         color: #e2e8f0; 
         font-family: 'Outfit', sans-serif;
     }
 
-    /* 2. HEADER & HAMBURGER FIX (MAKING IT VISIBLE BUT CLEAN) */
-    header[data-testid="stHeader"] {
-        background: transparent !important;
-    }
-    header[data-testid="stHeader"] svg {
-        fill: #00d4ff !important; /* Makes the sidebar button neon blue */
-    }
-
-    /* 3. SIDEBAR NAVIGATION - RECESSED TILE LOOK */
+    /* 2. SIDEBAR NAVIGATION - IMAGE ACCURATE */
     section[data-testid="stSidebar"] {
-        background-color: #080a0e !important;
+        background: rgba(10, 12, 16, 0.95) !important;
         border-right: 1px solid rgba(255, 255, 255, 0.05);
     }
 
-    /* Sidebar "Revitalize" Header Mockup */
-    section[data-testid="stSidebar"]::before {
-        content: "REVITALIZE";
-        display: block;
-        padding: 20px 20px 10px 20px;
-        font-size: 0.65rem;
-        font-weight: 800;
-        color: #475569;
-        letter-spacing: 2px;
-    }
-
     [data-testid="stSidebar"] .stRadio label {
-        background: rgba(17, 20, 26, 1) !important;
+        background: #161a21 !important;
         border: 1px solid #242933 !important;
-        padding: 12px 15px !important;
+        padding: 10px 15px !important;
         border-radius: 6px !important;
-        color: #94a3b8 !important;
+        color: #8a94a6 !important;
         text-transform: uppercase;
         font-size: 0.7rem !important;
         font-weight: 700 !important;
         letter-spacing: 1px;
         margin-bottom: 8px;
-        transition: all 0.2s ease;
     }
 
-    /* The "Image-Matched" Active Sidebar Glow */
+    /* The Cyan Glow for the Active Button */
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] [data-checked="true"] {
-        background: linear-gradient(90deg, #1e293b 0%, #0f172a 100%) !important;
+        background: #1e293b !important;
         border: 1px solid #00d4ff !important;
         color: #ffffff !important;
-        box-shadow: 0 0 15px rgba(0, 212, 255, 0.3), inset 0 0 10px rgba(0, 212, 255, 0.1);
+        box-shadow: 0 0 15px rgba(0, 212, 255, 0.4);
     }
 
-    /* 4. GLASS STATUS CARDS (MATCHING IMAGE LAYOUT) */
-    /* Note: Use st.markdown with this class in your python code */
+    /* 3. GLASS CARDS - MULTI-LAYERED */
     .status-card { 
-        background: rgba(22, 27, 34, 0.7);
-        backdrop-filter: blur(15px);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        border-top: 1px solid rgba(255, 255, 255, 0.15);
+        background: rgba(15, 18, 25, 0.8);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-top: 1px solid rgba(255, 255, 255, 0.15); /* Light catch on top */
         border-radius: 12px;
         padding: 20px;
-        height: 120px;
+        height: 140px;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     }
 
-    .card-label {
-        font-size: 0.6rem;
+    .status-card .label {
+        font-size: 0.65rem;
         font-weight: 800;
-        color: #94a3b8;
+        color: #64748b;
         text-transform: uppercase;
         letter-spacing: 1.5px;
     }
 
-    .card-value {
-        font-size: 2.2rem;
+    .status-card .value {
+        font-size: 2.5rem;
         font-weight: 900;
         color: #ffffff;
-        line-height: 1;
     }
 
-    /* 5. THE NEON TOP NOTIFIER */
+    /* 4. THE NEON TOP NOTIFIER */
     .notification-bar { 
         background: rgba(0, 212, 255, 0.1);
         border: 1px solid #00d4ff;
         color: #ffffff;
-        border-radius: 50px;
-        padding: 10px 30px;
+        border-radius: 40px;
+        padding: 8px 24px;
         font-weight: 700;
         text-transform: uppercase;
         font-size: 0.75rem;
-        letter-spacing: 2px;
-        text-align: center;
-        box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+        letter-spacing: 1.5px;
+        box-shadow: 0 0 15px rgba(0, 212, 255, 0.2);
     }
 
-    /* 6. BUTTONS - THE BLUE GRADIENT LOOK */
-    .stButton>button { 
-        background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
-        border: none;
-        border-radius: 6px; 
-        color: white; 
-        font-weight: 700;
-        font-size: 0.7rem;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        padding: 10px 20px;
-        transition: 0.3s;
-        box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
-    }
-
-    .stButton>button:hover { 
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(0, 212, 255, 0.4);
-    }
-
-    /* 7. LIVE U-FLOW MONITOR - PURE DARK */
+    /* 5. LIVE MONITOR - DARK PANEL */
     .monitor-container {
-        background: #020408;
-        border: 1px solid #1e293b;
-        border-radius: 12px;
-        padding: 10px;
+        background: #090b0f;
+        border: 1px solid #1f2937;
+        border-radius: 15px;
+        padding: 15px;
     }
 
     .monitor-row {
-        background: transparent;
         border-bottom: 1px solid #161a21;
-        padding: 12px 10px;
+        padding: 12px 0;
         display: flex;
         justify-content: space-between;
         align-items: center;
     }
 
     .monitor-plate {
-        font-size: 1.1rem;
-        font-weight: 800;
         color: #ffffff;
-        letter-spacing: 1px;
-    }
-
-    .monitor-status-badge {
-        background: #fbbf24;
-        color: #000;
-        padding: 2px 8px;
-        border-radius: 4px;
         font-weight: 900;
-        font-size: 0.6rem;
+        font-size: 1.2rem;
+        letter-spacing: 2px;
     }
 
-    /* Hide Streamlit elements */
-    footer { visibility: hidden; }
+    .monitor-status-dot {
+        height: 8px;
+        width: 8px;
+        background-color: #fbbf24;
+        border-radius: 50%;
+        box-shadow: 0 0 8px #fbbf24;
+    }
+
+    /* Clean up headers and hidden elements */
+    header { visibility: hidden; }
     .stDeployButton { display: none; }
     </style>
     """, unsafe_allow_html=True)
+
 
 # --- DATABASE INITIALIZATION FUNCTION ---
 def init_db():
