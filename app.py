@@ -32,131 +32,208 @@ except Exception as e:
     st.error(f"Database Connection Error: {e}")
     st.stop()
 
-# --- CSS STYLING (THE HYPER-MODERN CONTROL DECK) ---
+# --- CSS STYLING (MODERN "DARK GLASS" THEME) ---
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100;300;400;700&family=JetBrains+Mono:wght@200&display=swap');
-
-    /* 1. ANIMATED COSMIC BACKGROUND */
-    .stApp {
-        background: radial-gradient(circle at 50% 50%, #1a1a2e 0%, #050505 100%);
-        color: #FFFFFF;
-        font-family: 'Outfit', sans-serif;
-    }
-
-    /* 2. FLOATING CAPSULE SIDEBAR (MIND-BLOWING LOOK) */
-    [data-testid="stSidebar"] {
-        background: rgba(15, 15, 15, 0.7) !important;
-        backdrop-filter: blur(25px) saturate(150%);
-        margin: 20px;
-        margin-right: 0px;
-        border-radius: 30px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        height: calc(100vh - 40px) !important;
-        box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+    /* GLOBAL ANIMATIONS & FONTS */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400;700&display=swap');
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
     }
     
-    /* Hide the default Streamlit sidebar border */
-    [data-testid="stSidebarNav"] { background: transparent !important; }
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(0, 212, 255, 0.4); }
+        70% { box-shadow: 0 0 0 10px rgba(0, 212, 255, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(0, 212, 255, 0); }
+    }
 
-    /* 3. NEW GENERATION CARD (HEXAGONAL VIBE) */
-    .status-card {
-        background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%);
+    /* MAIN APP STYLING */
+    .stApp { 
+        background: radial-gradient(circle at 10% 20%, #0f121b 0%, #050505 90%);
+        color: #E0E0E0; 
+        font-family: 'Inter', sans-serif; 
+    }
+    
+    /* MODERN SIDEBAR */
+    section[data-testid="stSidebar"] {
+        background-color: rgba(10, 10, 10, 0.9);
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
         backdrop-filter: blur(10px);
-        border-radius: 20px;
-        border-left: 5px solid #00d4ff;
-        border-right: 1px solid rgba(255,255,255,0.1);
-        border-top: 1px solid rgba(255,255,255,0.1);
-        border-bottom: 1px solid rgba(255,255,255,0.1);
-        padding: 25px;
-        margin-bottom: 20px;
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        clip-path: polygon(0% 0%, 100% 0%, 100% 85%, 95% 100%, 0% 100%); /* Beveled Corner */
+    }
+    
+    div[data-testid="stSidebarNav"] {
+        padding-top: 20px; 
     }
 
+    /* HEADERS */
+    h1, h2, h3 {
+        letter-spacing: -0.5px;
+        color: #fff;
+        font-weight: 600;
+    }
+
+    /* GLASSMOPHISM CARDS (Replaces boring squares) */
+    .status-card { 
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(10px);
+        padding: 25px; 
+        border-radius: 16px; 
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-left: 4px solid #00d4ff; 
+        margin-bottom: 20px; 
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        transition: all 0.3s ease;
+        animation: fadeIn 0.6s ease-out;
+    }
+    
     .status-card:hover {
-        transform: perspective(1000px) rotateX(2deg) translateY(-5px);
-        background: rgba(0, 212, 255, 0.05);
-        border-left: 10px solid #00d4ff;
-        box-shadow: 0 15px 35px rgba(0,212,255,0.15);
-    }
-
-    /* 4. REINVENTING TABLES & LISTS (BORING TO BEAUTIFUL) */
-    .stDataFrame, div[data-testid="stTable"] {
-        border-radius: 20px;
-        overflow: hidden;
-        border: 1px solid rgba(255,255,255,0.05) !important;
-        background: rgba(0,0,0,0.2);
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(0, 212, 255, 0.1);
+        border-left: 4px solid #50e3c2;
     }
     
-    /* Custom List Item styling */
-    .modern-list-item {
-        background: rgba(255,255,255,0.02);
-        margin: 5px 0;
-        padding: 12px 20px;
-        border-radius: 12px;
+    /* NOTIFICATION BAR */
+    .notification-bar { 
+        background: linear-gradient(90deg, rgba(0, 212, 255, 0.1) 0%, rgba(0,0,0,0) 100%);
+        padding: 15px 20px; 
+        border-radius: 8px;
+        border-left: 3px solid #00d4ff;
+        color: #00d4ff; 
+        font-size: 0.85em; 
+        font-weight: 600; 
+        text-transform: uppercase; 
+        letter-spacing: 1.5px; 
+        margin-bottom: 30px; 
         display: flex;
-        justify-content: space-between;
-        border: 1px solid transparent;
-        transition: 0.3s;
+        align-items: center;
     }
     
-    .modern-list-item:hover {
-        background: rgba(255,255,255,0.05);
-        border-color: rgba(0, 212, 255, 0.3);
-        padding-left: 25px; /* Subtle slide effect */
-    }
-
-    /* 5. GHOST BUTTONS WITH CYBER GLOW */
-    .stButton>button {
-        background: linear-gradient(90deg, #00d4ff22, transparent) !important;
-        border: 1px solid #00d4ff55 !important;
-        color: #00d4ff !important;
-        border-radius: 4px !important; /* Sharp for "Industrial" look */
-        font-family: 'JetBrains Mono', monospace;
-        font-weight: 200;
-        letter-spacing: 4px;
-        transition: 0.5s !important;
-        text-align: left;
-        padding-left: 20px;
-    }
-
-    .stButton>button:hover {
-        background: #00d4ff !important;
-        color: #000 !important;
-        box-shadow: 0 0 40px #00d4ff66;
-        letter-spacing: 6px;
-    }
-
-    /* 6. MONITOR / DATA SCROLL (MATRIX VIBE) */
-    .monitor-container {
-        border: 1px solid rgba(0, 212, 255, 0.1);
-        background: repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0px, rgba(0,0,0,0.15) 1px, transparent 1px, transparent 2px);
-        background-size: 100% 3px;
-        border-radius: 40px;
-    }
-
-    .monitor-plate {
-        font-family: 'JetBrains Mono', monospace;
-        letter-spacing: -2px;
-        filter: drop-shadow(0 0 8px #00d4ff66);
-    }
-
-    /* 7. METRIC CARDS (OVERRIDE DEFAULT) */
-    [data-testid="stMetricValue"] {
-        font-weight: 100 !important;
-        font-size: 3rem !important;
-        color: #00d4ff !important;
+    /* ACTION BUTTONS (Gradient & Glow) */
+    .stButton>button { 
+        border-radius: 12px; 
+        letter-spacing: 1px; 
+        font-size: 0.9em; 
+        font-weight: 600;
+        text-transform: uppercase; 
+        background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+        border: 1px solid rgba(255,255,255,0.1); 
+        color: white; 
+        padding: 0.6rem 1rem;
+        height: auto;
+        min-height: 3em; 
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); 
+        width: 100%; 
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
     
-    /* 8. INPUTS (THE DARK PILL) */
-    div[data-baseweb="input"] > div {
-        background-color: #000 !important;
-        border-radius: 50px !important;
-        border: 1px solid #333 !important;
-        padding: 5px 15px;
+    .stButton>button:hover { 
+        background: linear-gradient(135deg, #00d4ff 0%, #0077b6 100%);
+        border-color: transparent; 
+        color: #fff; 
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(0, 212, 255, 0.3);
+    }
+    
+    .stButton>button:active {
+        transform: scale(0.98);
+    }
+    
+    /* MONITOR CONTAINER (The "Frame") */
+    .monitor-container { 
+        background: #080808; 
+        border: 1px solid #333; 
+        border-radius: 20px; 
+        height: 700px; 
+        overflow: hidden; 
+        position: relative; 
+        box-shadow: inset 0 0 60px rgba(0,0,0,0.9);
+    }
+    
+    /* SCROLL LOGIC */
+    .scroll-content { 
+        position: absolute; 
+        width: 100%; 
+        animation: scrollUp 45s linear infinite; 
+        will-change: transform; 
+    }
+    
+    .scroll-content:hover { 
+        animation-play-state: paused; 
+    }
+    
+    @keyframes scrollUp { 
+        0% { transform: translateY(100%); } 
+        100% { transform: translateY(-100%); } 
+    }
+    
+    /* MONITOR ROW STYLING */
+    .monitor-row { 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        padding: 25px 35px; 
+        border-bottom: 1px solid rgba(255,255,255,0.05); 
+        background: transparent;
+        transition: background 0.3s;
+    }
+    
+    .monitor-row:hover {
+        background: rgba(255,255,255,0.02);
+    }
+    
+    /* TYPOGRAPHY FOR MONITOR */
+    .monitor-plate { 
+        font-size: 50px; 
+        font-weight: 700; 
+        color: #00d4ff; 
+        font-family: 'JetBrains Mono', monospace; 
+        text-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+    }
+    
+    .monitor-status { 
+        font-size: 16px; 
+        color: #FFD700; 
+        font-weight: 600; 
+        background: rgba(255, 215, 0, 0.1);
+        padding: 5px 12px;
+        border-radius: 20px;
+        border: 1px solid rgba(255, 215, 0, 0.3);
+    }
+    
+    .monitor-meta { 
+        text-align: right; 
+    }
+    
+    .monitor-staff { 
+        font-size: 18px; 
+        color: #a0a0a0; 
+        font-weight: 500;
+        text-transform: uppercase; 
+    }
+    
+    .monitor-svc { 
+        color: #50e3c2; 
+        font-family: 'Inter', sans-serif;
+        font-size: 14px; 
+        margin-top: 5px;
+        display: block;
     }
 
+    /* INPUT FIELDS CLEANUP */
+    div[data-baseweb="input"] > div, div[data-baseweb="select"] > div {
+        background-color: rgba(255,255,255,0.05) !important;
+        color: white !important;
+        border-radius: 10px !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        transition: border 0.3s;
+    }
+    
+    div[data-baseweb="input"] > div:focus-within, div[data-baseweb="select"] > div:focus-within {
+        border-color: #00d4ff !important;
+        box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.2);
+    }
     </style>
     """, unsafe_allow_html=True)
 
