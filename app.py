@@ -1071,7 +1071,7 @@ if choice == "COMMAND CENTER":
 
         # ... continue part 2
         with tab_mem:
-    st.subheader("💳 MEMBERSHIP MANAGEMENT")
+            st.subheader("💳 MEMBERSHIP MANAGEMENT")
     
     mem_action = st.radio("SELECT ACTION", ["ISSUE NEW CARD", "TOP-UP EXISTING CARD"], horizontal=True)
     st.markdown("---")
