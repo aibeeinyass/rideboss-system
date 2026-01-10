@@ -32,210 +32,239 @@ except Exception as e:
     st.error(f"Database Connection Error: {e}")
     st.stop()
 
-# --- CSS STYLING (MODERN "DARK GLASS" THEME) ---
+# --- CSS STYLING (THEME: TACTICAL GLASS OPS) ---
 st.markdown("""
     <style>
-    /* GLOBAL ANIMATIONS & FONTS */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400;700&display=swap');
-    
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    
-    @keyframes pulse {
-        0% { box-shadow: 0 0 0 0 rgba(0, 212, 255, 0.4); }
-        70% { box-shadow: 0 0 0 10px rgba(0, 212, 255, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(0, 212, 255, 0); }
+    /* 1. IMPORTS & ANIMATIONS */
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;900&family=Rajdhani:wght@400;500;700&display=swap');
+
+    @keyframes gridMove {
+        0% { background-position: 0 0; }
+        100% { background-position: 50px 50px; }
     }
 
-    /* MAIN APP STYLING */
-    .stApp { 
-        background: radial-gradient(circle at 10% 20%, #0f121b 0%, #050505 90%);
-        color: #E0E0E0; 
-        font-family: 'Inter', sans-serif; 
+    @keyframes scanline {
+        0% { transform: translateY(-100%); }
+        100% { transform: translateY(100%); }
     }
     
-    /* MODERN SIDEBAR */
+    @keyframes hud-flicker {
+        0% { opacity: 1; }
+        95% { opacity: 1; }
+        96% { opacity: 0.8; }
+        97% { opacity: 1; }
+        98% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
+
+    /* 2. GLOBAL APP BACKGROUND - TACTICAL GRID */
+    .stApp {
+        background-color: #030508;
+        background-image: 
+            linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px), 
+            linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
+        background-size: 40px 40px;
+        animation: gridMove 20s linear infinite;
+        font-family: 'Rajdhani', sans-serif;
+        color: #e0e6ed;
+    }
+
+    /* 3. HEADERS - SCI-FI STYLE */
+    h1, h2, h3 {
+        font-family: 'Orbitron', sans-serif !important;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: #fff;
+        text-shadow: 0 0 15px rgba(0, 212, 255, 0.4);
+    }
+
+    /* 4. SIDEBAR - COMMAND PANEL */
     section[data-testid="stSidebar"] {
-        background-color: rgba(10, 10, 10, 0.9);
-        border-right: 1px solid rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(10px);
+        background-color: rgba(5, 8, 15, 0.95);
+        border-right: 1px solid #00d4ff33;
+        box-shadow: 5px 0 20px rgba(0,0,0,0.5);
     }
     
     div[data-testid="stSidebarNav"] {
-        padding-top: 20px; 
+        padding-top: 20px;
     }
 
-    /* HEADERS */
-    h1, h2, h3 {
-        letter-spacing: -0.5px;
-        color: #fff;
-        font-weight: 600;
-    }
-
-    /* GLASSMOPHISM CARDS (Replaces boring squares) */
-    .status-card { 
-        background: rgba(255, 255, 255, 0.03);
-        backdrop-filter: blur(10px);
-        padding: 25px; 
-        border-radius: 16px; 
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-left: 4px solid #00d4ff; 
-        margin-bottom: 20px; 
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    /* 5. MECHA-GLASS CARDS (The "New Look") */
+    .status-card {
+        background: linear-gradient(135deg, rgba(20, 25, 35, 0.7) 0%, rgba(10, 10, 15, 0.9) 100%);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(0, 212, 255, 0.1);
+        border-left: 4px solid #00d4ff;
+        padding: 25px;
+        margin-bottom: 20px;
+        position: relative;
+        /* The Chamfered Corner "Mecha" Look */
+        clip-path: polygon(
+            0 0, 
+            100% 0, 
+            100% 85%, 
+            95% 100%, 
+            0 100%
+        );
         transition: all 0.3s ease;
-        animation: fadeIn 0.6s ease-out;
     }
-    
+
     .status-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 15px 35px rgba(0, 212, 255, 0.1);
-        border-left: 4px solid #50e3c2;
+        transform: translateY(-3px);
+        background: linear-gradient(135deg, rgba(0, 212, 255, 0.1) 0%, rgba(10, 10, 15, 0.9) 100%);
+        box-shadow: 0 10px 30px rgba(0, 212, 255, 0.1);
+        border-left-color: #fff;
     }
     
-    /* NOTIFICATION BAR */
-    .notification-bar { 
-        background: linear-gradient(90deg, rgba(0, 212, 255, 0.1) 0%, rgba(0,0,0,0) 100%);
-        padding: 15px 20px; 
-        border-radius: 8px;
-        border-left: 3px solid #00d4ff;
-        color: #00d4ff; 
-        font-size: 0.85em; 
-        font-weight: 600; 
-        text-transform: uppercase; 
-        letter-spacing: 1.5px; 
-        margin-bottom: 30px; 
+    /* Decorative 'SYS.READY' label inside cards */
+    .status-card::before {
+        content: "STATUS // ACTIVE";
+        position: absolute;
+        top: 10px;
+        right: 15px;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 9px;
+        color: rgba(0, 212, 255, 0.5);
+        letter-spacing: 1px;
+    }
+
+    /* 6. NOTIFICATION BAR - HUD STRIP */
+    .notification-bar {
+        background: rgba(0, 212, 255, 0.05);
+        border: 1px solid rgba(0, 212, 255, 0.3);
+        padding: 12px 20px;
+        color: #00d4ff;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 0.8em;
+        letter-spacing: 2px;
+        margin-bottom: 30px;
         display: flex;
         align-items: center;
+        box-shadow: inset 0 0 20px rgba(0, 212, 255, 0.05);
     }
-    
-    /* ACTION BUTTONS (Gradient & Glow) */
-    .stButton>button { 
-        border-radius: 12px; 
-        letter-spacing: 1px; 
-        font-size: 0.9em; 
-        font-weight: 600;
-        text-transform: uppercase; 
-        background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
-        border: 1px solid rgba(255,255,255,0.1); 
-        color: white; 
-        padding: 0.6rem 1rem;
-        height: auto;
-        min-height: 3em; 
-        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); 
-        width: 100%; 
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    
-    .stButton>button:hover { 
-        background: linear-gradient(135deg, #00d4ff 0%, #0077b6 100%);
-        border-color: transparent; 
-        color: #fff; 
-        transform: translateY(-2px);
-        box-shadow: 0 10px 20px rgba(0, 212, 255, 0.3);
-    }
-    
-    .stButton>button:active {
-        transform: scale(0.98);
-    }
-    
-    /* MONITOR CONTAINER (The "Frame") */
-    .monitor-container { 
-        background: #080808; 
-        border: 1px solid #333; 
-        border-radius: 20px; 
-        height: 700px; 
-        overflow: hidden; 
-        position: relative; 
-        box-shadow: inset 0 0 60px rgba(0,0,0,0.9);
-    }
-    
-    /* SCROLL LOGIC */
-    .scroll-content { 
-        position: absolute; 
-        width: 100%; 
-        animation: scrollUp 45s linear infinite; 
-        will-change: transform; 
-    }
-    
-    .scroll-content:hover { 
-        animation-play-state: paused; 
-    }
-    
-    @keyframes scrollUp { 
-        0% { transform: translateY(100%); } 
-        100% { transform: translateY(-100%); } 
-    }
-    
-    /* MONITOR ROW STYLING */
-    .monitor-row { 
-        display: flex; 
-        justify-content: space-between; 
-        align-items: center; 
-        padding: 25px 35px; 
-        border-bottom: 1px solid rgba(255,255,255,0.05); 
+
+    /* 7. BUTTONS - LASER EDGES */
+    .stButton>button {
+        font-family: 'Orbitron', sans-serif;
         background: transparent;
-        transition: background 0.3s;
+        border: 1px solid #00d4ff;
+        color: #00d4ff;
+        border-radius: 0px; /* Sharp technical edges */
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        transition: 0.3s;
+        height: 3em;
+        width: 100%;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stButton>button:hover {
+        background: #00d4ff;
+        color: #000;
+        box-shadow: 0 0 25px rgba(0, 212, 255, 0.6);
+        text-shadow: none;
+        font-weight: 700;
+    }
+
+    /* 8. MONITOR - FLIGHT DECK TERMINAL */
+    .monitor-container {
+        background: #050505;
+        border: 1px solid #333;
+        border-top: 4px solid #00d4ff;
+        height: 700px;
+        overflow: hidden;
+        position: relative;
+        box-shadow: inset 0 0 50px rgba(0,0,0,0.8);
+    }
+
+    /* Scanline overlay effect for monitor */
+    .monitor-container::after {
+        content: " ";
+        display: block;
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        right: 0;
+        background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
+        background-size: 100% 4px;
+        z-index: 10;
+        pointer-events: none;
+    }
+
+    .monitor-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 30px;
+        border-bottom: 1px solid #222;
+        background: rgba(0,0,0,0.4);
+        transition: background 0.2s;
     }
     
     .monitor-row:hover {
-        background: rgba(255,255,255,0.02);
-    }
-    
-    /* TYPOGRAPHY FOR MONITOR */
-    .monitor-plate { 
-        font-size: 50px; 
-        font-weight: 700; 
-        color: #00d4ff; 
-        font-family: 'JetBrains Mono', monospace; 
-        text-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
-    }
-    
-    .monitor-status { 
-        font-size: 16px; 
-        color: #FFD700; 
-        font-weight: 600; 
-        background: rgba(255, 215, 0, 0.1);
-        padding: 5px 12px;
-        border-radius: 20px;
-        border: 1px solid rgba(255, 215, 0, 0.3);
-    }
-    
-    .monitor-meta { 
-        text-align: right; 
-    }
-    
-    .monitor-staff { 
-        font-size: 18px; 
-        color: #a0a0a0; 
-        font-weight: 500;
-        text-transform: uppercase; 
-    }
-    
-    .monitor-svc { 
-        color: #50e3c2; 
-        font-family: 'Inter', sans-serif;
-        font-size: 14px; 
-        margin-top: 5px;
-        display: block;
+        background: rgba(0, 212, 255, 0.05);
     }
 
-    /* INPUT FIELDS CLEANUP */
-    div[data-baseweb="input"] > div, div[data-baseweb="select"] > div {
-        background-color: rgba(255,255,255,0.05) !important;
-        color: white !important;
-        border-radius: 10px !important;
-        border: 1px solid rgba(255,255,255,0.1) !important;
-        transition: border 0.3s;
+    .monitor-plate {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 42px;
+        font-weight: 700;
+        color: #fff;
+        text-shadow: 0 0 10px rgba(0, 212, 255, 0.8);
+    }
+
+    .monitor-status {
+        font-family: 'Rajdhani', sans-serif;
+        font-weight: 700;
+        font-size: 18px;
+        color: #FFD700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
     }
     
-    div[data-baseweb="input"] > div:focus-within, div[data-baseweb="select"] > div:focus-within {
+    .monitor-staff {
+        font-family: 'Rajdhani', sans-serif;
+        color: #888;
+        font-size: 18px;
+        text-transform: uppercase;
+    }
+    
+    .monitor-svc {
+        color: #00d4ff;
+        font-size: 14px;
+    }
+
+    /* 9. INPUT FIELDS - COMMAND LINE STYLE */
+    div[data-baseweb="input"] > div, div[data-baseweb="select"] > div {
+        background-color: #0a0a0f !important;
+        border: 1px solid #333 !important;
+        color: #00d4ff !important;
+        border-radius: 0px !important; /* Tech style square inputs */
+        font-family: 'Rajdhani', monospace !important;
+    }
+    
+    div[data-baseweb="input"] > div:focus-within {
         border-color: #00d4ff !important;
-        box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.2);
+        box-shadow: 0 0 15px rgba(0, 212, 255, 0.2);
+    }
+
+    /* 10. SCROLL ANIMATION LOGIC */
+    .scroll-content {
+        position: absolute;
+        width: 100%;
+        animation: scrollUp 40s linear infinite;
+        will-change: transform;
+    }
+    .scroll-content:hover { animation-play-state: paused; }
+    
+    @keyframes scrollUp {
+        0% { transform: translateY(100%); }
+        100% { transform: translateY(-100%); }
     }
     </style>
-    """, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 # --- DATABASE INITIALIZATION FUNCTION ---
 def init_db():
