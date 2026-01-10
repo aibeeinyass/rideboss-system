@@ -32,196 +32,209 @@ except Exception as e:
     st.error(f"Database Connection Error: {e}")
     st.stop()
 
-## --- CSS STYLING (MODERNIZED & SIDEBAR FIXED) ---
+# --- FULL RIDEBOSS ULTRA LUXURY CSS ---
 st.markdown("""
     <style>
-    /* 1. IMPORT MODERN FONT */
+    /* 1. CORE ENGINE & AMBIENT GLOW BUBBLES */
     @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
     
-    /* 2. MAIN APP & GLOBAL THEME */
     .stApp { 
-        background: linear-gradient(135deg, #0a0b10 0%, #151820 100%);
-        color: #e0e6ed; 
+        background-color: #07090d;
+        /* Creating the multi-color glow bubbles from your image */
+        background-image: 
+            radial-gradient(at 15% 15%, rgba(59, 130, 246, 0.18) 0px, transparent 40%),
+            radial-gradient(at 85% 20%, rgba(37, 99, 235, 0.12) 0px, transparent 35%),
+            radial-gradient(at 50% 85%, rgba(29, 78, 216, 0.1) 0px, transparent 45%);
+        color: #e2e8f0; 
         font-family: 'Outfit', sans-serif;
     }
-    
-    /* Smooth fade-in for page elements */
-    .element-container {
-        animation: fadeIn 0.5s ease-out;
-    }
-    @keyframes fadeIn {
-        0% { opacity: 0; transform: translateY(8px); }
-        100% { opacity: 1; transform: translateY(0); }
-    }
 
-    /* 3. SIDEBAR STYLING */
-    /* We style the sidebar section directly */
+    /* 2. SIDEBAR - INDUSTRIAL NAV TILES */
     section[data-testid="stSidebar"] {
-        background: #0e1014; /* Solid dark color to ensure visibility */
-        border-right: 1px solid #252932;
-        box-shadow: 10px 0 20px rgba(0,0,0,0.2);
-    }
-    
-    /* 4. SIDEBAR NAVIGATION PILLS */
-    /* This transforms the boring radio buttons into modern pills */
-    [data-testid="stSidebar"] .stRadio > div {
-        gap: 12px; 
+        background: rgba(13, 16, 23, 0.95) !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(20px);
     }
 
+    /* Hide default radio circle pins */
+    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label > div:first-child {
+        display: none !important;
+    }
+
+    /* Sidebar Menu Tiles */
     [data-testid="stSidebar"] .stRadio label {
-        background-color: rgba(255,255,255,0.02);
-        border: 1px solid rgba(255,255,255,0.05);
-        padding: 12px 15px;
-        border-radius: 8px;
-        transition: all 0.3s ease;
-        color: #94a3b8; 
-        font-weight: 500;
-        cursor: pointer;
-    }
-
-    /* Hover effect */
-    [data-testid="stSidebar"] .stRadio label:hover {
-        background-color: rgba(59, 130, 246, 0.1);
-        color: #60a5fa;
-        border-color: rgba(59, 130, 246, 0.3);
-        transform: translateX(5px);
-    }
-
-    /* Active Selection */
-    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label[data-baseweb="radio"] > div:first-child {
-        background-color: #3b82f6 !important; 
-    }
-
-    /* 5. PREMIUM STATUS CARDS (Glassmorphism) */
-    .status-card { 
-        background: rgba(30, 35, 45, 0.6); 
-        backdrop-filter: blur(12px);
-        padding: 25px; 
-        border-radius: 12px; 
+        background: rgba(255, 255, 255, 0.02);
         border: 1px solid rgba(255, 255, 255, 0.05);
-        border-left: 4px solid #3b82f6; 
-        margin-bottom: 20px; 
-        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        padding: 14px 18px !important;
+        border-radius: 6px;
+        margin-bottom: 10px;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        color: #64748b;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 1.5px;
+        font-weight: 600;
+    }
+
+    [data-testid="stSidebar"] .stRadio label:hover {
+        background: rgba(255, 255, 255, 0.06);
+        color: #ffffff;
+        transform: translateX(8px);
+    }
+
+    /* Active Sidebar Tile */
+    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] [data-checked="true"] {
+        background: linear-gradient(90deg, rgba(59, 130, 246, 0.2) 0%, rgba(30, 41, 59, 0) 100%) !important;
+        border: 1px solid rgba(59, 130, 246, 0.5) !important;
+        border-left: 4px solid #3b82f6 !important;
+        color: #ffffff !important;
+        box-shadow: -10px 0 20px rgba(59, 130, 246, 0.1);
+    }
+
+    /* 3. ULTRA GLASS CARDS & METRICS */
+    .status-card, [data-testid="metric-container"] { 
+        background: rgba(17, 25, 40, 0.6) !important;
+        backdrop-filter: blur(12px) saturate(160%) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 12px !important;
+        padding: 24px !important;
+        margin-bottom: 16px !important;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+        transition: 0.3s ease;
     }
     
     .status-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        background: rgba(30, 35, 45, 0.8);
-        border-left-color: #60a5fa;
-    }
-    
-    /* 6. NOTIFICATION BAR */
-    .notification-bar { 
-        background: linear-gradient(90deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%);
-        border: 1px solid rgba(59, 130, 246, 0.2);
-        padding: 12px 20px; 
-        border-radius: 8px; 
-        color: #60a5fa; 
-        font-size: 0.85em; 
-        font-weight: 700; 
-        text-transform: uppercase; 
-        letter-spacing: 1.2px; 
-        margin-bottom: 30px; 
-        text-align: center;
-        backdrop-filter: blur(5px);
-    }
-    
-    /* 7. MODERN ACTION BUTTONS */
-    .stButton>button { 
-        border-radius: 8px; 
-        font-weight: 600;
-        letter-spacing: 0.5px; 
-        font-size: 0.9em; 
-        text-transform: uppercase; 
-        background: #1f2530; 
-        border: 1px solid #374151; 
-        color: #e2e8f0; 
-        height: 3.2em; 
-        transition: all 0.2s ease; 
-        width: 100%; 
-    }
-    
-    .stButton>button:hover { 
-        border-color: #3b82f6; 
-        color: #fff; 
-        background: #2563eb; 
-        box-shadow: 0 5px 15px rgba(37, 99, 235, 0.3);
-        transform: translateY(-1px);
-    }
-    
-    /* 8. INPUT FIELDS */
-    div[data-baseweb="input"] > div, div[data-baseweb="select"] > div {
-        background-color: #0d1017 !important;
-        color: #e2e8f0 !important;
-        border-radius: 8px !important;
-        border: 1px solid #2d3748 !important;
-    }
-    
-    div[data-baseweb="input"] > div:focus-within, div[data-baseweb="select"] > div:focus-within {
-        border-color: #3b82f6 !important;
-        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+        border-color: rgba(59, 130, 246, 0.4) !important;
+        background: rgba(17, 25, 40, 0.8) !important;
     }
 
-    /* 9. FLIGHT BOARD */
+    /* Title Styling inside Cards */
+    .status-card h2, .status-card h3 {
+        color: #94a3b8 !important;
+        font-size: 0.75rem !important;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        font-weight: 700;
+    }
+
+    .status-card p {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #ffffff;
+        text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    }
+
+    /* 4. THE BLUE NOTIFICATION BAR */
+    .notification-bar { 
+        background: linear-gradient(90deg, #1e40af 0%, #3b82f6 50%, #1e40af 100%);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 12px 30px; 
+        border-radius: 50px; 
+        color: #ffffff; 
+        font-size: 0.85rem; 
+        font-weight: 800; 
+        text-transform: uppercase; 
+        letter-spacing: 2px; 
+        margin-bottom: 40px; 
+        text-align: center;
+        box-shadow: 0 0 30px rgba(59, 130, 246, 0.4);
+        animation: glowPulse 3s infinite ease-in-out;
+    }
+    
+    @keyframes glowPulse {
+        0% { opacity: 0.9; box-shadow: 0 0 20px rgba(59, 130, 246, 0.4); }
+        50% { opacity: 1; box-shadow: 0 0 40px rgba(59, 130, 246, 0.6); }
+        100% { opacity: 0.9; box-shadow: 0 0 20px rgba(59, 130, 246, 0.4); }
+    }
+
+    /* 5. INPUTS & FORM ELEMENTS */
+    div[data-baseweb="input"] > div, div[data-baseweb="select"] > div, textarea {
+        background-color: #0f172a !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        border-radius: 8px !important;
+        color: #ffffff !important;
+        padding: 4px !important;
+    }
+    
+    div[data-baseweb="input"]:focus-within {
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 10px rgba(59, 130, 246, 0.3) !important;
+    }
+
+    /* 6. BUTTONS - THE "RIDEBOSS" ACTION STYLE */
+    .stButton>button { 
+        background: #1e293b;
+        border: 1px solid #334155; 
+        border-radius: 8px; 
+        color: #ffffff; 
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        padding: 0.75rem 1.5rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        width: 100%;
+    }
+
+    .stButton>button:hover { 
+        background: #3b82f6;
+        border-color: #60a5fa;
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+    }
+
+    /* 7. LIVE U-FLOW MONITOR */
     .monitor-container { 
-        background: #050505; 
-        border: 1px solid #333; 
-        border-radius: 12px; 
-        height: 600px; 
-        overflow: hidden; 
-        position: relative; 
-        box-shadow: inset 0 0 60px rgba(0,0,0,0.9);
+        background: #000000; 
+        border: 2px solid #1e293b;
+        border-radius: 20px; 
+        box-shadow: 0 0 50px rgba(0,0,0,0.9);
+        overflow: hidden;
+        height: 650px;
     }
-    
-    .scroll-content { 
-        position: absolute; 
-        width: 100%; 
-        animation: scrollUp 40s linear infinite; 
-    }
-    
-    @keyframes scrollUp { 
-        0% { transform: translateY(100%); } 
-        100% { transform: translateY(-100%); } 
-    }
-    
+
     .monitor-row { 
-        display: flex; 
-        justify-content: space-between; 
-        align-items: center; 
-        padding: 25px 30px; 
-        border-bottom: 1px solid #1a1a1a; 
-        background: rgba(10, 10, 10, 0.5); 
+        background: linear-gradient(90deg, rgba(255,255,255,0.03) 0%, transparent 100%);
+        margin: 12px;
+        padding: 24px;
+        border-radius: 12px;
+        border-left: 2px solid #334155;
     }
-    
+
     .monitor-plate { 
-        font-size: 45px; 
-        font-weight: 700; 
-        color: #e2e8f0; 
-        font-family: 'Outfit', sans-serif; 
-        letter-spacing: -1px;
+        font-size: 42px; 
+        font-weight: 900; 
+        color: #ffffff; 
+        letter-spacing: 3px;
+        text-shadow: 2px 2px 15px rgba(255,255,255,0.2);
     }
-    
+
     .monitor-status { 
-        font-size: 14px; 
-        color: #fbbf24; 
-        background: rgba(251, 191, 36, 0.15);
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-weight: 600; 
-        border: 1px solid rgba(251, 191, 36, 0.2);
+        background: #fbbf24;
+        color: #000;
+        padding: 3px 12px;
+        border-radius: 4px;
+        font-weight: 900;
+        font-size: 0.8rem;
     }
-    
-    .monitor-svc { color: #38bdf8; font-size: 16px; opacity: 0.8; }
-    
-    /* 10. UTILITIES */
-    /* Hiding the footer but NOT the header (so you can see the sidebar toggle) */
-    footer {visibility: hidden;}
+
+    .monitor-svc { 
+        color: #60a5fa; 
+        font-weight: 600; 
+        font-size: 0.9rem;
+        text-transform: uppercase;
+    }
+
+    /* 8. SCROLLBAR & CLEANUP */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #334155; }
+
+    header, footer { visibility: hidden; }
     .stDeployButton { display: none; }
-    
     </style>
     """, unsafe_allow_html=True)
+
 
 
 
