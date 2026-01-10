@@ -32,7 +32,7 @@ except Exception as e:
     st.error(f"Database Connection Error: {e}")
     st.stop()
 
-# --- FULL RIDEBOSS ULTRA LUXURY CSS ---
+# --- FIXED RIDEBOSS ULTRA LUXURY CSS ---
 st.markdown("""
     <style>
     /* 1. CORE ENGINE & AMBIENT GLOW BUBBLES */
@@ -40,7 +40,6 @@ st.markdown("""
     
     .stApp { 
         background-color: #07090d;
-        /* Creating the multi-color glow bubbles from your image */
         background-image: 
             radial-gradient(at 15% 15%, rgba(59, 130, 246, 0.18) 0px, transparent 40%),
             radial-gradient(at 85% 20%, rgba(37, 99, 235, 0.12) 0px, transparent 35%),
@@ -49,19 +48,29 @@ st.markdown("""
         font-family: 'Outfit', sans-serif;
     }
 
-    /* 2. SIDEBAR - INDUSTRIAL NAV TILES */
+    /* 2. HEADER & HAMBURGER FIX */
+    /* Make the header area transparent so the button stays visible but the bar is 'gone' */
+    header[data-testid="stHeader"] {
+        background: transparent !important;
+        color: white !important;
+    }
+    
+    /* Ensure the hamburger icon is bright and visible */
+    header[data-testid="stHeader"] svg {
+        fill: #3b82f6 !important;
+    }
+
+    /* 3. SIDEBAR - INDUSTRIAL NAV TILES */
     section[data-testid="stSidebar"] {
-        background: rgba(13, 16, 23, 0.95) !important;
+        background: rgba(13, 16, 23, 0.98) !important;
         border-right: 1px solid rgba(255, 255, 255, 0.05);
         backdrop-filter: blur(20px);
     }
 
-    /* Hide default radio circle pins */
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label > div:first-child {
         display: none !important;
     }
 
-    /* Sidebar Menu Tiles */
     [data-testid="stSidebar"] .stRadio label {
         background: rgba(255, 255, 255, 0.02);
         border: 1px solid rgba(255, 255, 255, 0.05);
@@ -82,16 +91,14 @@ st.markdown("""
         transform: translateX(8px);
     }
 
-    /* Active Sidebar Tile */
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] [data-checked="true"] {
         background: linear-gradient(90deg, rgba(59, 130, 246, 0.2) 0%, rgba(30, 41, 59, 0) 100%) !important;
         border: 1px solid rgba(59, 130, 246, 0.5) !important;
         border-left: 4px solid #3b82f6 !important;
         color: #ffffff !important;
-        box-shadow: -10px 0 20px rgba(59, 130, 246, 0.1);
     }
 
-    /* 3. ULTRA GLASS CARDS & METRICS */
+    /* 4. ULTRA GLASS CARDS & METRICS */
     .status-card, [data-testid="metric-container"] { 
         background: rgba(17, 25, 40, 0.6) !important;
         backdrop-filter: blur(12px) saturate(160%) !important;
@@ -100,31 +107,9 @@ st.markdown("""
         padding: 24px !important;
         margin-bottom: 16px !important;
         box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
-        transition: 0.3s ease;
-    }
-    
-    .status-card:hover {
-        border-color: rgba(59, 130, 246, 0.4) !important;
-        background: rgba(17, 25, 40, 0.8) !important;
     }
 
-    /* Title Styling inside Cards */
-    .status-card h2, .status-card h3 {
-        color: #94a3b8 !important;
-        font-size: 0.75rem !important;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        font-weight: 700;
-    }
-
-    .status-card p {
-        font-size: 2rem;
-        font-weight: 800;
-        color: #ffffff;
-        text-shadow: 0 2px 10px rgba(0,0,0,0.5);
-    }
-
-    /* 4. THE BLUE NOTIFICATION BAR */
+    /* 5. THE BLUE NOTIFICATION BAR */
     .notification-bar { 
         background: linear-gradient(90deg, #1e40af 0%, #3b82f6 50%, #1e40af 100%);
         border: 1px solid rgba(255, 255, 255, 0.2);
@@ -138,30 +123,17 @@ st.markdown("""
         margin-bottom: 40px; 
         text-align: center;
         box-shadow: 0 0 30px rgba(59, 130, 246, 0.4);
-        animation: glowPulse 3s infinite ease-in-out;
-    }
-    
-    @keyframes glowPulse {
-        0% { opacity: 0.9; box-shadow: 0 0 20px rgba(59, 130, 246, 0.4); }
-        50% { opacity: 1; box-shadow: 0 0 40px rgba(59, 130, 246, 0.6); }
-        100% { opacity: 0.9; box-shadow: 0 0 20px rgba(59, 130, 246, 0.4); }
     }
 
-    /* 5. INPUTS & FORM ELEMENTS */
+    /* 6. INPUTS & FORM ELEMENTS */
     div[data-baseweb="input"] > div, div[data-baseweb="select"] > div, textarea {
         background-color: #0f172a !important;
         border: 1px solid rgba(255,255,255,0.1) !important;
         border-radius: 8px !important;
         color: #ffffff !important;
-        padding: 4px !important;
-    }
-    
-    div[data-baseweb="input"]:focus-within {
-        border-color: #3b82f6 !important;
-        box-shadow: 0 0 10px rgba(59, 130, 246, 0.3) !important;
     }
 
-    /* 6. BUTTONS - THE "RIDEBOSS" ACTION STYLE */
+    /* 7. BUTTONS */
     .stButton>button { 
         background: #1e293b;
         border: 1px solid #334155; 
@@ -169,35 +141,29 @@ st.markdown("""
         color: #ffffff; 
         font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 1px;
-        padding: 0.75rem 1.5rem;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         width: 100%;
+        transition: 0.3s;
     }
 
     .stButton>button:hover { 
         background: #3b82f6;
-        border-color: #60a5fa;
-        transform: translateY(-2px);
         box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
     }
 
-    /* 7. LIVE U-FLOW MONITOR */
+    /* 8. LIVE U-FLOW MONITOR */
     .monitor-container { 
         background: #000000; 
         border: 2px solid #1e293b;
         border-radius: 20px; 
         box-shadow: 0 0 50px rgba(0,0,0,0.9);
-        overflow: hidden;
         height: 650px;
     }
 
     .monitor-row { 
-        background: linear-gradient(90deg, rgba(255,255,255,0.03) 0%, transparent 100%);
+        background: rgba(255,255,255,0.02);
         margin: 12px;
         padding: 24px;
         border-radius: 12px;
-        border-left: 2px solid #334155;
     }
 
     .monitor-plate { 
@@ -205,7 +171,6 @@ st.markdown("""
         font-weight: 900; 
         color: #ffffff; 
         letter-spacing: 3px;
-        text-shadow: 2px 2px 15px rgba(255,255,255,0.2);
     }
 
     .monitor-status { 
@@ -214,26 +179,14 @@ st.markdown("""
         padding: 3px 12px;
         border-radius: 4px;
         font-weight: 900;
-        font-size: 0.8rem;
     }
 
-    .monitor-svc { 
-        color: #60a5fa; 
-        font-weight: 600; 
-        font-size: 0.9rem;
-        text-transform: uppercase;
-    }
-
-    /* 8. SCROLLBAR & CLEANUP */
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
-    ::-webkit-scrollbar-thumb:hover { background: #334155; }
-
-    header, footer { visibility: hidden; }
+    /* Clean up */
+    footer { visibility: hidden; }
     .stDeployButton { display: none; }
     </style>
     """, unsafe_allow_html=True)
+
 
 
 
