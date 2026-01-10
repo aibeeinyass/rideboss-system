@@ -32,75 +32,155 @@ except Exception as e:
     st.error(f"Database Connection Error: {e}")
     st.stop()
 
-# --- CSS STYLING (EXPANDED FOR VISUAL CLARITY) ---
+# --- CSS STYLING (OBSIDIAN AERO REDESIGN) ---
 st.markdown("""
     <style>
-    /* MAIN APP STYLING */
+    /* 1. GLOBAL FONTS & RESET */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Rajdhani:wght@500;700&display=swap');
+    
+    html, body, [class*="css"] {
+        font-family: 'Inter', sans-serif;
+    }
+    
+    /* 2. MAIN BACKGROUND - RADIAL OBSIDIAN */
     .stApp { 
-        background-color: #050505; 
-        color: #E0E0E0; 
-        font-family: 'Inter', sans-serif; 
+        background: radial-gradient(circle at 50% 0%, #1a1a1a 0%, #050505 60%, #000000 100%);
+        color: #e0e0e0; 
     }
     
-    /* SIDEBAR STYLING */
+    /* 3. SIDEBAR - FROSTED GLASS */
     [data-testid="stSidebar"] { 
-        background-color: #0A0A0A; 
-        border-right: 1px solid #222; 
+        background-color: rgba(10, 10, 10, 0.6); 
+        backdrop-filter: blur(20px);
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
     }
     
-    /* STATUS CARD COMPONENT */
+    /* 4. HEADERS & TITLES */
+    h1, h2, h3 {
+        font-family: 'Rajdhani', sans-serif !important;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: #fff !important;
+        text-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+    }
+    
+    /* 5. GLASSMORPHISM CONTAINERS (Cards) */
     .status-card { 
-        background: #0F0F0F; 
+        background: rgba(255, 255, 255, 0.03); 
+        backdrop-filter: blur(12px); 
+        -webkit-backdrop-filter: blur(12px);
         padding: 25px; 
-        border-radius: 2px; 
-        border-left: 4px solid #00d4ff; 
-        margin-bottom: 15px; 
-        border-top: 1px solid #1A1A1A; 
-        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        border-radius: 12px; 
+        border: 1px solid rgba(255, 255, 255, 0.08); 
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+        margin-bottom: 20px; 
+        transition: transform 0.3s ease, border-color 0.3s ease;
     }
     
-    /* NOTIFICATION BAR COMPONENT */
+    .status-card:hover {
+        transform: translateY(-5px);
+        border-color: rgba(0, 212, 255, 0.5);
+        box-shadow: 0 12px 40px 0 rgba(0, 212, 255, 0.1);
+    }
+    
+    /* 6. NOTIFICATION HUD BAR */
     .notification-bar { 
-        background: #00d4ff22; 
-        padding: 12px; 
-        border-bottom: 1px solid #00d4ff; 
+        background: linear-gradient(90deg, rgba(0, 212, 255, 0.1) 0%, rgba(0,0,0,0) 100%);
+        padding: 15px; 
+        border-left: 4px solid #00d4ff; 
         color: #00d4ff; 
-        font-size: 0.85em; 
-        font-weight: 600; 
+        font-family: 'Rajdhani', monospace;
+        font-size: 1em; 
+        font-weight: 700; 
         text-transform: uppercase; 
-        letter-spacing: 2px; 
+        letter-spacing: 3px; 
         margin-bottom: 30px; 
+        animation: fadeIn 1s ease-in;
     }
     
-    /* CUSTOM BUTTON STYLING */
+    /* 7. NEON BUTTONS */
     .stButton>button { 
-        border-radius: 0px; 
+        border-radius: 6px; 
+        font-family: 'Rajdhani', sans-serif;
         letter-spacing: 2px; 
-        font-size: 0.8em; 
+        font-weight: 700;
         text-transform: uppercase; 
-        background-color: transparent; 
-        border: 1px solid #333; 
-        color: white; 
-        height: 3em; 
-        transition: 0.4s; 
+        background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%);
+        border: 1px solid rgba(255, 255, 255, 0.1); 
+        color: #00d4ff; 
+        height: 3.5em; 
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); 
         width: 100%; 
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
     }
     
     .stButton>button:hover { 
         border-color: #00d4ff; 
-        color: #00d4ff; 
-        background-color: #00d4ff11; 
-        cursor: pointer;
+        color: #fff; 
+        background: rgba(0, 212, 255, 0.15); 
+        box-shadow: 0 0 15px rgba(0, 212, 255, 0.4);
+        transform: scale(1.02);
     }
     
-    /* MONITOR / FLIGHT BOARD SCROLLING EFFECTS */
+    .stButton>button:active {
+        transform: scale(0.98);
+    }
+    
+    /* Secondary/Delete Buttons (Red Accent) */
+    button:has(div:contains("DELETE")), button:has(div:contains("Cancel")) {
+        color: #ff4b2b !important;
+        border-color: rgba(255, 75, 43, 0.3) !important;
+    }
+    button:has(div:contains("DELETE")):hover {
+        background: rgba(255, 75, 43, 0.15) !important;
+        box-shadow: 0 0 15px rgba(255, 75, 43, 0.4) !important;
+    }
+
+    /* 8. INPUT FIELDS & SELECTBOXES */
+    div[data-baseweb="input"] {
+        background-color: rgba(0, 0, 0, 0.3) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 6px !important;
+    }
+    div[data-baseweb="select"] > div {
+        background-color: rgba(0, 0, 0, 0.3) !important;
+        border-color: rgba(255, 255, 255, 0.1) !important;
+    }
+    div[data-baseweb="base-input"] input {
+        color: white !important;
+    }
+    
+    /* 9. METRICS DASHBOARD STYLE */
+    [data-testid="stMetric"] {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        padding: 15px;
+        border-radius: 8px;
+        text-align: center;
+        box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+    }
+    [data-testid="stMetricLabel"] {
+        color: #888;
+        font-size: 0.8em;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    [data-testid="stMetricValue"] {
+        color: #fff;
+        font-family: 'Rajdhani', sans-serif;
+        font-weight: 700;
+        text-shadow: 0 0 10px rgba(255,255,255,0.3);
+    }
+
+    /* 10. FLIGHT BOARD / MONITOR CLASSES */
     .monitor-container { 
         background: #000; 
-        border: 2px solid #222; 
-        border-radius: 10px; 
+        border: 1px solid #333; 
+        border-radius: 12px; 
         height: 700px; 
         overflow: hidden; 
         position: relative; 
+        box-shadow: 0 0 50px rgba(0, 212, 255, 0.1);
     }
     
     .scroll-content { 
@@ -115,61 +195,70 @@ st.markdown("""
         100% { transform: translateY(-100%); } 
     }
     
-    .scroll-content:hover { 
-        animation-play-state: paused; 
-    }
+    .scroll-content:hover { animation-play-state: paused; }
     
     .monitor-row { 
         display: flex; 
         justify-content: space-between; 
         align-items: center; 
         padding: 30px; 
-        border-bottom: 2px solid #222; 
-        background: #050505; 
+        border-bottom: 1px solid rgba(255,255,255,0.1); 
+        background: rgba(0,0,0,0.8);
+        backdrop-filter: blur(5px);
     }
     
     .monitor-plate { 
         font-size: 55px; 
         font-weight: 900; 
         color: #00d4ff; 
-        font-family: 'Courier New', monospace; 
+        font-family: 'Rajdhani', sans-serif; 
+        text-shadow: 0 0 15px rgba(0, 212, 255, 0.6);
     }
     
     .monitor-status { 
-        font-size: 18px; 
-        color: #FFD700; 
+        font-size: 20px; 
+        color: #ff4b2b; 
         font-weight: bold; 
-    }
-    
-    .monitor-meta { 
-        text-align: right; 
+        text-transform: uppercase;
+        letter-spacing: 2px;
     }
     
     .monitor-staff { 
-        font-size: 20px; 
-        color: #888; 
+        font-size: 18px; 
+        color: #aaa; 
         text-transform: uppercase; 
+        font-family: 'Inter', sans-serif;
     }
     
     .monitor-svc { 
         color: #00d4ff; 
         font-style: italic; 
-        font-size: 16px; 
+        font-size: 18px; 
+        opacity: 0.8;
     }
-
-    /* INPUT FIELD STYLING */
-    div[data-baseweb="input"] > div {
-        background-color: #111;
-        color: white;
-        border-radius: 0px;
-        border: 1px solid #333;
+    
+    /* 11. TABLES & DATAFRAMES */
+    [data-testid="stDataFrame"] {
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 8px;
+        overflow: hidden;
     }
-    div[data-baseweb="select"] > div {
-        background-color: #111;
-        color: white;
+    
+    /* 12. ANIMATIONS */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
     }
+    .stTabs, .stVerticalBlock, .element-container {
+        animation: fadeIn 0.5s ease-out;
+    }
+    
+    /* HIDE STREAMLIT BRANDING */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
     </style>
     """, unsafe_allow_html=True)
+
 
 # --- DATABASE INITIALIZATION FUNCTION ---
 def init_db():
