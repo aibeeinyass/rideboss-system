@@ -32,144 +32,151 @@ except Exception as e:
     st.error(f"Database Connection Error: {e}")
     st.stop()
 
-# --- CSS STYLING (THEME: EXECUTIVE BUSINESS DASHBOARD) ---
+# --- CSS STYLING (THEME: MIDNIGHT OBSIDIAN EXECUTIVE) ---
 st.markdown("""
     <style>
-    /* 1. IMPORTS & GLOBAL CLEANUP */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono&display=swap');
+    /* 1. GLOBAL RESET & PREMIUM FONTS */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
     
-    /* Remove default Streamlit padding that makes it look cramped */
     .block-container {
-        padding-top: 2rem !important;
-        padding-bottom: 2rem !important;
-        max-width: 95% !important;
+        padding: 3rem 5rem !important;
+        max-width: 98% !important;
     }
 
-    /* 2. MAIN APP BACKGROUND - MATTE DEEP NAVY */
+    /* 2. MAIN APP - THE DEEP DARK */
     .stApp { 
-        background: radial-gradient(circle at 20% 10%, #16213e 0%, #0f172a 100%);
-        color: #e2e8f0; 
+        background-color: #05070a; /* Pure Obsidian */
+        color: #ccd6f6; 
         font-family: 'Inter', sans-serif; 
     }
     
-    /* 3. PROFESSIONAL SIDEBAR - HIGH CONTRAST & SPACING */
+    /* 3. SIDEBAR - BOXED NAVIGATION SYSTEM */
     section[data-testid="stSidebar"] {
-        background-color: #020617 !important;
-        border-right: 1px solid rgba(255, 255, 255, 0.05);
-        width: 320px !important; /* Fixed width for better legibility */
-    }
-    
-    /* Sidebar Navigation Labels */
-    section[data-testid="stSidebar"] .st-emotion-cache-1647it7 {
-        font-size: 1rem;
-        font-weight: 500;
-        margin-bottom: 0.5rem;
+        background-color: #020305 !important;
+        border-right: 1px solid #1a1e23;
+        width: 340px !important;
     }
 
-    /* 4. EXECUTIVE INPUT FIELDS (WIDE & CLEAR) */
-    div[data-baseweb="input"], div[data-baseweb="select"] {
-        margin-bottom: 15px !important;
-    }
-    
-    div[data-baseweb="input"] > div, div[data-baseweb="select"] > div {
-        background-color: #1e293b !important;
-        border: 1px solid #334155 !important;
-        border-radius: 8px !important;
-        color: white !important;
-        height: 48px !important; /* Comfortable height for clicking */
+    /* Style for the container of navigation items */
+    [data-testid="stSidebarNav"] ul {
+        padding: 10px !important;
     }
 
-    /* 5. THE "AUTHORIZE" BUTTON - PROMINENT & CALM */
-    .stButton>button { 
+    /* BOXING EVERY OPTION IN THE SIDEBAR */
+    [data-testid="stSidebarNav"] li {
+        background: #0d1117;
+        border: 1px solid #1f2937;
         border-radius: 8px;
-        font-weight: 600;
-        letter-spacing: 0.5px;
-        background: linear-gradient(90deg, #00d4ff 0%, #0077b6 100%);
-        border: none;
-        color: white; 
-        padding: 1rem 2rem;
-        height: 55px !important;
-        font-size: 1.1rem !important;
-        width: 100%; 
-        box-shadow: 0 4px 12px rgba(0, 212, 255, 0.2);
+        margin-bottom: 8px !important;
         transition: all 0.3s ease;
-        margin-top: 10px;
+        padding: 4px;
+    }
+
+    [data-testid="stSidebarNav"] li:hover {
+        background: #161b22;
+        border-color: #00d4ff;
+        transform: translateX(5px);
+    }
+
+    /* Active state for sidebar boxes */
+    [data-testid="stSidebarNav"] li [aria-current="page"] {
+        background: rgba(0, 212, 255, 0.1) !important;
+        color: #00d4ff !important;
+        font-weight: 700;
+    }
+
+    /* 4. INPUT FIELDS - DARK DEPTH */
+    div[data-baseweb="input"] > div, div[data-baseweb="select"] > div {
+        background-color: #0d1117 !important;
+        border: 1px solid #30363d !important;
+        border-radius: 6px !important;
+        color: #ffffff !important;
+        height: 52px !important;
+        font-size: 1rem !important;
+    }
+    
+    div[data-baseweb="input"] > div:focus-within {
+        border-color: #00d4ff !important;
+        box-shadow: 0 0 0 1px #00d4ff !important;
+    }
+
+    /* 5. THE AUTHORIZE BUTTON - SHARP & SERIOUS */
+    .stButton>button { 
+        border-radius: 6px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        background: #00d4ff;
+        border: none;
+        color: #000; 
+        height: 58px !important;
+        width: 100%; 
+        box-shadow: 0 4px 20px rgba(0, 212, 255, 0.15);
+        margin-top: 20px;
     }
     
     .stButton>button:hover { 
-        transform: translateY(-1px);
-        box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4);
+        background: #00b8e6;
+        box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+        color: #000;
     }
 
-    /* 6. STATUS CARDS - CLEAN GLASS WITH PADDING */
+    /* 6. STATUS CARDS - ARCHITECTURAL BOXES */
     .status-card { 
-        background: rgba(30, 41, 59, 0.7);
-        backdrop-filter: blur(10px);
+        background: #0d1117;
         padding: 30px; 
-        border-radius: 12px; 
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-left: 6px solid #00d4ff; 
+        border-radius: 10px; 
+        border: 1px solid #30363d;
+        border-top: 4px solid #00d4ff; /* Accent on top for business feel */
         margin-bottom: 25px; 
-        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
     }
     
-    /* 7. MONITOR BOARD (The Scrolling Data) */
+    /* 7. MONITOR BOARD - THE BLACK BOX */
     .monitor-container { 
-        background: #020617; 
-        border-radius: 12px; 
-        border: 1px solid #1e293b;
-        height: 750px; 
-        overflow: hidden; 
-        position: relative; 
+        background: #010409; 
+        border-radius: 8px; 
+        border: 1px solid #30363d;
+        height: 800px; 
     }
     
     .monitor-row { 
-        display: flex; 
-        justify-content: space-between; 
-        align-items: center; 
-        padding: 25px 40px; 
-        border-bottom: 1px solid #0f172a; 
+        padding: 30px 45px; 
+        border-bottom: 1px solid #161b22; 
+        background: transparent;
     }
     
     .monitor-plate { 
-        font-size: 38px; 
+        font-size: 42px; 
         font-weight: 700; 
-        color: #f8fafc; 
+        color: #f0f6fc; 
         font-family: 'JetBrains Mono', monospace; 
+        letter-spacing: -2px;
     }
     
     .monitor-status { 
-        font-size: 0.9rem; 
+        font-size: 0.85rem; 
         color: #00d4ff; 
-        font-weight: 700; 
-        background: rgba(0, 212, 255, 0.1);
-        padding: 8px 18px;
-        border-radius: 20px;
-        text-transform: uppercase;
+        border: 1px solid #00d4ff;
+        padding: 5px 15px;
+        border-radius: 4px;
+        font-weight: 600;
     }
 
-    /* 8. TYPOGRAPHY UPDATES */
+    /* 8. TYPOGRAPHY - MATURE & READABLE */
     h1, h2, h3 {
-        color: #ffffff !important;
-        font-weight: 700 !important;
-        margin-bottom: 1.5rem !important;
+        color: #f0f6fc !important;
+        font-weight: 600 !important;
     }
     
-    label { /* Field Labels */
-        color: #94a3b8 !important;
-        font-weight: 500 !important;
-        font-size: 0.85rem !important;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
+    label { 
+        color: #8b949e !important;
+        font-weight: 600 !important;
+        font-size: 0.8rem !important;
+        margin-bottom: 8px !important;
     }
 
     /* SCROLL ANIMATION */
-    .scroll-content { 
-        position: absolute; 
-        width: 100%; 
-        animation: scrollUp 50s linear infinite; 
-    }
-    .scroll-content:hover { animation-play-state: paused; }
+    .scroll-content { animation: scrollUp 60s linear infinite; }
     @keyframes scrollUp { 
         0% { transform: translateY(100%); } 
         100% { transform: translateY(-100%); } 
