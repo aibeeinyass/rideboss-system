@@ -32,7 +32,7 @@ except Exception as e:
     st.error(f"Database Connection Error: {e}")
     st.stop()
 
-# --- THE ULTIMATE RIDEBOSS ULTRA CSS (SIDEBAR RESTORED) ---
+# --- THE ULTIMATE RIDEBOSS ULTRA CSS ---
 st.markdown("""
     <style>
     /* 1. GLOBAL FONT & BACKGROUND ORBS */
@@ -40,6 +40,7 @@ st.markdown("""
     
     .stApp { 
         background-color: #05070a;
+        /* Recreating the teal glow (left) and purple glow (right) from your image */
         background-image: 
             radial-gradient(at 0% 50%, rgba(0, 255, 255, 0.1) 0px, transparent 40%),
             radial-gradient(at 100% 50%, rgba(147, 51, 234, 0.1) 0px, transparent 40%);
@@ -47,28 +48,10 @@ st.markdown("""
         font-family: 'Outfit', sans-serif;
     }
 
-    /* 2. HEADER & SIDEBAR BUTTON FIX */
-    /* Instead of hiding the header, we make it transparent so the button works */
-    header[data-testid="stHeader"] {
-        background: transparent !important;
-        visibility: visible !important;
-    }
-
-    /* Make the hamburger icon neon blue to match your theme */
-    header[data-testid="stHeader"] svg {
-        fill: #00d4ff !important;
-    }
-
-    /* 3. SIDEBAR NAVIGATION - IMAGE ACCURATE */
+    /* 2. SIDEBAR NAVIGATION - IMAGE ACCURATE */
     section[data-testid="stSidebar"] {
         background: rgba(10, 12, 16, 0.95) !important;
         border-right: 1px solid rgba(255, 255, 255, 0.05);
-        visibility: visible !important;
-    }
-
-    /* Hide default radio circle pins */
-    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label > div:first-child {
-        display: none !important;
     }
 
     [data-testid="stSidebar"] .stRadio label {
@@ -92,11 +75,11 @@ st.markdown("""
         box-shadow: 0 0 15px rgba(0, 212, 255, 0.4);
     }
 
-    /* 4. GLASS CARDS - MULTI-LAYERED */
+    /* 3. GLASS CARDS - MULTI-LAYERED */
     .status-card { 
         background: rgba(15, 18, 25, 0.8);
         border: 1px solid rgba(255, 255, 255, 0.08);
-        border-top: 1px solid rgba(255, 255, 255, 0.15); 
+        border-top: 1px solid rgba(255, 255, 255, 0.15); /* Light catch on top */
         border-radius: 12px;
         padding: 20px;
         height: 140px;
@@ -119,7 +102,7 @@ st.markdown("""
         color: #ffffff;
     }
 
-    /* 5. THE NEON TOP NOTIFIER */
+    /* 4. THE NEON TOP NOTIFIER */
     .notification-bar { 
         background: rgba(0, 212, 255, 0.1);
         border: 1px solid #00d4ff;
@@ -133,7 +116,7 @@ st.markdown("""
         box-shadow: 0 0 15px rgba(0, 212, 255, 0.2);
     }
 
-    /* 6. LIVE MONITOR - DARK PANEL */
+    /* 5. LIVE MONITOR - DARK PANEL */
     .monitor-container {
         background: #090b0f;
         border: 1px solid #1f2937;
@@ -164,11 +147,11 @@ st.markdown("""
         box-shadow: 0 0 8px #fbbf24;
     }
 
-    /* Remove deploy button and footer but keep sidebar toggle */
+    /* Clean up headers and hidden elements */
     .stDeployButton { display: none; }
-    footer { visibility: hidden; }
     </style>
     """, unsafe_allow_html=True)
+
 
 
 
