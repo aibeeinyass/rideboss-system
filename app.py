@@ -37,13 +37,22 @@ st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;500&display=swap');
 
-    /* --- MAIN CONTAINER & BACKGROUND --- */
+    /* --- 1. GLOBAL & WIDGET VISIBILITY FIXES --- */
     .stApp { 
-        background-color: #121212; /* Deep Matte Charcoal */
+        background-color: #121212; 
         color: #e0e0e0;
         font-family: 'Roboto', sans-serif;
     }
-    
+
+    /* Force all form elements and tab content to be visible */
+    .stSelectbox, .stNumberInput, .stTextInput, .stTextArea, .stTabs [data-baseweb="tab-panel"] {
+        opacity: 1 !important;
+        visibility: visible !important;
+        color: white !important;
+        display: block !important;
+    }
+
+    /* --- 2. HEADERS --- */
     h1, h2, h3 {
         font-family: 'Rajdhani', sans-serif;
         text-transform: uppercase;
@@ -51,20 +60,12 @@ st.markdown("""
         color: #ffffff;
     }
 
-    /* --- SIDEBAR & NAVIGATION --- */
+    /* --- 3. SIDEBAR --- */
     [data-testid="stSidebar"] { 
         background-color: #0a0a0a; 
         border-right: 1px solid #333;
     }
     
-    [data-testid="stSidebarNav"] {
-        padding-top: 20px;
-    }
-
-    /* Target the radio buttons in sidebar to look like menu items */
-    .stRadio > div {
-        background: transparent;
-    }
     .stRadio label {
         background: #161616;
         padding: 10px 15px;
@@ -73,33 +74,27 @@ st.markdown("""
         border-left: 3px solid #333;
         transition: all 0.2s ease;
         cursor: pointer;
+        color: white !important;
     }
     .stRadio label:hover {
         background: #222;
-        border-left: 3px solid #D4AF37; /* Gold Hover */
+        border-left: 3px solid #D4AF37;
         padding-left: 20px;
     }
 
-    /* --- CARDS & CONTAINERS (The "Mature" Shape) --- */
+    /* --- 4. CARDS & CONTAINERS --- */
     .status-card { 
         background: linear-gradient(145deg, #1a1a1a, #222);
         padding: 25px; 
-        /* Asymmetric corners: Top-Left and Bottom-Right are cut */
         border-radius: 12px 0 12px 0; 
         border: 1px solid #333;
         margin-bottom: 20px; 
         box-shadow: 5px 5px 15px rgba(0,0,0,0.3);
-        transition: transform 0.2s;
-    }
-    .status-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(0,0,0,0.5);
-        border-color: #555;
     }
 
-    /* --- NOTIFICATION BAR --- */
+    /* --- 5. NOTIFICATION BAR --- */
     .notification-bar { 
-        background: #D4AF37; /* Professional Gold/Amber */
+        background: #D4AF37; 
         color: #000;
         padding: 10px 20px; 
         font-family: 'Rajdhani', sans-serif;
@@ -107,94 +102,79 @@ st.markdown("""
         text-transform: uppercase; 
         letter-spacing: 2px; 
         margin-bottom: 30px; 
-        clip-path: polygon(0 0, 100% 0, 99% 100%, 1% 100%); /* Slight taper */
+        clip-path: polygon(0 0, 100% 0, 98% 100%, 2% 100%);
     }
 
-    /* --- BUTTON STYLING (Technical & Tactile) --- */
+    /* --- 6. BUTTONS --- */
     .stButton>button { 
         font-family: 'Rajdhani', sans-serif;
         font-weight: 700;
-        letter-spacing: 1.5px;
         text-transform: uppercase; 
         background-color: #1e1e1e; 
         color: #ccc; 
         border: 1px solid #444; 
-        /* Cut corners on opposite sides */
         border-radius: 6px 0 6px 0; 
-        height: 3.2em; 
         transition: all 0.3s ease; 
         width: 100%; 
-        box-shadow: 0 4px 0 #000; /* Physical button depth */
-        margin-top: 5px;
+        box-shadow: 0 4px 0 #000;
     }
     
     .stButton>button:hover { 
-        background-color: #D4AF37; /* Gold Accent */
+        background-color: #D4AF37; 
         color: #000;
         border-color: #D4AF37;
-        transform: translateY(-2px);
-        box-shadow: 0 6px 0 #000;
-    }
-    
-    .stButton>button:active {
-        transform: translateY(2px);
-        box-shadow: 0 2px 0 #000;
     }
 
-    /* Primary buttons (like 'Submit') get a different look if needed, 
-       but Streamlit renders them similarly. We rely on the hover for pop. */
+    /* --- 7. INPUT FIELDS (CRITICAL FIX) --- */
+    /* This ensures that even inside tabs, the input boxes are high-contrast */
+    div[data-baseweb="input"], div[data-baseweb="select"], div[data-baseweb="base-input"] {
+        background-color: #1a1a1a !important;
+        border: 1px solid #444 !important;
+    }
 
-    /* --- INPUT FIELDS --- */
-    div[data-baseweb="input"] > div, div[data-baseweb="select"] > div, div[data-baseweb="base-input"] {
-        background-color: #0f0f0f !important;
+    input {
         color: white !important;
-        border: 1px solid #333 !important;
-        border-radius: 2px !important;
-    }
-    div[data-baseweb="input"] > div:focus-within {
-        border-color: #D4AF37 !important;
+        -webkit-text-fill-color: white !important; /* For some browsers */
     }
 
-    /* --- MONITOR / FLIGHT BOARD --- */
+    /* --- 8. MONITOR BOARD --- */
     .monitor-container { 
         background: #000; 
         border: 4px solid #333; 
-        border-radius: 4px; 
         height: 700px; 
         overflow: hidden; 
-        position: relative; 
     }
     .monitor-row { 
         display: flex; 
         justify-content: space-between; 
-        align-items: center; 
         padding: 30px; 
         border-bottom: 1px solid #222; 
         background: #080808; 
     }
     .monitor-plate { 
         font-size: 55px; 
-        font-weight: 700; 
         color: #fff; 
         font-family: 'Rajdhani', sans-serif; 
-        text-shadow: 0 0 10px rgba(255,255,255,0.2);
-    }
-    .monitor-status { 
-        font-size: 18px; 
-        color: #D4AF37; 
-        font-weight: bold; 
-        font-family: 'Roboto', sans-serif;
-    }
-    
-    /* --- METRICS & DATA --- */
-    [data-testid="stMetricValue"] {
-        font-family: 'Rajdhani', sans-serif;
-        color: #D4AF37;
     }
 
+    /* --- 9. TAB FIX --- */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 10px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        background-color: #1a1a1a !important;
+        border: 1px solid #333 !important;
+        color: #888 !important;
+    }
+    .stTabs [aria-selected="true"] {
+        border-color: #D4AF37 !important;
+        color: #D4AF37 !important;
+    }
+
+    /* HIDE FOOTER */
+    footer {visibility: hidden;}
     </style>
     """, unsafe_allow_html=True)
-
 
 
 # --- DATABASE INITIALIZATION FUNCTION ---
