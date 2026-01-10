@@ -32,157 +32,205 @@ except Exception as e:
     st.error(f"Database Connection Error: {e}")
     st.stop()
 
-# --- CSS STYLING (THEME: MIDNIGHT OBSIDIAN EXECUTIVE) ---
+# --- CSS STYLING (MODERNIZED & SIDEBAR FIXED) ---
 st.markdown("""
     <style>
-    /* 1. GLOBAL RESET & PREMIUM FONTS */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
+    /* 1. IMPORT MODERN FONT */
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
     
-    .block-container {
-        padding: 3rem 5rem !important;
-        max-width: 98% !important;
-    }
-
-    /* 2. MAIN APP - THE DEEP DARK */
+    /* 2. MAIN APP & GLOBAL THEME */
     .stApp { 
-        background-color: #05070a; /* Pure Obsidian */
-        color: #ccd6f6; 
-        font-family: 'Inter', sans-serif; 
+        background: linear-gradient(135deg, #0a0b10 0%, #151820 100%);
+        color: #e0e6ed; 
+        font-family: 'Outfit', sans-serif;
     }
     
-    /* 3. SIDEBAR - BOXED NAVIGATION SYSTEM */
+    /* Smooth fade-in for page elements */
+    .element-container {
+        animation: fadeIn 0.5s ease-out;
+    }
+    @keyframes fadeIn {
+        0% { opacity: 0; transform: translateY(8px); }
+        100% { opacity: 1; transform: translateY(0); }
+    }
+
+    /* 3. SIDEBAR OVERHAUL (Targeting specific Streamlit classes) */
     section[data-testid="stSidebar"] {
-        background-color: #020305 !important;
-        border-right: 1px solid #1a1e23;
-        width: 340px !important;
+        background: linear-gradient(180deg, #111318 0%, #0e1014 100%);
+        border-right: 1px solid #252932;
+        box-shadow: 10px 0 20px rgba(0,0,0,0.2);
     }
 
-    /* Style for the container of navigation items */
-    [data-testid="stSidebarNav"] ul {
-        padding: 10px !important;
+    /* Target the container inside the sidebar to add breathing room */
+    section[data-testid="stSidebar"] > div > div {
+        padding-top: 2rem;
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
     }
 
-    /* BOXING EVERY OPTION IN THE SIDEBAR */
-    [data-testid="stSidebarNav"] li {
-        background: #0d1117;
-        border: 1px solid #1f2937;
-        border-radius: 8px;
-        margin-bottom: 8px !important;
+    /* Transform Sidebar Navigation (Radio Buttons) into Menu Pills */
+    [data-testid="stSidebar"] .stRadio > div {
+        gap: 10px; /* Space between items */
+    }
+
+    [data-testid="stSidebar"] .stRadio label {
+        background-color: transparent;
+        border: 1px solid transparent;
+        padding: 12px 15px;
+        border-radius: 10px;
         transition: all 0.3s ease;
-        padding: 4px;
+        color: #8b9bb4; /* Muted text color */
+        font-weight: 500;
+        cursor: pointer;
     }
 
-    [data-testid="stSidebarNav"] li:hover {
-        background: #161b22;
-        border-color: #00d4ff;
-        transform: translateX(5px);
+    /* Hover effect for sidebar items */
+    [data-testid="stSidebar"] .stRadio label:hover {
+        background-color: rgba(255, 255, 255, 0.03);
+        color: #ffffff;
+        border-color: rgba(255, 255, 255, 0.1);
+        transform: translateX(5px); /* Slide right slightly */
     }
 
-    /* Active state for sidebar boxes */
-    [data-testid="stSidebarNav"] li [aria-current="page"] {
-        background: rgba(0, 212, 255, 0.1) !important;
-        color: #00d4ff !important;
-        font-weight: 700;
+    /* Active/Selected sidebar item styling */
+    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label[data-baseweb="radio"] > div:first-child {
+        background-color: #3b82f6 !important; /* Blue dot/indicator override */
     }
 
-    /* 4. INPUT FIELDS - DARK DEPTH */
-    div[data-baseweb="input"] > div, div[data-baseweb="select"] > div {
-        background-color: #0d1117 !important;
-        border: 1px solid #30363d !important;
-        border-radius: 6px !important;
-        color: #ffffff !important;
-        height: 52px !important;
-        font-size: 1rem !important;
+    /* Hide the annoying 'Deploy' button top right if viewed locally */
+    .stDeployButton { display: none; }
+
+    /* 4. PREMIUM CARD COMPONENT (Glassmorphism) */
+    .status-card { 
+        background: rgba(23, 27, 36, 0.6); 
+        backdrop-filter: blur(12px);
+        padding: 25px; 
+        border-radius: 16px; 
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-left: 4px solid #3b82f6; 
+        margin-bottom: 20px; 
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     
-    div[data-baseweb="input"] > div:focus-within {
-        border-color: #00d4ff !important;
-        box-shadow: 0 0 0 1px #00d4ff !important;
+    .status-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+        background: rgba(23, 27, 36, 0.8); 
     }
-
-    /* 5. THE AUTHORIZE BUTTON - SHARP & SERIOUS */
+    
+    /* 5. NOTIFICATION BAR (Pill Style) */
+    .notification-bar { 
+        background: rgba(59, 130, 246, 0.1);
+        border: 1px solid rgba(59, 130, 246, 0.2);
+        padding: 12px 20px; 
+        border-radius: 50px; /* Full pill shape */
+        color: #60a5fa; 
+        font-size: 0.8em; 
+        font-weight: 700; 
+        text-transform: uppercase; 
+        letter-spacing: 1.5px; 
+        margin-bottom: 30px; 
+        text-align: center;
+        display: inline-block; /* fit to content */
+        width: 100%;
+        backdrop-filter: blur(5px);
+    }
+    
+    /* 6. MODERN ACTION BUTTONS */
     .stButton>button { 
-        border-radius: 6px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        background: #00d4ff;
-        border: none;
-        color: #000; 
-        height: 58px !important;
+        border-radius: 8px; 
+        font-weight: 600;
+        letter-spacing: 0.5px; 
+        font-size: 0.9em; 
+        text-transform: uppercase; 
+        background: #1f2530; 
+        border: 1px solid #374151; 
+        color: #e2e8f0; 
+        height: 3em; 
+        transition: all 0.2s ease; 
         width: 100%; 
-        box-shadow: 0 4px 20px rgba(0, 212, 255, 0.15);
-        margin-top: 20px;
     }
     
     .stButton>button:hover { 
-        background: #00b8e6;
-        box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
-        color: #000;
-    }
-
-    /* 6. STATUS CARDS - ARCHITECTURAL BOXES */
-    .status-card { 
-        background: #0d1117;
-        padding: 30px; 
-        border-radius: 10px; 
-        border: 1px solid #30363d;
-        border-top: 4px solid #00d4ff; /* Accent on top for business feel */
-        margin-bottom: 25px; 
+        border-color: #3b82f6; 
+        color: #fff; 
+        background: #2563eb; 
+        box-shadow: 0 5px 15px rgba(37, 99, 235, 0.3);
     }
     
-    /* 7. MONITOR BOARD - THE BLACK BOX */
+    /* 7. INPUT FIELDS (Global & Sidebar) */
+    /* Target inputs everywhere to ensure sidebar inputs match */
+    div[data-baseweb="input"] > div, div[data-baseweb="select"] > div {
+        background-color: #0d1017 !important;
+        color: #e2e8f0 !important;
+        border-radius: 8px !important;
+        border: 1px solid #2d3748 !important;
+    }
+    
+    div[data-baseweb="input"] > div:focus-within, div[data-baseweb="select"] > div:focus-within {
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+    }
+
+    /* 8. FLIGHT BOARD */
     .monitor-container { 
-        background: #010409; 
-        border-radius: 8px; 
-        border: 1px solid #30363d;
-        height: 800px; 
+        background: #050505; 
+        border: 1px solid #333; 
+        border-radius: 12px; 
+        height: 600px; 
+        overflow: hidden; 
+        position: relative; 
+        box-shadow: inset 0 0 80px rgba(0,0,0,0.8);
     }
     
-    .monitor-row { 
-        padding: 30px 45px; 
-        border-bottom: 1px solid #161b22; 
-        background: transparent;
+    .scroll-content { 
+        position: absolute; 
+        width: 100%; 
+        animation: scrollUp 40s linear infinite; 
     }
     
-    .monitor-plate { 
-        font-size: 42px; 
-        font-weight: 700; 
-        color: #f0f6fc; 
-        font-family: 'JetBrains Mono', monospace; 
-        letter-spacing: -2px;
-    }
-    
-    .monitor-status { 
-        font-size: 0.85rem; 
-        color: #00d4ff; 
-        border: 1px solid #00d4ff;
-        padding: 5px 15px;
-        border-radius: 4px;
-        font-weight: 600;
-    }
-
-    /* 8. TYPOGRAPHY - MATURE & READABLE */
-    h1, h2, h3 {
-        color: #f0f6fc !important;
-        font-weight: 600 !important;
-    }
-    
-    label { 
-        color: #8b949e !important;
-        font-weight: 600 !important;
-        font-size: 0.8rem !important;
-        margin-bottom: 8px !important;
-    }
-
-    /* SCROLL ANIMATION */
-    .scroll-content { animation: scrollUp 60s linear infinite; }
     @keyframes scrollUp { 
         0% { transform: translateY(100%); } 
         100% { transform: translateY(-100%); } 
     }
+    
+    .monitor-row { 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        padding: 25px 30px; 
+        border-bottom: 1px solid #1a1a1a; 
+        background: rgba(10, 10, 10, 0.5); 
+    }
+    
+    .monitor-plate { 
+        font-size: 45px; 
+        font-weight: 700; 
+        color: #e2e8f0; 
+        font-family: 'Outfit', sans-serif; 
+        letter-spacing: -1px;
+    }
+    
+    .monitor-status { 
+        font-size: 14px; 
+        color: #fbbf24; 
+        background: rgba(251, 191, 36, 0.15);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-weight: 600; 
+        border: 1px solid rgba(251, 191, 36, 0.2);
+    }
+    
+    .monitor-svc { color: #38bdf8; font-size: 16px; opacity: 0.8; }
+    
+    /* Hide Header/Footer */
+    header {visibility: hidden;}
+    footer {visibility: hidden;}
+    
     </style>
     """, unsafe_allow_html=True)
+
 
 # --- DATABASE INITIALIZATION FUNCTION ---
 def init_db():
