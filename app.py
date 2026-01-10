@@ -32,7 +32,7 @@ except Exception as e:
     st.error(f"Database Connection Error: {e}")
     st.stop()
 
-# --- CSS STYLING (MODERNIZED & SIDEBAR FIXED) ---
+## --- CSS STYLING (MODERNIZED & SIDEBAR FIXED) ---
 st.markdown("""
     <style>
     /* 1. IMPORT MODERN FONT */
@@ -54,90 +54,81 @@ st.markdown("""
         100% { opacity: 1; transform: translateY(0); }
     }
 
-    /* 3. SIDEBAR OVERHAUL (Targeting specific Streamlit classes) */
+    /* 3. SIDEBAR STYLING */
+    /* We style the sidebar section directly */
     section[data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #111318 0%, #0e1014 100%);
+        background: #0e1014; /* Solid dark color to ensure visibility */
         border-right: 1px solid #252932;
         box-shadow: 10px 0 20px rgba(0,0,0,0.2);
     }
-
-    /* Target the container inside the sidebar to add breathing room */
-    section[data-testid="stSidebar"] > div > div {
-        padding-top: 2rem;
-        padding-left: 1.5rem;
-        padding-right: 1.5rem;
-    }
-
-    /* Transform Sidebar Navigation (Radio Buttons) into Menu Pills */
+    
+    /* 4. SIDEBAR NAVIGATION PILLS */
+    /* This transforms the boring radio buttons into modern pills */
     [data-testid="stSidebar"] .stRadio > div {
-        gap: 10px; /* Space between items */
+        gap: 12px; 
     }
 
     [data-testid="stSidebar"] .stRadio label {
-        background-color: transparent;
-        border: 1px solid transparent;
+        background-color: rgba(255,255,255,0.02);
+        border: 1px solid rgba(255,255,255,0.05);
         padding: 12px 15px;
-        border-radius: 10px;
+        border-radius: 8px;
         transition: all 0.3s ease;
-        color: #8b9bb4; /* Muted text color */
+        color: #94a3b8; 
         font-weight: 500;
         cursor: pointer;
     }
 
-    /* Hover effect for sidebar items */
+    /* Hover effect */
     [data-testid="stSidebar"] .stRadio label:hover {
-        background-color: rgba(255, 255, 255, 0.03);
-        color: #ffffff;
-        border-color: rgba(255, 255, 255, 0.1);
-        transform: translateX(5px); /* Slide right slightly */
+        background-color: rgba(59, 130, 246, 0.1);
+        color: #60a5fa;
+        border-color: rgba(59, 130, 246, 0.3);
+        transform: translateX(5px);
     }
 
-    /* Active/Selected sidebar item styling */
+    /* Active Selection */
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label[data-baseweb="radio"] > div:first-child {
-        background-color: #3b82f6 !important; /* Blue dot/indicator override */
+        background-color: #3b82f6 !important; 
     }
 
-    /* Hide the annoying 'Deploy' button top right if viewed locally */
-    .stDeployButton { display: none; }
-
-    /* 4. PREMIUM CARD COMPONENT (Glassmorphism) */
+    /* 5. PREMIUM STATUS CARDS (Glassmorphism) */
     .status-card { 
-        background: rgba(23, 27, 36, 0.6); 
+        background: rgba(30, 35, 45, 0.6); 
         backdrop-filter: blur(12px);
         padding: 25px; 
-        border-radius: 16px; 
+        border-radius: 12px; 
         border: 1px solid rgba(255, 255, 255, 0.05);
         border-left: 4px solid #3b82f6; 
         margin-bottom: 20px; 
-        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
         transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     
     .status-card:hover {
         transform: translateY(-3px);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-        background: rgba(23, 27, 36, 0.8); 
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        background: rgba(30, 35, 45, 0.8);
+        border-left-color: #60a5fa;
     }
     
-    /* 5. NOTIFICATION BAR (Pill Style) */
+    /* 6. NOTIFICATION BAR */
     .notification-bar { 
-        background: rgba(59, 130, 246, 0.1);
+        background: linear-gradient(90deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%);
         border: 1px solid rgba(59, 130, 246, 0.2);
         padding: 12px 20px; 
-        border-radius: 50px; /* Full pill shape */
+        border-radius: 8px; 
         color: #60a5fa; 
-        font-size: 0.8em; 
+        font-size: 0.85em; 
         font-weight: 700; 
         text-transform: uppercase; 
-        letter-spacing: 1.5px; 
+        letter-spacing: 1.2px; 
         margin-bottom: 30px; 
         text-align: center;
-        display: inline-block; /* fit to content */
-        width: 100%;
         backdrop-filter: blur(5px);
     }
     
-    /* 6. MODERN ACTION BUTTONS */
+    /* 7. MODERN ACTION BUTTONS */
     .stButton>button { 
         border-radius: 8px; 
         font-weight: 600;
@@ -147,7 +138,7 @@ st.markdown("""
         background: #1f2530; 
         border: 1px solid #374151; 
         color: #e2e8f0; 
-        height: 3em; 
+        height: 3.2em; 
         transition: all 0.2s ease; 
         width: 100%; 
     }
@@ -157,10 +148,10 @@ st.markdown("""
         color: #fff; 
         background: #2563eb; 
         box-shadow: 0 5px 15px rgba(37, 99, 235, 0.3);
+        transform: translateY(-1px);
     }
     
-    /* 7. INPUT FIELDS (Global & Sidebar) */
-    /* Target inputs everywhere to ensure sidebar inputs match */
+    /* 8. INPUT FIELDS */
     div[data-baseweb="input"] > div, div[data-baseweb="select"] > div {
         background-color: #0d1017 !important;
         color: #e2e8f0 !important;
@@ -173,7 +164,7 @@ st.markdown("""
         box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
     }
 
-    /* 8. FLIGHT BOARD */
+    /* 9. FLIGHT BOARD */
     .monitor-container { 
         background: #050505; 
         border: 1px solid #333; 
@@ -181,7 +172,7 @@ st.markdown("""
         height: 600px; 
         overflow: hidden; 
         position: relative; 
-        box-shadow: inset 0 0 80px rgba(0,0,0,0.8);
+        box-shadow: inset 0 0 60px rgba(0,0,0,0.9);
     }
     
     .scroll-content { 
@@ -224,12 +215,14 @@ st.markdown("""
     
     .monitor-svc { color: #38bdf8; font-size: 16px; opacity: 0.8; }
     
-    /* Hide Header/Footer */
-    header {visibility: hidden;}
+    /* 10. UTILITIES */
+    /* Hiding the footer but NOT the header (so you can see the sidebar toggle) */
     footer {visibility: hidden;}
+    .stDeployButton { display: none; }
     
     </style>
     """, unsafe_allow_html=True)
+
 
 
 # --- DATABASE INITIALIZATION FUNCTION ---
