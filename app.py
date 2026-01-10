@@ -32,150 +32,144 @@ except Exception as e:
     st.error(f"Database Connection Error: {e}")
     st.stop()
 
-# --- CSS STYLING (OBSIDIAN AERO REDESIGN) ---
+# --- CSS STYLING (EXPANDED FOR VISUAL CLARITY) ---
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;500&display=swap');
-
-    /* --- 1. GLOBAL & WIDGET VISIBILITY FIXES --- */
+    /* MAIN APP STYLING */
     .stApp { 
-        background-color: #121212; 
-        color: #e0e0e0;
-        font-family: 'Roboto', sans-serif;
-    }
-
-    /* Force all form elements and tab content to be visible */
-    .stSelectbox, .stNumberInput, .stTextInput, .stTextArea, .stTabs [data-baseweb="tab-panel"] {
-        opacity: 1 !important;
-        visibility: visible !important;
-        color: white !important;
-        display: block !important;
-    }
-
-    /* --- 2. HEADERS --- */
-    h1, h2, h3 {
-        font-family: 'Rajdhani', sans-serif;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        color: #ffffff;
-    }
-
-    /* --- 3. SIDEBAR --- */
-    [data-testid="stSidebar"] { 
-        background-color: #0a0a0a; 
-        border-right: 1px solid #333;
+        background-color: #050505; 
+        color: #E0E0E0; 
+        font-family: 'Inter', sans-serif; 
     }
     
-    .stRadio label {
-        background: #161616;
-        padding: 10px 15px;
-        margin-bottom: 5px;
-        border-radius: 4px;
-        border-left: 3px solid #333;
-        transition: all 0.2s ease;
-        cursor: pointer;
-        color: white !important;
+    /* SIDEBAR STYLING */
+    [data-testid="stSidebar"] { 
+        background-color: #0A0A0A; 
+        border-right: 1px solid #222; 
     }
-    .stRadio label:hover {
-        background: #222;
-        border-left: 3px solid #D4AF37;
-        padding-left: 20px;
-    }
-
-    /* --- 4. CARDS & CONTAINERS --- */
+    
+    /* STATUS CARD COMPONENT */
     .status-card { 
-        background: linear-gradient(145deg, #1a1a1a, #222);
+        background: #0F0F0F; 
         padding: 25px; 
-        border-radius: 12px 0 12px 0; 
-        border: 1px solid #333;
-        margin-bottom: 20px; 
-        box-shadow: 5px 5px 15px rgba(0,0,0,0.3);
+        border-radius: 2px; 
+        border-left: 4px solid #00d4ff; 
+        margin-bottom: 15px; 
+        border-top: 1px solid #1A1A1A; 
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
     }
-
-    /* --- 5. NOTIFICATION BAR --- */
+    
+    /* NOTIFICATION BAR COMPONENT */
     .notification-bar { 
-        background: #D4AF37; 
-        color: #000;
-        padding: 10px 20px; 
-        font-family: 'Rajdhani', sans-serif;
-        font-weight: 700; 
+        background: #00d4ff22; 
+        padding: 12px; 
+        border-bottom: 1px solid #00d4ff; 
+        color: #00d4ff; 
+        font-size: 0.85em; 
+        font-weight: 600; 
         text-transform: uppercase; 
         letter-spacing: 2px; 
         margin-bottom: 30px; 
-        clip-path: polygon(0 0, 100% 0, 98% 100%, 2% 100%);
     }
-
-    /* --- 6. BUTTONS --- */
+    
+    /* CUSTOM BUTTON STYLING */
     .stButton>button { 
-        font-family: 'Rajdhani', sans-serif;
-        font-weight: 700;
+        border-radius: 0px; 
+        letter-spacing: 2px; 
+        font-size: 0.8em; 
         text-transform: uppercase; 
-        background-color: #1e1e1e; 
-        color: #ccc; 
-        border: 1px solid #444; 
-        border-radius: 6px 0 6px 0; 
-        transition: all 0.3s ease; 
+        background-color: transparent; 
+        border: 1px solid #333; 
+        color: white; 
+        height: 3em; 
+        transition: 0.4s; 
         width: 100%; 
-        box-shadow: 0 4px 0 #000;
     }
     
     .stButton>button:hover { 
-        background-color: #D4AF37; 
-        color: #000;
-        border-color: #D4AF37;
+        border-color: #00d4ff; 
+        color: #00d4ff; 
+        background-color: #00d4ff11; 
+        cursor: pointer;
     }
-
-    /* --- 7. INPUT FIELDS (CRITICAL FIX) --- */
-    /* This ensures that even inside tabs, the input boxes are high-contrast */
-    div[data-baseweb="input"], div[data-baseweb="select"], div[data-baseweb="base-input"] {
-        background-color: #1a1a1a !important;
-        border: 1px solid #444 !important;
-    }
-
-    input {
-        color: white !important;
-        -webkit-text-fill-color: white !important; /* For some browsers */
-    }
-
-    /* --- 8. MONITOR BOARD --- */
+    
+    /* MONITOR / FLIGHT BOARD SCROLLING EFFECTS */
     .monitor-container { 
         background: #000; 
-        border: 4px solid #333; 
+        border: 2px solid #222; 
+        border-radius: 10px; 
         height: 700px; 
         overflow: hidden; 
+        position: relative; 
     }
+    
+    .scroll-content { 
+        position: absolute; 
+        width: 100%; 
+        animation: scrollUp 40s linear infinite; 
+        will-change: transform; 
+    }
+    
+    @keyframes scrollUp { 
+        0% { transform: translateY(100%); } 
+        100% { transform: translateY(-100%); } 
+    }
+    
+    .scroll-content:hover { 
+        animation-play-state: paused; 
+    }
+    
     .monitor-row { 
         display: flex; 
         justify-content: space-between; 
+        align-items: center; 
         padding: 30px; 
-        border-bottom: 1px solid #222; 
-        background: #080808; 
+        border-bottom: 2px solid #222; 
+        background: #050505; 
     }
+    
     .monitor-plate { 
         font-size: 55px; 
-        color: #fff; 
-        font-family: 'Rajdhani', sans-serif; 
+        font-weight: 900; 
+        color: #00d4ff; 
+        font-family: 'Courier New', monospace; 
+    }
+    
+    .monitor-status { 
+        font-size: 18px; 
+        color: #FFD700; 
+        font-weight: bold; 
+    }
+    
+    .monitor-meta { 
+        text-align: right; 
+    }
+    
+    .monitor-staff { 
+        font-size: 20px; 
+        color: #888; 
+        text-transform: uppercase; 
+    }
+    
+    .monitor-svc { 
+        color: #00d4ff; 
+        font-style: italic; 
+        font-size: 16px; 
     }
 
-    /* --- 9. TAB FIX --- */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 10px;
+    /* INPUT FIELD STYLING */
+    div[data-baseweb="input"] > div {
+        background-color: #111;
+        color: white;
+        border-radius: 0px;
+        border: 1px solid #333;
     }
-    .stTabs [data-baseweb="tab"] {
-        background-color: #1a1a1a !important;
-        border: 1px solid #333 !important;
-        color: #888 !important;
+    div[data-baseweb="select"] > div {
+        background-color: #111;
+        color: white;
     }
-    .stTabs [aria-selected="true"] {
-        border-color: #D4AF37 !important;
-        color: #D4AF37 !important;
-    }
-
-    /* HIDE FOOTER */
-    footer {visibility: hidden;}
     </style>
     """, unsafe_allow_html=True)
-
 
 # --- DATABASE INITIALIZATION FUNCTION ---
 def init_db():
