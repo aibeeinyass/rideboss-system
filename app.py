@@ -1117,6 +1117,37 @@ if choice == "COMMAND CENTER":
                     else:
                         st.error("Please provide both Plate and Card Serial Number.")
 
+                    else:
+                # TOP-UP LOGIC
+                st.caption("Add washes to an existing card")
+                t_input = st.text_input("SCAN CARD OR ENTER PLATE").upper()
+                t_washes = st.number_input("WASHES TO ADD", min_value=1, value=10)
+                t_price = st.number_input("TOP-UP AMOUNT (₦)", min_value=0.0, step=500.0)
+                t_pay_method = st.selectbox("PAYMENT METHOD", ["Moniepoint POS", "Bank Transfer", "Cash"], key="topup_pay")
+
+                @st.dialog("CONFIRM TOP-UP")
+                def confirm_topup():
+                    st.warning(f"Confirm receipt of ₦{t_price:,} for {t_washes} washes?")
+                    if st.button("CONFIRM PAYMENT & ADD WASHES", use_container_width=True, type="primary"):
+                        try:
+                            with conn.session as s:
+                                s.execute(text("""
+                                    UPDATE memberships 
+                                    SET balance_washes = balance_washes + :qty 
+                                    WHERE plate = :t OR card_serial = :t
+                                """), {"qty": t_washes, "t": t_input})
+                                s.commit()
+                            st.session_state.mem_success = f"✅ Added {t_washes} washes to {t_input}!"
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Top-up Error: {e}")
+
+                if st.button("AUTHORIZE TOP-UP", use_container_width=True):
+                    if t_input:
+                        confirm_topup()
+                    else:
+                        st.error("Please enter a Plate or Scan a Card.")
+
 
               
     # --- RECEIPT MODAL LOGIC ---
