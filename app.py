@@ -32,160 +32,164 @@ except Exception as e:
     st.error(f"Database Connection Error: {e}")
     st.stop()
 
-# --- CSS STYLING (MODERN LUXURY REDESIGN) ---
+# --- CSS STYLING (THE ULTIMATE CINEMATIC OVERHAUL) ---
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@200;400;700&display=swap');
 
-    /* MAIN APP STYLING */
-    .stApp { 
-        background: radial-gradient(circle at top left, #121212, #050505);
-        color: #E0E0E0; 
-        font-family: 'Inter', sans-serif; 
+    /* FULL CANVAS ANIMATED BACKGROUND */
+    .stApp {
+        background: linear-gradient(-45deg, #050505, #121212, #0a111a, #050505);
+        background-size: 400% 400%;
+        animation: gradient 15s ease infinite;
+        color: #FFFFFF;
+        font-family: 'Outfit', sans-serif;
     }
-    
-    /* GLASSMORPHISM SIDEBAR */
-    [data-testid="stSidebar"] { 
-        background-color: rgba(10, 10, 10, 0.95); 
-        border-right: 1px solid rgba(255, 255, 255, 0.05); 
+
+    @keyframes gradient {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
     }
-    
-    /* MODERN CARD COMPONENT (GLASS EFFECT) */
-    .status-card { 
-        background: rgba(25, 25, 25, 0.6); 
-        backdrop-filter: blur(10px);
-        padding: 24px; 
-        border-radius: 16px; 
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        margin-bottom: 18px; 
-        transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+
+    /* FLOATING GLASS SIDEBAR */
+    [data-testid="stSidebar"] {
+        background: rgba(0, 0, 0, 0.7) !important;
+        backdrop-filter: blur(20px);
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
+        box-shadow: 10px 0 30px rgba(0,0,0,0.5);
     }
-    
+
+    /* REMOVE TOP DECORATION */
+    header[data-testid="stHeader"] {
+        background: transparent !important;
+    }
+
+    /* THE "MIND-BLOWING" CARD: GLASSMORPHISM 2.0 */
+    .status-card {
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
+        border-radius: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 30px;
+        margin-bottom: 25px;
+        transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .status-card::before {
+        content: "";
+        position: absolute;
+        top: 0; left: -100%;
+        width: 100%; height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+        transition: 0.5s;
+    }
+
+    .status-card:hover::before {
+        left: 100%;
+    }
+
     .status-card:hover {
-        transform: translateY(-5px);
-        border: 1px solid rgba(0, 212, 255, 0.3);
-        background: rgba(30, 30, 30, 0.8);
-        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
-    }
-    
-    /* NEON ACCENT BAR */
-    .notification-bar { 
-        background: linear-gradient(90deg, rgba(0,212,255,0.1) 0%, rgba(0,0,0,0) 100%); 
-        padding: 14px 20px; 
-        border-left: 4px solid #00d4ff; 
-        border-radius: 4px;
-        color: #00d4ff; 
-        font-size: 0.85em; 
-        font-weight: 600; 
-        text-transform: uppercase; 
-        letter-spacing: 3px; 
-        margin-bottom: 30px;
-        animation: pulse 3s infinite;
+        transform: scale(1.02) translateY(-10px);
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(0, 212, 255, 0.4);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.4);
     }
 
-    @keyframes pulse {
-        0% { opacity: 0.8; }
-        50% { opacity: 1; }
-        100% { opacity: 0.8; }
-    }
-    
-    /* MODERN BUTTON REDESIGN */
-    .stButton>button { 
-        border-radius: 12px; 
-        letter-spacing: 1.5px; 
-        font-size: 0.85em; 
-        font-weight: 600;
-        text-transform: uppercase; 
-        background: rgba(255, 255, 255, 0.03); 
-        border: 1px solid rgba(255, 255, 255, 0.1); 
-        color: #ffffff; 
-        height: 3.5em; 
-        transition: all 0.3s ease; 
-        width: 100%; 
-    }
-    
-    .stButton>button:hover { 
-        border-color: #00d4ff; 
-        color: #00d4ff; 
-        background: rgba(0, 212, 255, 0.08); 
-        box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
-        transform: scale(1.02);
+    /* NEON GLOW NOTIFICATION BAR */
+    .notification-bar {
+        background: rgba(0, 212, 255, 0.05);
+        border: 1px solid rgba(0, 212, 255, 0.2);
+        border-radius: 50px;
+        padding: 10px 25px;
+        color: #00d4ff;
+        font-weight: 700;
+        letter-spacing: 2px;
+        text-align: center;
+        box-shadow: 0 0 15px rgba(0, 212, 255, 0.1);
+        margin-bottom: 40px;
     }
 
-    .stButton>button:active {
-        transform: scale(0.98);
+    /* CUSTOM ACTION BUTTONS (CYBER STYLE) */
+    .stButton>button {
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+        border-radius: 50px;
+        padding: 15px 30px;
+        font-weight: 400;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        transition: all 0.4s;
+        position: relative;
+        overflow: hidden;
+        z-index: 1;
     }
-    
-    /* MONITOR SCROLLING REDESIGN */
-    .monitor-container { 
-        background: #000; 
-        border: 1px solid rgba(255, 255, 255, 0.1); 
-        border-radius: 20px; 
-        height: 700px; 
-        overflow: hidden; 
-        box-shadow: inset 0 0 50px rgba(0,0,0,1);
+
+    .stButton>button:hover {
+        border-color: #00d4ff;
+        color: #000;
+        box-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
     }
-    
-    .monitor-row { 
-        padding: 25px 40px; 
-        border-bottom: 1px solid rgba(255, 255, 255, 0.03); 
-        background: transparent; 
-        transition: background 0.3s;
+
+    .stButton>button::after {
+        content: "";
+        position: absolute;
+        left: 0; top: 0;
+        width: 0%; height: 100%;
+        background: #00d4ff;
+        z-index: -1;
+        transition: 0.4s;
     }
-    
+
+    .stButton>button:hover::after {
+        width: 100%;
+    }
+
+    /* FLIGHT BOARD / MONITOR REDESIGN */
+    .monitor-container {
+        background: rgba(0,0,0,0.4);
+        border-radius: 30px;
+        border: 1px solid rgba(255,255,255,0.05);
+        padding: 10px;
+    }
+
+    .monitor-row {
+        background: rgba(255,255,255,0.01);
+        margin: 10px;
+        border-radius: 20px;
+        border: 1px solid transparent;
+        transition: 0.3s;
+    }
+
     .monitor-row:hover {
-        background: rgba(255, 255, 255, 0.02);
-    }
-    
-    .monitor-plate { 
-        font-size: 48px; 
-        font-weight: 800; 
-        color: #ffffff; 
-        font-family: 'Courier New', monospace; 
-        text-shadow: 0 0 10px rgba(255,255,255,0.2);
-    }
-    
-    .monitor-svc { 
-        color: #00d4ff; 
-        font-weight: 300;
-        letter-spacing: 1px;
-        opacity: 0.9;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.1);
     }
 
-    /* INPUT FIELD GLASSMORPHISM */
-    div[data-baseweb="input"] > div, div[data-baseweb="select"] > div {
-        background-color: rgba(255, 255, 255, 0.03) !important;
-        color: white !important;
-        border-radius: 12px !important;
+    .monitor-plate {
+        font-family: 'Outfit', sans-serif;
+        font-weight: 800;
+        font-size: 40px;
+        background: linear-gradient(to bottom, #fff, #888);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    /* SCROLLBAR STYLING */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #00d4ff; }
+
+    /* INPUTS */
+    div[data-baseweb="input"] > div {
+        background-color: rgba(0, 0, 0, 0.2) !important;
         border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        transition: all 0.3s;
-    }
-    
-    div[data-baseweb="input"]:focus-within {
-        border-color: #00d4ff !important;
-        background-color: rgba(0, 212, 255, 0.05) !important;
-    }
-
-    /* TABS STYLING */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 10px;
-        background-color: transparent;
-    }
-
-    .stTabs [data-baseweb="tab"] {
-        height: 50px;
-        white-space: pre-wrap;
-        background-color: rgba(255, 255, 255, 0.03);
-        border-radius: 10px 10px 0px 0px;
-        color: #888;
-        padding-left: 20px;
-        padding-right: 20px;
-    }
-
-    .stTabs [aria-selected="true"] {
-        background-color: rgba(0, 212, 255, 0.1) !important;
-        color: #00d4ff !important;
+        border-radius: 15px !important;
     }
     </style>
     """, unsafe_allow_html=True)
