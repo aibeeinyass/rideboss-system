@@ -35,156 +35,165 @@ except Exception as e:
 # --- CSS STYLING (OBSIDIAN AERO REDESIGN) ---
 st.markdown("""
     <style>
-    /* 1. IMPORT FONTS (Orbitron for headers, Rajdhani for data) */
-    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;500&display=swap');
 
-    /* 2. BACKGROUND - MOVING CYBER GRID */
-    .stApp {
-        background-color: #050505;
-        background-image: 
-            linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
-        background-size: 50px 50px;
-        animation: panGrid 20s linear infinite;
+    /* --- MAIN CONTAINER & BACKGROUND --- */
+    .stApp { 
+        background-color: #121212; /* Deep Matte Charcoal */
+        color: #e0e0e0;
+        font-family: 'Roboto', sans-serif;
     }
     
-    @keyframes panGrid {
-        0% { background-position: 0 0; }
-        100% { background-position: 50px 50px; }
-    }
-
-    /* 3. MECHA-CARDS (CLIPPED CORNERS) */
-    .status-card {
-        background: rgba(20, 20, 25, 0.9);
-        border-left: 5px solid #00d4ff;
-        border-right: 1px solid #333;
-        border-top: 1px solid #333;
-        border-bottom: 1px solid #333;
-        padding: 25px;
-        margin-bottom: 20px;
-        /* THE CRAZY PART: Cut the corner */
-        clip-path: polygon(
-            0 0, 
-            100% 0, 
-            100% 85%, 
-            95% 100%, 
-            0 100%
-        );
-        transition: all 0.2s ease-in-out;
-        position: relative;
-    }
-
-    .status-card:hover {
-        transform: scale(1.02);
-        background: rgba(0, 212, 255, 0.05);
-        border-left: 5px solid #fff;
-        box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
-    }
-    
-    /* Add a decorative label to the card via CSS */
-    .status-card::before {
-        content: "SYS.ACTIVE";
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        font-family: 'Orbitron', sans-serif;
-        font-size: 8px;
-        color: #555;
-        letter-spacing: 2px;
-    }
-
-    /* 4. TYPOGRAPHY - HEADERS */
     h1, h2, h3 {
-        font-family: 'Orbitron', sans-serif !important;
+        font-family: 'Rajdhani', sans-serif;
         text-transform: uppercase;
-        color: #fff !important;
-        letter-spacing: 3px;
-        text-shadow: 2px 2px 0px #00d4ff; /* Glitch effect shadow */
-    }
-    
-    /* 5. SIDEBAR - TACTICAL PANEL */
-    [data-testid="stSidebar"] {
-        background-color: #0a0a0a;
-        border-right: 2px solid #333;
-    }
-    [data-testid="stSidebar"] hr {
-        border-color: #00d4ff !important;
+        letter-spacing: 1px;
+        color: #ffffff;
     }
 
-    /* 6. BUTTONS - LASER OUTLINE */
-    .stButton>button {
-        font-family: 'Orbitron', sans-serif;
+    /* --- SIDEBAR & NAVIGATION --- */
+    [data-testid="stSidebar"] { 
+        background-color: #0a0a0a; 
+        border-right: 1px solid #333;
+    }
+    
+    [data-testid="stSidebarNav"] {
+        padding-top: 20px;
+    }
+
+    /* Target the radio buttons in sidebar to look like menu items */
+    .stRadio > div {
         background: transparent;
-        border: 2px solid #00d4ff;
-        color: #00d4ff;
-        border-radius: 0px; /* Sharp corners */
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        transition: 0.3s;
-        box-shadow: inset 0 0 10px rgba(0, 212, 255, 0.1);
     }
-    
-    .stButton>button:hover {
-        background: #00d4ff;
+    .stRadio label {
+        background: #161616;
+        padding: 10px 15px;
+        margin-bottom: 5px;
+        border-radius: 4px;
+        border-left: 3px solid #333;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+    .stRadio label:hover {
+        background: #222;
+        border-left: 3px solid #D4AF37; /* Gold Hover */
+        padding-left: 20px;
+    }
+
+    /* --- CARDS & CONTAINERS (The "Mature" Shape) --- */
+    .status-card { 
+        background: linear-gradient(145deg, #1a1a1a, #222);
+        padding: 25px; 
+        /* Asymmetric corners: Top-Left and Bottom-Right are cut */
+        border-radius: 12px 0 12px 0; 
+        border: 1px solid #333;
+        margin-bottom: 20px; 
+        box-shadow: 5px 5px 15px rgba(0,0,0,0.3);
+        transition: transform 0.2s;
+    }
+    .status-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+        border-color: #555;
+    }
+
+    /* --- NOTIFICATION BAR --- */
+    .notification-bar { 
+        background: #D4AF37; /* Professional Gold/Amber */
         color: #000;
-        box-shadow: 0 0 30px #00d4ff;
-        text-shadow: none;
+        padding: 10px 20px; 
+        font-family: 'Rajdhani', sans-serif;
+        font-weight: 700; 
+        text-transform: uppercase; 
+        letter-spacing: 2px; 
+        margin-bottom: 30px; 
+        clip-path: polygon(0 0, 100% 0, 99% 100%, 1% 100%); /* Slight taper */
     }
 
-    /* 7. DELETE BUTTONS (RED ALERT) */
-    button:has(div:contains("DELETE")) {
-        border-color: #ff2a2a !important;
-        color: #ff2a2a !important;
-        box-shadow: inset 0 0 10px rgba(255, 42, 42, 0.1);
-    }
-    button:has(div:contains("DELETE")):hover {
-        background: #ff2a2a !important;
-        color: #000 !important;
-        box-shadow: 0 0 30px #ff2a2a !important;
-    }
-
-    /* 8. MONITOR BOARD - RACING LEADERBOARD STYLE */
-    .monitor-container {
-        background: #000;
-        border: 2px solid #333;
-        border-top: 10px solid #00d4ff;
-        border-radius: 0px;
-        height: 700px;
-        overflow: hidden;
-        position: relative;
+    /* --- BUTTON STYLING (Technical & Tactile) --- */
+    .stButton>button { 
+        font-family: 'Rajdhani', sans-serif;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase; 
+        background-color: #1e1e1e; 
+        color: #ccc; 
+        border: 1px solid #444; 
+        /* Cut corners on opposite sides */
+        border-radius: 6px 0 6px 0; 
+        height: 3.2em; 
+        transition: all 0.3s ease; 
+        width: 100%; 
+        box-shadow: 0 4px 0 #000; /* Physical button depth */
+        margin-top: 5px;
     }
     
-    .monitor-row {
-        border-bottom: 1px dotted #333;
-        padding: 20px;
+    .stButton>button:hover { 
+        background-color: #D4AF37; /* Gold Accent */
+        color: #000;
+        border-color: #D4AF37;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 0 #000;
+    }
+    
+    .stButton>button:active {
+        transform: translateY(2px);
+        box-shadow: 0 2px 0 #000;
+    }
+
+    /* Primary buttons (like 'Submit') get a different look if needed, 
+       but Streamlit renders them similarly. We rely on the hover for pop. */
+
+    /* --- INPUT FIELDS --- */
+    div[data-baseweb="input"] > div, div[data-baseweb="select"] > div, div[data-baseweb="base-input"] {
+        background-color: #0f0f0f !important;
+        color: white !important;
+        border: 1px solid #333 !important;
+        border-radius: 2px !important;
+    }
+    div[data-baseweb="input"] > div:focus-within {
+        border-color: #D4AF37 !important;
+    }
+
+    /* --- MONITOR / FLIGHT BOARD --- */
+    .monitor-container { 
+        background: #000; 
+        border: 4px solid #333; 
+        border-radius: 4px; 
+        height: 700px; 
+        overflow: hidden; 
+        position: relative; 
+    }
+    .monitor-row { 
         display: flex; 
         justify-content: space-between; 
         align-items: center; 
-        background: radial-gradient(circle, #111 0%, #000 100%);
+        padding: 30px; 
+        border-bottom: 1px solid #222; 
+        background: #080808; 
     }
-
-    .monitor-plate {
-        font-family: 'Orbitron', sans-serif;
-        font-size: 40px;
-        color: #fff;
-        text-shadow: 0 0 10px rgba(255,255,255,0.5);
+    .monitor-plate { 
+        font-size: 55px; 
+        font-weight: 700; 
+        color: #fff; 
+        font-family: 'Rajdhani', sans-serif; 
+        text-shadow: 0 0 10px rgba(255,255,255,0.2);
     }
-
-    /* 9. INPUTS - COMMAND LINE STYLE */
-    div[data-baseweb="input"] {
-        background: #000 !important;
-        border: 1px solid #444 !important;
-        border-radius: 0px !important;
-        font-family: 'Rajdhani', monospace;
+    .monitor-status { 
+        font-size: 18px; 
+        color: #D4AF37; 
+        font-weight: bold; 
+        font-family: 'Roboto', sans-serif;
     }
     
-    /* Hide default streamlit elements */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-    
+    /* --- METRICS & DATA --- */
+    [data-testid="stMetricValue"] {
+        font-family: 'Rajdhani', sans-serif;
+        color: #D4AF37;
+    }
+
     </style>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
 
 
