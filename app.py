@@ -32,164 +32,173 @@ except Exception as e:
     st.error(f"Database Connection Error: {e}")
     st.stop()
 
-# --- FIXED RIDEBOSS ULTRA LUXURY CSS ---
+# --- THE "PIXEL-PERFECT" RIDEBOSS ULTRA CSS ---
 st.markdown("""
     <style>
-    /* 1. CORE ENGINE & AMBIENT GLOW BUBBLES */
-    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
+    /* 1. TYPOGRAPHY & CORE AMBIENCE */
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&display=swap');
     
     .stApp { 
-        background-color: #07090d;
+        background-color: #05070a;
+        /* Recreating the teal glow (left) and purple haze (right) from the photo */
         background-image: 
-            radial-gradient(at 15% 15%, rgba(59, 130, 246, 0.18) 0px, transparent 40%),
-            radial-gradient(at 85% 20%, rgba(37, 99, 235, 0.12) 0px, transparent 35%),
-            radial-gradient(at 50% 85%, rgba(29, 78, 216, 0.1) 0px, transparent 45%);
+            radial-gradient(at 0% 50%, rgba(0, 212, 255, 0.12) 0px, transparent 45%),
+            radial-gradient(at 100% 50%, rgba(147, 51, 234, 0.12) 0px, transparent 45%);
         color: #e2e8f0; 
         font-family: 'Outfit', sans-serif;
     }
 
-    /* 2. HEADER & HAMBURGER FIX */
-    /* Make the header area transparent so the button stays visible but the bar is 'gone' */
+    /* 2. HEADER & HAMBURGER FIX (MAKING IT VISIBLE BUT CLEAN) */
     header[data-testid="stHeader"] {
         background: transparent !important;
-        color: white !important;
     }
-    
-    /* Ensure the hamburger icon is bright and visible */
     header[data-testid="stHeader"] svg {
-        fill: #3b82f6 !important;
+        fill: #00d4ff !important; /* Makes the sidebar button neon blue */
     }
 
-    /* 3. SIDEBAR - INDUSTRIAL NAV TILES */
+    /* 3. SIDEBAR NAVIGATION - RECESSED TILE LOOK */
     section[data-testid="stSidebar"] {
-        background: rgba(13, 16, 23, 0.98) !important;
+        background-color: #080a0e !important;
         border-right: 1px solid rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(20px);
     }
 
-    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label > div:first-child {
-        display: none !important;
+    /* Sidebar "Revitalize" Header Mockup */
+    section[data-testid="stSidebar"]::before {
+        content: "REVITALIZE";
+        display: block;
+        padding: 20px 20px 10px 20px;
+        font-size: 0.65rem;
+        font-weight: 800;
+        color: #475569;
+        letter-spacing: 2px;
     }
 
     [data-testid="stSidebar"] .stRadio label {
-        background: rgba(255, 255, 255, 0.02);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        padding: 14px 18px !important;
-        border-radius: 6px;
-        margin-bottom: 10px;
-        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        color: #64748b;
+        background: rgba(17, 20, 26, 1) !important;
+        border: 1px solid #242933 !important;
+        padding: 12px 15px !important;
+        border-radius: 6px !important;
+        color: #94a3b8 !important;
         text-transform: uppercase;
-        font-size: 0.75rem;
-        letter-spacing: 1.5px;
-        font-weight: 600;
+        font-size: 0.7rem !important;
+        font-weight: 700 !important;
+        letter-spacing: 1px;
+        margin-bottom: 8px;
+        transition: all 0.2s ease;
     }
 
-    [data-testid="stSidebar"] .stRadio label:hover {
-        background: rgba(255, 255, 255, 0.06);
-        color: #ffffff;
-        transform: translateX(8px);
-    }
-
+    /* The "Image-Matched" Active Sidebar Glow */
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] [data-checked="true"] {
-        background: linear-gradient(90deg, rgba(59, 130, 246, 0.2) 0%, rgba(30, 41, 59, 0) 100%) !important;
-        border: 1px solid rgba(59, 130, 246, 0.5) !important;
-        border-left: 4px solid #3b82f6 !important;
+        background: linear-gradient(90deg, #1e293b 0%, #0f172a 100%) !important;
+        border: 1px solid #00d4ff !important;
         color: #ffffff !important;
+        box-shadow: 0 0 15px rgba(0, 212, 255, 0.3), inset 0 0 10px rgba(0, 212, 255, 0.1);
     }
 
-    /* 4. ULTRA GLASS CARDS & METRICS */
-    .status-card, [data-testid="metric-container"] { 
-        background: rgba(17, 25, 40, 0.6) !important;
-        backdrop-filter: blur(12px) saturate(160%) !important;
-        border: 1px solid rgba(255, 255, 255, 0.08) !important;
-        border-radius: 12px !important;
-        padding: 24px !important;
-        margin-bottom: 16px !important;
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+    /* 4. GLASS STATUS CARDS (MATCHING IMAGE LAYOUT) */
+    /* Note: Use st.markdown with this class in your python code */
+    .status-card { 
+        background: rgba(22, 27, 34, 0.7);
+        backdrop-filter: blur(15px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-top: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 12px;
+        padding: 20px;
+        height: 120px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     }
 
-    /* 5. THE BLUE NOTIFICATION BAR */
+    .card-label {
+        font-size: 0.6rem;
+        font-weight: 800;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+    }
+
+    .card-value {
+        font-size: 2.2rem;
+        font-weight: 900;
+        color: #ffffff;
+        line-height: 1;
+    }
+
+    /* 5. THE NEON TOP NOTIFIER */
     .notification-bar { 
-        background: linear-gradient(90deg, #1e40af 0%, #3b82f6 50%, #1e40af 100%);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        padding: 12px 30px; 
-        border-radius: 50px; 
-        color: #ffffff; 
-        font-size: 0.85rem; 
-        font-weight: 800; 
-        text-transform: uppercase; 
-        letter-spacing: 2px; 
-        margin-bottom: 40px; 
-        text-align: center;
-        box-shadow: 0 0 30px rgba(59, 130, 246, 0.4);
-    }
-
-    /* 6. INPUTS & FORM ELEMENTS */
-    div[data-baseweb="input"] > div, div[data-baseweb="select"] > div, textarea {
-        background-color: #0f172a !important;
-        border: 1px solid rgba(255,255,255,0.1) !important;
-        border-radius: 8px !important;
-        color: #ffffff !important;
-    }
-
-    /* 7. BUTTONS */
-    .stButton>button { 
-        background: #1e293b;
-        border: 1px solid #334155; 
-        border-radius: 8px; 
-        color: #ffffff; 
+        background: rgba(0, 212, 255, 0.1);
+        border: 1px solid #00d4ff;
+        color: #ffffff;
+        border-radius: 50px;
+        padding: 10px 30px;
         font-weight: 700;
         text-transform: uppercase;
-        width: 100%;
+        font-size: 0.75rem;
+        letter-spacing: 2px;
+        text-align: center;
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+    }
+
+    /* 6. BUTTONS - THE BLUE GRADIENT LOOK */
+    .stButton>button { 
+        background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+        border: none;
+        border-radius: 6px; 
+        color: white; 
+        font-weight: 700;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        padding: 10px 20px;
         transition: 0.3s;
+        box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
     }
 
     .stButton>button:hover { 
-        background: #3b82f6;
-        box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 212, 255, 0.4);
     }
 
-    /* 8. LIVE U-FLOW MONITOR */
-    .monitor-container { 
-        background: #000000; 
-        border: 2px solid #1e293b;
-        border-radius: 20px; 
-        box-shadow: 0 0 50px rgba(0,0,0,0.9);
-        height: 650px;
-    }
-
-    .monitor-row { 
-        background: rgba(255,255,255,0.02);
-        margin: 12px;
-        padding: 24px;
+    /* 7. LIVE U-FLOW MONITOR - PURE DARK */
+    .monitor-container {
+        background: #020408;
+        border: 1px solid #1e293b;
         border-radius: 12px;
+        padding: 10px;
     }
 
-    .monitor-plate { 
-        font-size: 42px; 
-        font-weight: 900; 
-        color: #ffffff; 
-        letter-spacing: 3px;
+    .monitor-row {
+        background: transparent;
+        border-bottom: 1px solid #161a21;
+        padding: 12px 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
 
-    .monitor-status { 
+    .monitor-plate {
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: #ffffff;
+        letter-spacing: 1px;
+    }
+
+    .monitor-status-badge {
         background: #fbbf24;
         color: #000;
-        padding: 3px 12px;
+        padding: 2px 8px;
         border-radius: 4px;
         font-weight: 900;
+        font-size: 0.6rem;
     }
 
-    /* Clean up */
+    /* Hide Streamlit elements */
     footer { visibility: hidden; }
     .stDeployButton { display: none; }
     </style>
     """, unsafe_allow_html=True)
-
-
-
-
 
 # --- DATABASE INITIALIZATION FUNCTION ---
 def init_db():
