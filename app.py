@@ -32,165 +32,131 @@ except Exception as e:
     st.error(f"Database Connection Error: {e}")
     st.stop()
 
-# --- CSS STYLING (THE ULTIMATE CINEMATIC OVERHAUL) ---
+# --- CSS STYLING (THE HYPER-MODERN CONTROL DECK) ---
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@200;400;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100;300;400;700&family=JetBrains+Mono:wght@200&display=swap');
 
-    /* FULL CANVAS ANIMATED BACKGROUND */
+    /* 1. ANIMATED COSMIC BACKGROUND */
     .stApp {
-        background: linear-gradient(-45deg, #050505, #121212, #0a111a, #050505);
-        background-size: 400% 400%;
-        animation: gradient 15s ease infinite;
+        background: radial-gradient(circle at 50% 50%, #1a1a2e 0%, #050505 100%);
         color: #FFFFFF;
         font-family: 'Outfit', sans-serif;
     }
 
-    @keyframes gradient {
-        0% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
-    }
-
-    /* FLOATING GLASS SIDEBAR */
+    /* 2. FLOATING CAPSULE SIDEBAR (MIND-BLOWING LOOK) */
     [data-testid="stSidebar"] {
-        background: rgba(0, 0, 0, 0.7) !important;
-        backdrop-filter: blur(20px);
-        border-right: 1px solid rgba(255, 255, 255, 0.05);
-        box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+        background: rgba(15, 15, 15, 0.7) !important;
+        backdrop-filter: blur(25px) saturate(150%);
+        margin: 20px;
+        margin-right: 0px;
+        border-radius: 30px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        height: calc(100vh - 40px) !important;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.8);
     }
+    
+    /* Hide the default Streamlit sidebar border */
+    [data-testid="stSidebarNav"] { background: transparent !important; }
 
-    /* REMOVE TOP DECORATION */
-    header[data-testid="stHeader"] {
-        background: transparent !important;
-    }
-
-    /* THE "MIND-BLOWING" CARD: GLASSMORPHISM 2.0 */
+    /* 3. NEW GENERATION CARD (HEXAGONAL VIBE) */
     .status-card {
-        background: rgba(255, 255, 255, 0.03);
-        backdrop-filter: blur(15px);
-        -webkit-backdrop-filter: blur(15px);
-        border-radius: 24px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        padding: 30px;
-        margin-bottom: 25px;
-        transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
-        position: relative;
-        overflow: hidden;
-    }
-
-    .status-card::before {
-        content: "";
-        position: absolute;
-        top: 0; left: -100%;
-        width: 100%; height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
-        transition: 0.5s;
-    }
-
-    .status-card:hover::before {
-        left: 100%;
+        background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        border-left: 5px solid #00d4ff;
+        border-right: 1px solid rgba(255,255,255,0.1);
+        border-top: 1px solid rgba(255,255,255,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        padding: 25px;
+        margin-bottom: 20px;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        clip-path: polygon(0% 0%, 100% 0%, 100% 85%, 95% 100%, 0% 100%); /* Beveled Corner */
     }
 
     .status-card:hover {
-        transform: scale(1.02) translateY(-10px);
-        background: rgba(255, 255, 255, 0.06);
-        border: 1px solid rgba(0, 212, 255, 0.4);
-        box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-    }
-
-    /* NEON GLOW NOTIFICATION BAR */
-    .notification-bar {
+        transform: perspective(1000px) rotateX(2deg) translateY(-5px);
         background: rgba(0, 212, 255, 0.05);
-        border: 1px solid rgba(0, 212, 255, 0.2);
-        border-radius: 50px;
-        padding: 10px 25px;
-        color: #00d4ff;
-        font-weight: 700;
-        letter-spacing: 2px;
-        text-align: center;
-        box-shadow: 0 0 15px rgba(0, 212, 255, 0.1);
-        margin-bottom: 40px;
+        border-left: 10px solid #00d4ff;
+        box-shadow: 0 15px 35px rgba(0,212,255,0.15);
     }
 
-    /* CUSTOM ACTION BUTTONS (CYBER STYLE) */
-    .stButton>button {
-        background: transparent;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        color: white;
-        border-radius: 50px;
-        padding: 15px 30px;
-        font-weight: 400;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        transition: all 0.4s;
-        position: relative;
-        overflow: hidden;
-        z-index: 1;
-    }
-
-    .stButton>button:hover {
-        border-color: #00d4ff;
-        color: #000;
-        box-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
-    }
-
-    .stButton>button::after {
-        content: "";
-        position: absolute;
-        left: 0; top: 0;
-        width: 0%; height: 100%;
-        background: #00d4ff;
-        z-index: -1;
-        transition: 0.4s;
-    }
-
-    .stButton>button:hover::after {
-        width: 100%;
-    }
-
-    /* FLIGHT BOARD / MONITOR REDESIGN */
-    .monitor-container {
-        background: rgba(0,0,0,0.4);
-        border-radius: 30px;
-        border: 1px solid rgba(255,255,255,0.05);
-        padding: 10px;
-    }
-
-    .monitor-row {
-        background: rgba(255,255,255,0.01);
-        margin: 10px;
+    /* 4. REINVENTING TABLES & LISTS (BORING TO BEAUTIFUL) */
+    .stDataFrame, div[data-testid="stTable"] {
         border-radius: 20px;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.05) !important;
+        background: rgba(0,0,0,0.2);
+    }
+    
+    /* Custom List Item styling */
+    .modern-list-item {
+        background: rgba(255,255,255,0.02);
+        margin: 5px 0;
+        padding: 12px 20px;
+        border-radius: 12px;
+        display: flex;
+        justify-content: space-between;
         border: 1px solid transparent;
         transition: 0.3s;
     }
+    
+    .modern-list-item:hover {
+        background: rgba(255,255,255,0.05);
+        border-color: rgba(0, 212, 255, 0.3);
+        padding-left: 25px; /* Subtle slide effect */
+    }
 
-    .monitor-row:hover {
-        background: rgba(255,255,255,0.03);
-        border: 1px solid rgba(255,255,255,0.1);
+    /* 5. GHOST BUTTONS WITH CYBER GLOW */
+    .stButton>button {
+        background: linear-gradient(90deg, #00d4ff22, transparent) !important;
+        border: 1px solid #00d4ff55 !important;
+        color: #00d4ff !important;
+        border-radius: 4px !important; /* Sharp for "Industrial" look */
+        font-family: 'JetBrains Mono', monospace;
+        font-weight: 200;
+        letter-spacing: 4px;
+        transition: 0.5s !important;
+        text-align: left;
+        padding-left: 20px;
+    }
+
+    .stButton>button:hover {
+        background: #00d4ff !important;
+        color: #000 !important;
+        box-shadow: 0 0 40px #00d4ff66;
+        letter-spacing: 6px;
+    }
+
+    /* 6. MONITOR / DATA SCROLL (MATRIX VIBE) */
+    .monitor-container {
+        border: 1px solid rgba(0, 212, 255, 0.1);
+        background: repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0px, rgba(0,0,0,0.15) 1px, transparent 1px, transparent 2px);
+        background-size: 100% 3px;
+        border-radius: 40px;
     }
 
     .monitor-plate {
-        font-family: 'Outfit', sans-serif;
-        font-weight: 800;
-        font-size: 40px;
-        background: linear-gradient(to bottom, #fff, #888);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        font-family: 'JetBrains Mono', monospace;
+        letter-spacing: -2px;
+        filter: drop-shadow(0 0 8px #00d4ff66);
     }
 
-    /* SCROLLBAR STYLING */
-    ::-webkit-scrollbar { width: 5px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
-    ::-webkit-scrollbar-thumb:hover { background: #00d4ff; }
-
-    /* INPUTS */
+    /* 7. METRIC CARDS (OVERRIDE DEFAULT) */
+    [data-testid="stMetricValue"] {
+        font-weight: 100 !important;
+        font-size: 3rem !important;
+        color: #00d4ff !important;
+    }
+    
+    /* 8. INPUTS (THE DARK PILL) */
     div[data-baseweb="input"] > div {
-        background-color: rgba(0, 0, 0, 0.2) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 15px !important;
+        background-color: #000 !important;
+        border-radius: 50px !important;
+        border: 1px solid #333 !important;
+        padding: 5px 15px;
     }
+
     </style>
     """, unsafe_allow_html=True)
 
