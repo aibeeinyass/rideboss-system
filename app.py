@@ -32,208 +32,147 @@ except Exception as e:
     st.error(f"Database Connection Error: {e}")
     st.stop()
 
-# --- CSS STYLING (THEME: DEEP OCEAN GLASS) ---
+# --- CSS STYLING (THEME: EXECUTIVE BUSINESS DASHBOARD) ---
 st.markdown("""
     <style>
-    /* 1. GLOBAL FONTS & ANIMATIONS */
-    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&family=Roboto+Mono:wght@400;700&display=swap');
+    /* 1. IMPORTS & GLOBAL CLEANUP */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono&display=swap');
     
-    @keyframes smoothFadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
+    /* Remove default Streamlit padding that makes it look cramped */
+    .block-container {
+        padding-top: 2rem !important;
+        padding-bottom: 2rem !important;
+        max-width: 95% !important;
     }
 
-    @keyframes softPulse {
-        0% { box-shadow: 0 4px 20px rgba(0, 212, 255, 0.2); }
-        50% { box-shadow: 0 4px 30px rgba(0, 212, 255, 0.4); }
-        100% { box-shadow: 0 4px 20px rgba(0, 212, 255, 0.2); }
-    }
-
-    /* 2. MAIN APP BACKGROUND - DEEP NAVY GRADIENT */
+    /* 2. MAIN APP BACKGROUND - MATTE DEEP NAVY */
     .stApp { 
-        background: radial-gradient(circle at top left, #0f2027, #203a43, #2c5364); /* "Deep Sea" Gradient */
-        background-attachment: fixed;
-        color: #F0F2F6; 
-        font-family: 'Poppins', sans-serif; 
+        background: radial-gradient(circle at 20% 10%, #16213e 0%, #0f172a 100%);
+        color: #e2e8f0; 
+        font-family: 'Inter', sans-serif; 
     }
     
-    /* 3. MODERN SIDEBAR */
+    /* 3. PROFESSIONAL SIDEBAR - HIGH CONTRAST & SPACING */
     section[data-testid="stSidebar"] {
-        background-color: rgba(15, 23, 42, 0.85); /* Dark blue transparency */
-        border-right: 1px solid rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(12px); /* Glass effect */
+        background-color: #020617 !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
+        width: 320px !important; /* Fixed width for better legibility */
     }
-    div[data-testid="stSidebarNav"] {
-        padding-top: 20px; 
+    
+    /* Sidebar Navigation Labels */
+    section[data-testid="stSidebar"] .st-emotion-cache-1647it7 {
+        font-size: 1rem;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
     }
 
-    /* 4. CARDS - FROSTED GLASS LOOK */
-    .status-card { 
-        background: rgba(255, 255, 255, 0.05); /* Very subtle white tint */
-        backdrop-filter: blur(15px);
-        -webkit-backdrop-filter: blur(15px);
-        padding: 25px; 
-        border-radius: 20px; /* Modern rounded corners */
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        margin-bottom: 20px; 
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-        transition: transform 0.3s ease;
-        animation: smoothFadeIn 0.5s ease-out;
-        position: relative;
-        overflow: hidden;
+    /* 4. EXECUTIVE INPUT FIELDS (WIDE & CLEAR) */
+    div[data-baseweb="input"], div[data-baseweb="select"] {
+        margin-bottom: 15px !important;
     }
     
-    .status-card:hover {
-        transform: translateY(-5px);
-        border: 1px solid rgba(0, 212, 255, 0.3);
+    div[data-baseweb="input"] > div, div[data-baseweb="select"] > div {
+        background-color: #1e293b !important;
+        border: 1px solid #334155 !important;
+        border-radius: 8px !important;
+        color: white !important;
+        height: 48px !important; /* Comfortable height for clicking */
     }
-    
-    /* Subtle Cyan accent line on the left of cards */
-    .status-card::before {
-        content: "";
-        position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        width: 4px;
-        background: linear-gradient(to bottom, #00d4ff, #005bea);
-    }
-    
-    /* 5. NOTIFICATION BAR */
-    .notification-bar { 
-        background: linear-gradient(90deg, rgba(0, 212, 255, 0.15) 0%, rgba(0,0,0,0) 100%);
-        padding: 15px 25px; 
-        border-radius: 12px;
-        color: #00d4ff; 
-        font-size: 0.9em; 
-        font-weight: 600; 
-        letter-spacing: 1px; 
-        margin-bottom: 30px; 
-        border: 1px solid rgba(0, 212, 255, 0.2);
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-    
-    /* 6. BUTTONS - THE "PILL" SHAPE (Like the reference image) */
+
+    /* 5. THE "AUTHORIZE" BUTTON - PROMINENT & CALM */
     .stButton>button { 
-        border-radius: 50px; /* Fully rounded "Pill" shape */
-        font-family: 'Poppins', sans-serif;
+        border-radius: 8px;
         font-weight: 600;
         letter-spacing: 0.5px;
-        text-transform: capitalize; /* "Start Wash" instead of "START WASH" */
-        background: linear-gradient(135deg, #00d4ff 0%, #005bea 100%); /* Cyan to Blue gradient */
+        background: linear-gradient(90deg, #00d4ff 0%, #0077b6 100%);
         border: none;
         color: white; 
-        padding: 0.6rem 1.5rem;
-        height: auto;
-        min-height: 3.2em; 
+        padding: 1rem 2rem;
+        height: 55px !important;
+        font-size: 1.1rem !important;
         width: 100%; 
-        box-shadow: 0 4px 15px rgba(0, 91, 234, 0.3);
+        box-shadow: 0 4px 12px rgba(0, 212, 255, 0.2);
         transition: all 0.3s ease;
+        margin-top: 10px;
     }
     
     .stButton>button:hover { 
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(0, 212, 255, 0.5); /* Glow effect */
-        color: #fff;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4);
+    }
+
+    /* 6. STATUS CARDS - CLEAN GLASS WITH PADDING */
+    .status-card { 
+        background: rgba(30, 41, 59, 0.7);
+        backdrop-filter: blur(10px);
+        padding: 30px; 
+        border-radius: 12px; 
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-left: 6px solid #00d4ff; 
+        margin-bottom: 25px; 
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
     }
     
-    .stButton>button:active {
-        transform: scale(0.98);
-    }
-    
-    /* 7. MONITOR - CLEAN DIGITAL DISPLAY */
+    /* 7. MONITOR BOARD (The Scrolling Data) */
     .monitor-container { 
-        background: #0a0e14; /* Darker than bg for contrast */
-        border: 1px solid rgba(255,255,255,0.1); 
-        border-radius: 20px; 
-        height: 700px; 
+        background: #020617; 
+        border-radius: 12px; 
+        border: 1px solid #1e293b;
+        height: 750px; 
         overflow: hidden; 
         position: relative; 
-        box-shadow: inset 0 0 40px rgba(0,0,0,0.5);
-    }
-    
-    /* Scrolling Logic */
-    .scroll-content { 
-        position: absolute; 
-        width: 100%; 
-        animation: scrollUp 45s linear infinite; 
-        will-change: transform; 
-    }
-    .scroll-content:hover { animation-play-state: paused; }
-    
-    @keyframes scrollUp { 
-        0% { transform: translateY(100%); } 
-        100% { transform: translateY(-100%); } 
     }
     
     .monitor-row { 
         display: flex; 
         justify-content: space-between; 
         align-items: center; 
-        padding: 25px 35px; 
-        border-bottom: 1px solid rgba(255,255,255,0.05); 
-        transition: background 0.3s;
+        padding: 25px 40px; 
+        border-bottom: 1px solid #0f172a; 
     }
     
-    .monitor-row:hover {
-        background: rgba(255,255,255,0.02);
-    }
-    
-    /* Monitor Typography - Clean & Technical */
     .monitor-plate { 
-        font-size: 40px; 
+        font-size: 38px; 
         font-weight: 700; 
-        color: #E0E0E0; 
-        font-family: 'Roboto Mono', monospace; 
-        letter-spacing: -1px;
+        color: #f8fafc; 
+        font-family: 'JetBrains Mono', monospace; 
     }
     
     .monitor-status { 
-        font-size: 14px; 
+        font-size: 0.9rem; 
         color: #00d4ff; 
-        font-weight: 600; 
+        font-weight: 700; 
         background: rgba(0, 212, 255, 0.1);
-        padding: 6px 16px;
-        border-radius: 30px;
+        padding: 8px 18px;
+        border-radius: 20px;
         text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-    
-    .monitor-staff { 
-        font-size: 16px; 
-        color: #94a3b8; 
-        font-weight: 500;
-    }
-    
-    .monitor-svc { 
-        color: #64748b; 
-        font-size: 14px; 
-        margin-top: 4px;
-        font-style: italic;
     }
 
-    /* 8. INPUT FIELDS - SLEEK & DARK */
-    div[data-baseweb="input"] > div, div[data-baseweb="select"] > div {
-        background-color: rgba(0, 0, 0, 0.2) !important;
-        color: white !important;
-        border-radius: 12px !important;
-        border: 1px solid rgba(255,255,255,0.1) !important;
-        transition: all 0.3s;
-    }
-    
-    div[data-baseweb="input"] > div:focus-within, div[data-baseweb="select"] > div:focus-within {
-        border-color: #00d4ff !important;
-        box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
-        background-color: rgba(0, 0, 0, 0.4) !important;
-    }
-    
-    /* HEADERS */
+    /* 8. TYPOGRAPHY UPDATES */
     h1, h2, h3 {
-        color: #fff !important;
-        font-weight: 600;
-        letter-spacing: -0.5px;
+        color: #ffffff !important;
+        font-weight: 700 !important;
+        margin-bottom: 1.5rem !important;
+    }
+    
+    label { /* Field Labels */
+        color: #94a3b8 !important;
+        font-weight: 500 !important;
+        font-size: 0.85rem !important;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* SCROLL ANIMATION */
+    .scroll-content { 
+        position: absolute; 
+        width: 100%; 
+        animation: scrollUp 50s linear infinite; 
+    }
+    .scroll-content:hover { animation-play-state: paused; }
+    @keyframes scrollUp { 
+        0% { transform: translateY(100%); } 
+        100% { transform: translateY(-100%); } 
     }
     </style>
     """, unsafe_allow_html=True)
