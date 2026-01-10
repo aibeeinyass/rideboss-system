@@ -1117,7 +1117,7 @@ if choice == "COMMAND CENTER":
                     else:
                         st.error("Please provide both Plate and Card Serial Number.")
 
-                    else:
+                else:
                 # TOP-UP LOGIC
                 st.caption("Add washes to an existing card")
                 t_input = st.text_input("SCAN CARD OR ENTER PLATE").upper()
