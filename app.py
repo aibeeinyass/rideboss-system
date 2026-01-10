@@ -1119,7 +1119,7 @@ if choice == "COMMAND CENTER":
 
                 else:
                 # TOP-UP LOGIC
-                st.caption("Add washes to an existing card")
+                    st.caption("Add washes to an existing card")
                 t_input = st.text_input("SCAN CARD OR ENTER PLATE").upper()
                 t_washes = st.number_input("WASHES TO ADD", min_value=1, value=10)
                 t_price = st.number_input("TOP-UP AMOUNT (₦)", min_value=0.0, step=500.0)
