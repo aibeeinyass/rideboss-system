@@ -35,229 +35,157 @@ except Exception as e:
 # --- CSS STYLING (OBSIDIAN AERO REDESIGN) ---
 st.markdown("""
     <style>
-    /* 1. GLOBAL FONTS & RESET */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Rajdhani:wght@500;700&display=swap');
-    
-    html, body, [class*="css"] {
-        font-family: 'Inter', sans-serif;
+    /* 1. IMPORT FONTS (Orbitron for headers, Rajdhani for data) */
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap');
+
+    /* 2. BACKGROUND - MOVING CYBER GRID */
+    .stApp {
+        background-color: #050505;
+        background-image: 
+            linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
+        background-size: 50px 50px;
+        animation: panGrid 20s linear infinite;
     }
     
-    /* 2. MAIN BACKGROUND - RADIAL OBSIDIAN */
-    .stApp { 
-        background: radial-gradient(circle at 50% 0%, #1a1a1a 0%, #050505 60%, #000000 100%);
-        color: #e0e0e0; 
+    @keyframes panGrid {
+        0% { background-position: 0 0; }
+        100% { background-position: 50px 50px; }
+    }
+
+    /* 3. MECHA-CARDS (CLIPPED CORNERS) */
+    .status-card {
+        background: rgba(20, 20, 25, 0.9);
+        border-left: 5px solid #00d4ff;
+        border-right: 1px solid #333;
+        border-top: 1px solid #333;
+        border-bottom: 1px solid #333;
+        padding: 25px;
+        margin-bottom: 20px;
+        /* THE CRAZY PART: Cut the corner */
+        clip-path: polygon(
+            0 0, 
+            100% 0, 
+            100% 85%, 
+            95% 100%, 
+            0 100%
+        );
+        transition: all 0.2s ease-in-out;
+        position: relative;
+    }
+
+    .status-card:hover {
+        transform: scale(1.02);
+        background: rgba(0, 212, 255, 0.05);
+        border-left: 5px solid #fff;
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
     }
     
-    /* 3. SIDEBAR - FROSTED GLASS */
-    [data-testid="stSidebar"] { 
-        background-color: rgba(10, 10, 10, 0.6); 
-        backdrop-filter: blur(20px);
-        border-right: 1px solid rgba(255, 255, 255, 0.05);
+    /* Add a decorative label to the card via CSS */
+    .status-card::before {
+        content: "SYS.ACTIVE";
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 8px;
+        color: #555;
+        letter-spacing: 2px;
     }
-    
-    /* 4. HEADERS & TITLES */
+
+    /* 4. TYPOGRAPHY - HEADERS */
     h1, h2, h3 {
-        font-family: 'Rajdhani', sans-serif !important;
+        font-family: 'Orbitron', sans-serif !important;
+        text-transform: uppercase;
+        color: #fff !important;
+        letter-spacing: 3px;
+        text-shadow: 2px 2px 0px #00d4ff; /* Glitch effect shadow */
+    }
+    
+    /* 5. SIDEBAR - TACTICAL PANEL */
+    [data-testid="stSidebar"] {
+        background-color: #0a0a0a;
+        border-right: 2px solid #333;
+    }
+    [data-testid="stSidebar"] hr {
+        border-color: #00d4ff !important;
+    }
+
+    /* 6. BUTTONS - LASER OUTLINE */
+    .stButton>button {
+        font-family: 'Orbitron', sans-serif;
+        background: transparent;
+        border: 2px solid #00d4ff;
+        color: #00d4ff;
+        border-radius: 0px; /* Sharp corners */
         text-transform: uppercase;
         letter-spacing: 2px;
-        color: #fff !important;
-        text-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+        transition: 0.3s;
+        box-shadow: inset 0 0 10px rgba(0, 212, 255, 0.1);
     }
     
-    /* 5. GLASSMORPHISM CONTAINERS (Cards) */
-    .status-card { 
-        background: rgba(255, 255, 255, 0.03); 
-        backdrop-filter: blur(12px); 
-        -webkit-backdrop-filter: blur(12px);
-        padding: 25px; 
-        border-radius: 12px; 
-        border: 1px solid rgba(255, 255, 255, 0.08); 
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
-        margin-bottom: 20px; 
-        transition: transform 0.3s ease, border-color 0.3s ease;
+    .stButton>button:hover {
+        background: #00d4ff;
+        color: #000;
+        box-shadow: 0 0 30px #00d4ff;
+        text-shadow: none;
     }
-    
-    .status-card:hover {
-        transform: translateY(-5px);
-        border-color: rgba(0, 212, 255, 0.5);
-        box-shadow: 0 12px 40px 0 rgba(0, 212, 255, 0.1);
-    }
-    
-    /* 6. NOTIFICATION HUD BAR */
-    .notification-bar { 
-        background: linear-gradient(90deg, rgba(0, 212, 255, 0.1) 0%, rgba(0,0,0,0) 100%);
-        padding: 15px; 
-        border-left: 4px solid #00d4ff; 
-        color: #00d4ff; 
-        font-family: 'Rajdhani', monospace;
-        font-size: 1em; 
-        font-weight: 700; 
-        text-transform: uppercase; 
-        letter-spacing: 3px; 
-        margin-bottom: 30px; 
-        animation: fadeIn 1s ease-in;
-    }
-    
-    /* 7. NEON BUTTONS */
-    .stButton>button { 
-        border-radius: 6px; 
-        font-family: 'Rajdhani', sans-serif;
-        letter-spacing: 2px; 
-        font-weight: 700;
-        text-transform: uppercase; 
-        background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%);
-        border: 1px solid rgba(255, 255, 255, 0.1); 
-        color: #00d4ff; 
-        height: 3.5em; 
-        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); 
-        width: 100%; 
-        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-    }
-    
-    .stButton>button:hover { 
-        border-color: #00d4ff; 
-        color: #fff; 
-        background: rgba(0, 212, 255, 0.15); 
-        box-shadow: 0 0 15px rgba(0, 212, 255, 0.4);
-        transform: scale(1.02);
-    }
-    
-    .stButton>button:active {
-        transform: scale(0.98);
-    }
-    
-    /* Secondary/Delete Buttons (Red Accent) */
-    button:has(div:contains("DELETE")), button:has(div:contains("Cancel")) {
-        color: #ff4b2b !important;
-        border-color: rgba(255, 75, 43, 0.3) !important;
+
+    /* 7. DELETE BUTTONS (RED ALERT) */
+    button:has(div:contains("DELETE")) {
+        border-color: #ff2a2a !important;
+        color: #ff2a2a !important;
+        box-shadow: inset 0 0 10px rgba(255, 42, 42, 0.1);
     }
     button:has(div:contains("DELETE")):hover {
-        background: rgba(255, 75, 43, 0.15) !important;
-        box-shadow: 0 0 15px rgba(255, 75, 43, 0.4) !important;
+        background: #ff2a2a !important;
+        color: #000 !important;
+        box-shadow: 0 0 30px #ff2a2a !important;
     }
 
-    /* 8. INPUT FIELDS & SELECTBOXES */
-    div[data-baseweb="input"] {
-        background-color: rgba(0, 0, 0, 0.3) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 6px !important;
-    }
-    div[data-baseweb="select"] > div {
-        background-color: rgba(0, 0, 0, 0.3) !important;
-        border-color: rgba(255, 255, 255, 0.1) !important;
-    }
-    div[data-baseweb="base-input"] input {
-        color: white !important;
+    /* 8. MONITOR BOARD - RACING LEADERBOARD STYLE */
+    .monitor-container {
+        background: #000;
+        border: 2px solid #333;
+        border-top: 10px solid #00d4ff;
+        border-radius: 0px;
+        height: 700px;
+        overflow: hidden;
+        position: relative;
     }
     
-    /* 9. METRICS DASHBOARD STYLE */
-    [data-testid="stMetric"] {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        padding: 15px;
-        border-radius: 8px;
-        text-align: center;
-        box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
-    }
-    [data-testid="stMetricLabel"] {
-        color: #888;
-        font-size: 0.8em;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-    [data-testid="stMetricValue"] {
-        color: #fff;
-        font-family: 'Rajdhani', sans-serif;
-        font-weight: 700;
-        text-shadow: 0 0 10px rgba(255,255,255,0.3);
-    }
-
-    /* 10. FLIGHT BOARD / MONITOR CLASSES */
-    .monitor-container { 
-        background: #000; 
-        border: 1px solid #333; 
-        border-radius: 12px; 
-        height: 700px; 
-        overflow: hidden; 
-        position: relative; 
-        box-shadow: 0 0 50px rgba(0, 212, 255, 0.1);
-    }
-    
-    .scroll-content { 
-        position: absolute; 
-        width: 100%; 
-        animation: scrollUp 40s linear infinite; 
-        will-change: transform; 
-    }
-    
-    @keyframes scrollUp { 
-        0% { transform: translateY(100%); } 
-        100% { transform: translateY(-100%); } 
-    }
-    
-    .scroll-content:hover { animation-play-state: paused; }
-    
-    .monitor-row { 
+    .monitor-row {
+        border-bottom: 1px dotted #333;
+        padding: 20px;
         display: flex; 
         justify-content: space-between; 
         align-items: center; 
-        padding: 30px; 
-        border-bottom: 1px solid rgba(255,255,255,0.1); 
-        background: rgba(0,0,0,0.8);
-        backdrop-filter: blur(5px);
+        background: radial-gradient(circle, #111 0%, #000 100%);
+    }
+
+    .monitor-plate {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 40px;
+        color: #fff;
+        text-shadow: 0 0 10px rgba(255,255,255,0.5);
+    }
+
+    /* 9. INPUTS - COMMAND LINE STYLE */
+    div[data-baseweb="input"] {
+        background: #000 !important;
+        border: 1px solid #444 !important;
+        border-radius: 0px !important;
+        font-family: 'Rajdhani', monospace;
     }
     
-    .monitor-plate { 
-        font-size: 55px; 
-        font-weight: 900; 
-        color: #00d4ff; 
-        font-family: 'Rajdhani', sans-serif; 
-        text-shadow: 0 0 15px rgba(0, 212, 255, 0.6);
-    }
-    
-    .monitor-status { 
-        font-size: 20px; 
-        color: #ff4b2b; 
-        font-weight: bold; 
-        text-transform: uppercase;
-        letter-spacing: 2px;
-    }
-    
-    .monitor-staff { 
-        font-size: 18px; 
-        color: #aaa; 
-        text-transform: uppercase; 
-        font-family: 'Inter', sans-serif;
-    }
-    
-    .monitor-svc { 
-        color: #00d4ff; 
-        font-style: italic; 
-        font-size: 18px; 
-        opacity: 0.8;
-    }
-    
-    /* 11. TABLES & DATAFRAMES */
-    [data-testid="stDataFrame"] {
-        border: 1px solid rgba(255,255,255,0.1);
-        border-radius: 8px;
-        overflow: hidden;
-    }
-    
-    /* 12. ANIMATIONS */
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    .stTabs, .stVerticalBlock, .element-container {
-        animation: fadeIn 0.5s ease-out;
-    }
-    
-    /* HIDE STREAMLIT BRANDING */
+    /* Hide default streamlit elements */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
+    header {visibility: hidden;}
+    
     </style>
-    """, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
+
 
 
 # --- DATABASE INITIALIZATION FUNCTION ---
