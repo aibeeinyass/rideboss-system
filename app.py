@@ -32,141 +32,160 @@ except Exception as e:
     st.error(f"Database Connection Error: {e}")
     st.stop()
 
-# --- CSS STYLING (EXPANDED FOR VISUAL CLARITY) ---
+# --- CSS STYLING (MODERN LUXURY REDESIGN) ---
 st.markdown("""
     <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+
     /* MAIN APP STYLING */
     .stApp { 
-        background-color: #050505; 
+        background: radial-gradient(circle at top left, #121212, #050505);
         color: #E0E0E0; 
         font-family: 'Inter', sans-serif; 
     }
     
-    /* SIDEBAR STYLING */
+    /* GLASSMORPHISM SIDEBAR */
     [data-testid="stSidebar"] { 
-        background-color: #0A0A0A; 
-        border-right: 1px solid #222; 
+        background-color: rgba(10, 10, 10, 0.95); 
+        border-right: 1px solid rgba(255, 255, 255, 0.05); 
     }
     
-    /* STATUS CARD COMPONENT */
+    /* MODERN CARD COMPONENT (GLASS EFFECT) */
     .status-card { 
-        background: #0F0F0F; 
-        padding: 25px; 
-        border-radius: 2px; 
-        border-left: 4px solid #00d4ff; 
-        margin-bottom: 15px; 
-        border-top: 1px solid #1A1A1A; 
-        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        background: rgba(25, 25, 25, 0.6); 
+        backdrop-filter: blur(10px);
+        padding: 24px; 
+        border-radius: 16px; 
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        margin-bottom: 18px; 
+        transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
     }
     
-    /* NOTIFICATION BAR COMPONENT */
+    .status-card:hover {
+        transform: translateY(-5px);
+        border: 1px solid rgba(0, 212, 255, 0.3);
+        background: rgba(30, 30, 30, 0.8);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
+    }
+    
+    /* NEON ACCENT BAR */
     .notification-bar { 
-        background: #00d4ff22; 
-        padding: 12px; 
-        border-bottom: 1px solid #00d4ff; 
+        background: linear-gradient(90deg, rgba(0,212,255,0.1) 0%, rgba(0,0,0,0) 100%); 
+        padding: 14px 20px; 
+        border-left: 4px solid #00d4ff; 
+        border-radius: 4px;
         color: #00d4ff; 
         font-size: 0.85em; 
         font-weight: 600; 
         text-transform: uppercase; 
-        letter-spacing: 2px; 
-        margin-bottom: 30px; 
+        letter-spacing: 3px; 
+        margin-bottom: 30px;
+        animation: pulse 3s infinite;
+    }
+
+    @keyframes pulse {
+        0% { opacity: 0.8; }
+        50% { opacity: 1; }
+        100% { opacity: 0.8; }
     }
     
-    /* CUSTOM BUTTON STYLING */
+    /* MODERN BUTTON REDESIGN */
     .stButton>button { 
-        border-radius: 0px; 
-        letter-spacing: 2px; 
-        font-size: 0.8em; 
+        border-radius: 12px; 
+        letter-spacing: 1.5px; 
+        font-size: 0.85em; 
+        font-weight: 600;
         text-transform: uppercase; 
-        background-color: transparent; 
-        border: 1px solid #333; 
-        color: white; 
-        height: 3em; 
-        transition: 0.4s; 
+        background: rgba(255, 255, 255, 0.03); 
+        border: 1px solid rgba(255, 255, 255, 0.1); 
+        color: #ffffff; 
+        height: 3.5em; 
+        transition: all 0.3s ease; 
         width: 100%; 
     }
     
     .stButton>button:hover { 
         border-color: #00d4ff; 
         color: #00d4ff; 
-        background-color: #00d4ff11; 
-        cursor: pointer;
+        background: rgba(0, 212, 255, 0.08); 
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+        transform: scale(1.02);
+    }
+
+    .stButton>button:active {
+        transform: scale(0.98);
     }
     
-    /* MONITOR / FLIGHT BOARD SCROLLING EFFECTS */
+    /* MONITOR SCROLLING REDESIGN */
     .monitor-container { 
         background: #000; 
-        border: 2px solid #222; 
-        border-radius: 10px; 
+        border: 1px solid rgba(255, 255, 255, 0.1); 
+        border-radius: 20px; 
         height: 700px; 
         overflow: hidden; 
-        position: relative; 
-    }
-    
-    .scroll-content { 
-        position: absolute; 
-        width: 100%; 
-        animation: scrollUp 40s linear infinite; 
-        will-change: transform; 
-    }
-    
-    @keyframes scrollUp { 
-        0% { transform: translateY(100%); } 
-        100% { transform: translateY(-100%); } 
-    }
-    
-    .scroll-content:hover { 
-        animation-play-state: paused; 
+        box-shadow: inset 0 0 50px rgba(0,0,0,1);
     }
     
     .monitor-row { 
-        display: flex; 
-        justify-content: space-between; 
-        align-items: center; 
-        padding: 30px; 
-        border-bottom: 2px solid #222; 
-        background: #050505; 
+        padding: 25px 40px; 
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03); 
+        background: transparent; 
+        transition: background 0.3s;
+    }
+    
+    .monitor-row:hover {
+        background: rgba(255, 255, 255, 0.02);
     }
     
     .monitor-plate { 
-        font-size: 55px; 
-        font-weight: 900; 
-        color: #00d4ff; 
+        font-size: 48px; 
+        font-weight: 800; 
+        color: #ffffff; 
         font-family: 'Courier New', monospace; 
-    }
-    
-    .monitor-status { 
-        font-size: 18px; 
-        color: #FFD700; 
-        font-weight: bold; 
-    }
-    
-    .monitor-meta { 
-        text-align: right; 
-    }
-    
-    .monitor-staff { 
-        font-size: 20px; 
-        color: #888; 
-        text-transform: uppercase; 
+        text-shadow: 0 0 10px rgba(255,255,255,0.2);
     }
     
     .monitor-svc { 
         color: #00d4ff; 
-        font-style: italic; 
-        font-size: 16px; 
+        font-weight: 300;
+        letter-spacing: 1px;
+        opacity: 0.9;
     }
 
-    /* INPUT FIELD STYLING */
-    div[data-baseweb="input"] > div {
-        background-color: #111;
-        color: white;
-        border-radius: 0px;
-        border: 1px solid #333;
+    /* INPUT FIELD GLASSMORPHISM */
+    div[data-baseweb="input"] > div, div[data-baseweb="select"] > div {
+        background-color: rgba(255, 255, 255, 0.03) !important;
+        color: white !important;
+        border-radius: 12px !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        transition: all 0.3s;
     }
-    div[data-baseweb="select"] > div {
-        background-color: #111;
-        color: white;
+    
+    div[data-baseweb="input"]:focus-within {
+        border-color: #00d4ff !important;
+        background-color: rgba(0, 212, 255, 0.05) !important;
+    }
+
+    /* TABS STYLING */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 10px;
+        background-color: transparent;
+    }
+
+    .stTabs [data-baseweb="tab"] {
+        height: 50px;
+        white-space: pre-wrap;
+        background-color: rgba(255, 255, 255, 0.03);
+        border-radius: 10px 10px 0px 0px;
+        color: #888;
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+
+    .stTabs [aria-selected="true"] {
+        background-color: rgba(0, 212, 255, 0.1) !important;
+        color: #00d4ff !important;
     }
     </style>
     """, unsafe_allow_html=True)
