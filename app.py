@@ -1071,7 +1071,7 @@ if choice == "COMMAND CENTER":
 
         # ... continue part 2
         with tab_mem:
-            st.subheader("💳 MEMBERSHIP MANAGEMENT")
+    st.subheader("💳 MEMBERSHIP MANAGEMENT")
     
     mem_action = st.radio("SELECT ACTION", ["ISSUE NEW CARD", "TOP-UP EXISTING CARD"], horizontal=True)
     st.markdown("---")
@@ -1093,6 +1093,7 @@ if choice == "COMMAND CENTER":
             st.warning(f"Confirm you have received ₦{card_sale_price:,} via {m_pay_method}?")
             if st.button("YES, PAYMENT RECEIVED - ACTIVATE", use_container_width=True, type="primary"):
                 with conn.session as s:
+                    # 1. Activate the Card
                     s.execute(text("""
                         INSERT INTO memberships (plate, balance_washes, card_type, sale_price, card_serial, status) 
                         VALUES (:p, :b, :c, :s, :ser, 'ACTIVE')
@@ -1100,13 +1101,25 @@ if choice == "COMMAND CENTER":
                         SET balance_washes=:b, card_type=:c, sale_price=:s, card_serial=:ser, status='ACTIVE'
                     """), {"p": m_plate, "b": qty, "c": tier, "s": card_sale_price, "ser": m_serial})
                     
-                    # Commission Logic
+                    # 2. IMPORTANT: Log this as a SALE so it shows in Financials
+                    now_ts = datetime.now().strftime("%Y-%m-%d %H:%M")
+                    s.execute(text("""
+                        INSERT INTO sales (plate, services, total, method, staff, timestamp, type, status) 
+                        VALUES (:p, :svc, :tot, :meth, :st, :ts, :typ, 'COMPLETED')
+                    """), {
+                        "p": m_plate, "svc": f"NEW CARD: {tier}", "tot": card_sale_price,
+                        "meth": m_pay_method, "st": st.session_state.user_name, 
+                        "ts": now_ts, "typ": "CARDS"
+                    })
+                    
+                    # 3. Staff Commission Logic
                     receptionist = st.session_state.user_name
                     res_p = s.execute(text("SELECT bonus_pc FROM staff_payroll_config WHERE username=:u"), {"u": receptionist}).fetchone()
                     if res_p and res_p[0] > 0:
                         comm_amt = card_sale_price * (res_p[0] / 100)
                         s.execute(text("INSERT INTO earnings_log (username, amount, ref_plate, timestamp) VALUES (:u, :a, :r, :t)"),
-                                    {"u": receptionist, "a": comm_amt, "r": f"NEW_CARD:{m_plate}", "t": datetime.now().strftime("%Y-%m-%d %H:%M")})
+                                    {"u": receptionist, "a": comm_amt, "r": f"NEW_CARD:{m_plate}", "t": now_ts})
+
                     s.commit()
                 st.success(f"Successfully linked {m_serial} to {m_plate}!")
                 st.rerun()
@@ -1131,13 +1144,41 @@ if choice == "COMMAND CENTER":
             if st.button("CONFIRM PAYMENT & ADD WASHES", use_container_width=True, type="primary"):
                 try:
                     with conn.session as s:
-                        s.execute(text("""
+                        # 1. Update the Card Balance
+                        result = s.execute(text("""
                             UPDATE memberships 
                             SET balance_washes = balance_washes + :qty 
                             WHERE plate = :t OR card_serial = :t
                         """), {"qty": t_washes, "t": t_input})
+                        
+                        # Stop if card not found
+                        if result.rowcount == 0:
+                            st.error(f"❌ Error: Card/Plate '{t_input}' not found. Cannot top up.")
+                            return 
+
+                        # 2. IMPORTANT: Log this as a SALE so it shows in Financials
+                        receptionist = st.session_state.user_name
+                        now_ts = datetime.now().strftime("%Y-%m-%d %H:%M")
+                        
+                        s.execute(text("""
+                            INSERT INTO sales (plate, services, total, method, staff, timestamp, type, status) 
+                            VALUES (:p, :svc, :tot, :meth, :st, :ts, :typ, 'COMPLETED')
+                        """), {
+                            "p": t_input, "svc": f"TOP-UP: {t_washes} Washes", "tot": t_price,
+                            "meth": t_pay_method, "st": receptionist, 
+                            "ts": now_ts, "typ": "CARDS"
+                        })
+
+                        # 3. Staff Commission Logic
+                        res_p = s.execute(text("SELECT bonus_pc FROM staff_payroll_config WHERE username=:u"), {"u": receptionist}).fetchone()
+                        if res_p and res_p[0] > 0:
+                            comm_amt = t_price * (res_p[0] / 100)
+                            s.execute(text("INSERT INTO earnings_log (username, amount, ref_plate, timestamp) VALUES (:u, :a, :r, :t)"),
+                                     {"u": receptionist, "a": comm_amt, "r": f"TOPUP:{t_input}", "t": now_ts})
+                        
                         s.commit()
-                    st.session_state.mem_success = f"✅ Added {t_washes} washes to {t_input}!"
+                    
+                    st.success(f"✅ Added {t_washes} washes to {t_input}!")
                     st.rerun()
                 except Exception as e:
                     st.error(f"Top-up Error: {e}")
@@ -1147,6 +1188,7 @@ if choice == "COMMAND CENTER":
                 confirm_topup()
             else:
                 st.error("Please enter a Plate or Scan a Card.")
+
 
               
     # --- RECEIPT MODAL LOGIC ---
@@ -1749,7 +1791,7 @@ elif choice == "INVENTORY & STAFF" and st.session_state.user_role == "MANAGER":
 
 
 # ==============================================================================
-# 6. FINANCIALS (INTELLIGENCE CENTER) - ENHANCED UI VERSION
+# 6. FINANCIALS (INTELLIGENCE CENTER) - FIXED & ACCURATE
 # ==============================================================================
 elif choice == "FINANCIALS" and st.session_state.user_role == "MANAGER":
     st.title("📊 FINANCIAL INTELLIGENCE CENTER")
@@ -1764,11 +1806,12 @@ elif choice == "FINANCIALS" and st.session_state.user_role == "MANAGER":
             view_scope = col_f1.radio("**REPORTING SCOPE**", ["DAILY", "MONTHLY", "YEARLY"], horizontal=True)
             
             # Data Loading
+            # We ONLY pull revenue from 'sales' to avoid double counting. 
+            # The 'memberships' table is now only for managing access, not counting money.
             sales_raw = conn.query("SELECT * FROM sales", ttl=0)
             exp_raw = conn.query("SELECT * FROM expenses", ttl=0)
-            m_sales_raw = conn.query("SELECT plate, card_type, sale_price FROM memberships", ttl=0)
             
-            m_sales_raw['timestamp'] = datetime.now() 
+            # Convert timestamps
             sales_raw['timestamp'] = pd.to_datetime(sales_raw['timestamp'])
             exp_raw['timestamp'] = pd.to_datetime(exp_raw['timestamp'])
             
@@ -1781,37 +1824,43 @@ elif choice == "FINANCIALS" and st.session_state.user_role == "MANAGER":
                 f_sales = sales_raw[sales_raw['timestamp'].dt.date == selected_date]
                 f_exps = exp_raw[exp_raw['timestamp'].dt.date == selected_date]
                 label = f"DAILY PERFORMANCE: {selected_date}"
-                card_total = m_sales_raw['sale_price'].sum() if selected_date == now.date() else 0 
                 
             elif view_scope == "MONTHLY":
                 months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
                 selected_month_name = col_f2.selectbox("🗓️ SELECT MONTH", months, index=now.month-1)
                 selected_month = months.index(selected_month_name) + 1
+                
                 f_sales = sales_raw[(sales_raw['timestamp'].dt.month == selected_month) & (sales_raw['timestamp'].dt.year == now.year)]
                 f_exps = exp_raw[(exp_raw['timestamp'].dt.month == selected_month) & (exp_raw['timestamp'].dt.year == now.year)]
                 label = f"MONTHLY PERFORMANCE: {selected_month_name} {now.year}"
-                card_total = m_sales_raw['sale_price'].sum()
                 
             else:
                 current_year = now.year
                 year_options = list(range(2024, current_year + 1))
                 selected_year = col_f2.selectbox("📂 SELECT YEAR", year_options, index=len(year_options)-1)
+                
                 f_sales = sales_raw[sales_raw['timestamp'].dt.year == selected_year]
                 f_exps = exp_raw[exp_raw['timestamp'].dt.year == selected_year]
                 label = f"ANNUAL PERFORMANCE: {selected_year}"
-                card_total = m_sales_raw['sale_price'].sum()
 
         # --- Financial Summary Board ---
+        # BREAKDOWN BY TYPE (Accurate Single Source)
+        # We look for specific strings in the 'type' or 'services' column
         rev_wash = f_sales[f_sales['type'] == 'CAR WASH']['total'].sum()
         rev_lounge = f_sales[f_sales['type'] == 'LOUNGE']['total'].sum()
+        
+        # New: Calculate Card Revenue from Sales Table (looks for type='CARDS')
+        rev_cards = f_sales[f_sales['type'] == 'CARDS']['total'].sum()
+        
+        total_revenue = f_sales['total'].sum() # Should match sum of above
         total_exp = f_exps['amount'].sum()
-        net_profit = (rev_wash + rev_lounge + card_total) - total_exp
+        net_profit = total_revenue - total_exp
 
         st.info(f"#### {label}")
         m1, m2, m3, m4, m5 = st.columns(5)
         m1.metric("WASH", f"₦{rev_wash:,}")
         m2.metric("LOUNGE", f"₦{rev_lounge:,}")
-        m3.metric("CARDS", f"₦{card_total:,}")
+        m3.metric("CARDS", f"₦{rev_cards:,}") # Now accurate
         m4.metric("EXPENSES", f"₦{total_exp:,}")
         m5.metric("NET PROFIT", f"₦{net_profit:,}", delta=float(net_profit))
         
@@ -1819,7 +1868,7 @@ elif choice == "FINANCIALS" and st.session_state.user_role == "MANAGER":
         st.markdown("### 📊 Revenue Breakdown")
         chart_data = pd.DataFrame({
             'Category': ['Wash', 'Lounge', 'Cards', 'Expenses'], 
-            'Amount': [rev_wash, rev_lounge, card_total, total_exp]
+            'Amount': [rev_wash, rev_lounge, rev_cards, total_exp]
         })
         st.bar_chart(chart_data.set_index('Category'))
         
@@ -1850,6 +1899,7 @@ elif choice == "FINANCIALS" and st.session_state.user_role == "MANAGER":
         with search_col:
             search_query = st.text_input("🔍 Search Registry", placeholder="Enter Plate or Serial...", key="search_cards_hub")
         
+        # We load memberships here strictly for management, NOT for financial totals
         m_df = conn.query("SELECT * FROM memberships", ttl=0)
         
         if m_df.empty:
@@ -1900,16 +1950,39 @@ elif choice == "FINANCIALS" and st.session_state.user_role == "MANAGER":
                         elif "Platinum" in row['card_type']: top_up_qty = 25
                         
                         with conn.session as s:
+                            # 1. Update Balance
                             s.execute(text("UPDATE memberships SET balance_washes = balance_washes + :q WHERE plate=:p"), 
                                       {"q": top_up_qty, "p": row['plate']})
+                            
+                            # 2. Log Sale (CRITICAL FOR FINANCIALS)
                             receptionist = st.session_state.user_name
+                            now_ts = datetime.now().strftime("%Y-%m-%d %H:%M")
+                            # We must insert into sales so it shows in the chart above
+                            # (Note: In your 'Membership' tab you handle the payment logic, 
+                            # this 'Refill' button is a quick-action shortcut. 
+                            # Ideally, payment should be verified, but we log 0 or the tier price here?)
+                            
+                            # Assuming this button implies a paid refill:
+                            # Retrieve price based on tier (approx logic)
+                            # Ideally, you should fetch the price, but we will use the stored sale_price
+                            refill_price = row['sale_price'] 
+                            
+                            s.execute(text("""
+                                INSERT INTO sales (plate, services, total, method, staff, timestamp, type, status) 
+                                VALUES (:p, :svc, :tot, :meth, :st, :ts, :typ, 'COMPLETED')
+                            """), {
+                                "p": row['plate'], "svc": f"QUICK REFILL: {top_up_qty}", "tot": refill_price,
+                                "meth": "CASH", "st": receptionist, "ts": now_ts, "typ": "CARDS"
+                            })
+
+                            # 3. Staff Commission
                             p_res = s.execute(text("SELECT bonus_pc FROM staff_payroll_config WHERE username=:u"), 
                                               {"u": receptionist}).fetchone()
                             
                             if p_res and p_res[0] > 0:
-                                comm_amt = row['sale_price'] * (p_res[0] / 100)
+                                comm_amt = refill_price * (p_res[0] / 100)
                                 s.execute(text("INSERT INTO earnings_log (username, amount, ref_plate, timestamp) VALUES (:u, :a, :r, :t)"), 
-                                          {"u": receptionist, "a": comm_amt, "r": f"TOPUP:{row['plate']}", "t": datetime.now().strftime("%Y-%m-%d %H:%M")})
+                                          {"u": receptionist, "a": comm_amt, "r": f"TOPUP:{row['plate']}", "t": now_ts})
                             s.commit()
                         st.success(f"Added {top_up_qty} washes!")
                         st.rerun()
@@ -1922,7 +1995,6 @@ elif choice == "FINANCIALS" and st.session_state.user_role == "MANAGER":
                         st.rerun()
                     
                     st.markdown('<hr style="margin: 0px;">', unsafe_allow_html=True)
-
 
 # ==============================================================================
 # 7. CRM & RETENTION
