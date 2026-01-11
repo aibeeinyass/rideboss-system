@@ -653,8 +653,8 @@ if st.session_state.user_role == "STAFF" and is_verified == 0:
     st.stop()
 
 # --- LOAD SYSTEM CONFIGURATION ---
-wash_prices_df = conn.query("SELECT * FROM wash_prices", ttl=0)
-SERVICES = dict(zip(wash_prices_df['service'], wash_prices_df['price']))
+# wash_prices_df = conn.query("SELECT * FROM wash_prices", ttl=0)
+# SERVICES = dict(zip(wash_prices_df['service'], wash_prices_df['price']))
 COUNTRY_CODES = {"Nigeria": "+234", "Ghana": "+233", "UK": "+44", "USA": "+1", "UAE": "+971"}
 
 # --- SIDEBAR NAVIGATION ---
@@ -804,15 +804,24 @@ if choice == "COMMAND CENTER":
         match = cust_data[cust_data['plate'] == p_key].iloc[0]
         d_plate, d_name, d_phone = match['plate'], match['name'], match['phone']
 
-    col1, col2 = st.columns(2)
-    with col1:
+        col1, col2 = st.columns(2)
+        with col1:
         plate = st.text_input("PLATE NUMBER", value=d_plate).upper()
+        # 1. Select Vehicle Type First
         v_type = st.selectbox("VEHICLE TYPE", ["Sedan", "SUV", "Truck", "Crossover", "Bike", "Other"])
         name = st.text_input("CLIENT NAME", value=d_name)
         c_code = st.selectbox("COUNTRY CODE", list(COUNTRY_CODES.keys()))
         phone_val = d_phone[3:] if d_phone and len(d_phone) > 3 else ""
         phone_raw = st.text_input("PHONE (No leading zero)", value=phone_val)
         full_phone = f"{COUNTRY_CODES[c_code].replace('+', '')}{phone_raw}" if not d_phone else d_phone
+
+    # --- DYNAMIC PRICING ENGINE ---
+    # Fetch prices specifically for the selected vehicle type
+    price_query = "SELECT service, price FROM wash_prices WHERE vehicle_type = :v"
+    dynamic_prices_df = conn.query(price_query, params={"v": v_type}, ttl=0)
+    
+    # Create the dictionary for this specific car
+    CURRENT_SERVICES = dict(zip(dynamic_prices_df['service'], dynamic_prices_df['price']))
 
     with col2:
         total_price = 0.0
@@ -825,9 +834,13 @@ if choice == "COMMAND CENTER":
         base_total = 0.0
         
         if mode == "CAR WASH":
-            selected = st.multiselect("SERVICES", list(SERVICES.keys()))
+            # Use CURRENT_SERVICES (Dynamic) instead of SERVICES (Global)
+            selected = st.multiselect("SERVICES", list(CURRENT_SERVICES.keys()))
             is_promo = st.checkbox("🎟️ COMPLIMENTARY (FREE WASH)")
-            base_total = sum([SERVICES[s] for s in selected]) if selected else 0.0
+            
+            # Calculate total using the dynamic dictionary
+            base_total = sum([CURRENT_SERVICES[s] for s in selected]) if selected else 0.0
+            
             st.write("---")
             promo_code_input = st.text_input("ENTER PROMO CODE (Optional)").strip()
             
@@ -1555,43 +1568,49 @@ elif choice == "INVENTORY & STAFF" and st.session_state.user_role == "MANAGER":
         inv_data = conn.query("SELECT * FROM inventory", ttl=0)
         st.dataframe(inv_data, use_container_width=True)
         
-    with t2:
-        st.subheader("EDIT SERVICES & PRICES")
-        edit_svc_list = list(SERVICES.keys())
+        with t2:
+            st.subheader("EDIT SERVICES & PRICES")
+        
+        # 1. Fetch all existing services to populate the dropdown
+        existing_df = conn.query("SELECT DISTINCT service FROM wash_prices", ttl=0)
+        edit_svc_list = existing_df['service'].tolist() if not existing_df.empty else []
+        
         svc_to_edit = st.selectbox("Select Service to Modify", ["-- ADD NEW --"] + edit_svc_list)
         
         current_price_val = 0.0
         current_name_val = ""
+        # Default vehicle type
+        target_v_type = "Sedan" 
         
-        if svc_to_edit != "-- ADD NEW --":
-            current_name_val = svc_to_edit
-            current_price_val = SERVICES[svc_to_edit]
-            
         with st.form("svc_form"):
-            new_name = st.text_input("Service Name", value=current_name_val)
-            new_price = st.number_input("Service Price (₦)", value=float(current_price_val))
+            new_name = st.text_input("Service Name", value=current_name_val if svc_to_edit != "-- ADD NEW --" else "")
+            
+            # NEW: Select which vehicle this price applies to
+            target_v_type = st.selectbox("Applies to Vehicle Type", ["Sedan", "SUV", "Truck", "Crossover", "Bike", "Other"])
+            
+            new_price = st.number_input("Service Price (₦)", min_value=0.0)
             
             sub_col1, sub_col2 = st.columns(2)
             
-            if sub_col1.form_submit_button("SAVE SERVICE"):
+            if sub_col1.form_submit_button("SAVE PRICE"):
                 with conn.session as s:
-                    if svc_to_edit != "-- ADD NEW --" and new_name != svc_to_edit:
-                        s.execute(text("DELETE FROM wash_prices WHERE service=:s"), {"s": svc_to_edit})
-                    
+                    # Insert or Update specific to Service + Vehicle Type
                     s.execute(text("""
-                        INSERT INTO wash_prices (service, price) 
-                        VALUES (:n, :p)
-                        ON CONFLICT (service) DO UPDATE SET price=:p
-                    """), {"n": new_name, "p": new_price})
+                        INSERT INTO wash_prices (service, vehicle_type, price) 
+                        VALUES (:n, :v, :p)
+                        ON CONFLICT (service, vehicle_type) DO UPDATE SET price=:p
+                    """), {"n": new_name, "v": target_v_type, "p": new_price})
                     s.commit()
+                st.success(f"Price updated for {new_name} ({target_v_type})")
                 st.rerun()
                 
             if svc_to_edit != "-- ADD NEW --":
-                if sub_col2.form_submit_button("DELETE SERVICE"):
+                if sub_col2.form_submit_button("DELETE SERVICE (ALL TYPES)"):
                     with conn.session as s:
                         s.execute(text("DELETE FROM wash_prices WHERE service=:s"), {"s": svc_to_edit})
                         s.commit()
                     st.rerun()
+
                     
     with t3:
         st.subheader("STAFF RANKING (TOTAL TASKS)")
