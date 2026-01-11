@@ -1346,8 +1346,7 @@ elif choice == "LIVE U-FLOW":
 else:
     commissionable_value = sale_total
 
-
-                            current_staff = row['staff']
+    current_staff = row['staff']
                             prev_staff = row['wet_staff_history']
                             staff_to_pay = [s for s in [current_staff, prev_staff] if s and str(s).lower() != 'none' and str(s).strip() != '']
                             
