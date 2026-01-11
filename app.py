@@ -221,7 +221,7 @@ def init_db():
                 vehicle_type TEXT, 
                 service_detail TEXT, 
                 wet_staff_history TEXT
-            )
+            )   
         """))
         
         # 6. INVENTORY TABLE
@@ -231,15 +231,17 @@ def init_db():
                 stock REAL, 
                 unit TEXT, 
                 price REAL
-            )
+            )   
         """))
         
         # 7. WASH PRICES TABLE
         s.execute(text("""
             CREATE TABLE IF NOT EXISTS wash_prices (
-                service TEXT PRIMARY KEY, 
-                price REAL
-            )
+                service TEXT NOT NULL, 
+                vehicle_type TEXT NOT NULL,
+                price REAL NOT NULL,
+                PRIMARY KEY (service, vehicle_type)
+            )   
         """))
         
         # 8. EXPENSES TABLE (Note: SERIAL for Auto ID)
@@ -1582,41 +1584,45 @@ elif choice == "INVENTORY & STAFF" and st.session_state.user_role == "MANAGER":
         inv_data = conn.query("SELECT * FROM inventory", ttl=0)
         st.dataframe(inv_data, use_container_width=True)
         
-        with t2:
-            st.subheader("EDIT SERVICES & PRICES")
+            with t2:
+                st.subheader("EDIT SERVICES & PRICES")
+
+        # --- 1. VIEW CURRENT PRICES ---
+        st.write("Current Price List:")
+        all_prices_df = conn.query("SELECT service, vehicle_type, price FROM wash_prices ORDER BY service ASC", ttl=0)
+        if not all_prices_df.empty:
+            st.dataframe(all_prices_df, use_container_width=True)
+        else:
+            st.info("No prices set yet. Add your first service below.")
+
+        # --- 2. EDIT/ADD FORM ---
+        existing_services = all_prices_df['service'].unique().tolist() if not all_prices_df.empty else []
         
-        # 1. Fetch all existing services to populate the dropdown
-        existing_df = conn.query("SELECT DISTINCT service FROM wash_prices", ttl=0)
-        edit_svc_list = existing_df['service'].tolist() if not existing_df.empty else []
+        svc_to_edit = st.selectbox("Select Service to Modify", ["-- ADD NEW --"] + existing_services)
         
-        svc_to_edit = st.selectbox("Select Service to Modify", ["-- ADD NEW --"] + edit_svc_list)
-        
-        current_price_val = 0.0
-        current_name_val = ""
-        # Default vehicle type
-        target_v_type = "Sedan" 
-        
-        with st.form("svc_form"):
-            new_name = st.text_input("Service Name", value=current_name_val if svc_to_edit != "-- ADD NEW --" else "")
+        with st.form("svc_form", clear_on_submit=True):
+            # If adding new, name is blank. If editing, name is pre-filled.
+            name_default = svc_to_edit if svc_to_edit != "-- ADD NEW --" else ""
+            new_name = st.text_input("Service Name", value=name_default)
             
-            # NEW: Select which vehicle this price applies to
-            target_v_type = st.selectbox("Applies to Vehicle Type", ["Sedan", "SUV", "Truck", "Crossover", "Bike", "Other"])
-            
-            new_price = st.number_input("Service Price (₦)", min_value=0.0)
+            target_v_type = st.selectbox("Vehicle Type", ["Sedan", "SUV", "Truck", "Crossover", "Bike", "Other"])
+            new_price = st.number_input("Service Price (₦)", min_value=0.0, step=500.0)
             
             sub_col1, sub_col2 = st.columns(2)
             
             if sub_col1.form_submit_button("SAVE PRICE"):
-                with conn.session as s:
-                    # Insert or Update specific to Service + Vehicle Type
-                    s.execute(text("""
-                        INSERT INTO wash_prices (service, vehicle_type, price) 
-                        VALUES (:n, :v, :p)
-                        ON CONFLICT (service, vehicle_type) DO UPDATE SET price=:p
-                    """), {"n": new_name, "v": target_v_type, "p": new_price})
-                    s.commit()
-                st.success(f"Price updated for {new_name} ({target_v_type})")
-                st.rerun()
+                if new_name:
+                    with conn.session as s:
+                        s.execute(text("""
+                            INSERT INTO wash_prices (service, vehicle_type, price) 
+                            VALUES (:n, :v, :p)
+                            ON CONFLICT (service, vehicle_type) DO UPDATE SET price=:p
+                        """), {"n": new_name, "v": target_v_type, "p": new_price})
+                        s.commit()
+                    st.success(f"Saved: {new_name} for {target_v_type} at ₦{new_price:,.0f}")
+                    st.rerun()
+                else:
+                    st.error("Please enter a service name.")
                 
             if svc_to_edit != "-- ADD NEW --":
                 if sub_col2.form_submit_button("DELETE SERVICE (ALL TYPES)"):
@@ -1624,7 +1630,6 @@ elif choice == "INVENTORY & STAFF" and st.session_state.user_role == "MANAGER":
                         s.execute(text("DELETE FROM wash_prices WHERE service=:s"), {"s": svc_to_edit})
                         s.commit()
                     st.rerun()
-
                     
     with t3:
         st.subheader("STAFF RANKING (TOTAL TASKS)")
