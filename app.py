@@ -806,7 +806,7 @@ if choice == "COMMAND CENTER":
 
         col1, col2 = st.columns(2)
         with col1:
-        plate = st.text_input("PLATE NUMBER", value=d_plate).upper()
+            plate = st.text_input("PLATE NUMBER", value=d_plate).upper()
         # 1. Select Vehicle Type First
         v_type = st.selectbox("VEHICLE TYPE", ["Sedan", "SUV", "Truck", "Crossover", "Bike", "Other"])
         name = st.text_input("CLIENT NAME", value=d_name)
