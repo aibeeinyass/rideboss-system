@@ -655,8 +655,7 @@ if st.session_state.user_role == "STAFF" and is_verified == 0:
     st.stop()
 
 # --- LOAD SYSTEM CONFIGURATION ---
-# wash_prices_df = conn.query("SELECT * FROM wash_prices", ttl=0)
-# SERVICES = dict(zip(wash_prices_df['service'], wash_prices_df['price']))
+
 COUNTRY_CODES = {"Nigeria": "+234", "Ghana": "+233", "UK": "+44", "USA": "+1", "UAE": "+971"}
 
 # --- SIDEBAR NAVIGATION ---
