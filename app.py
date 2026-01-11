@@ -815,13 +815,27 @@ if choice == "COMMAND CENTER":
         phone_raw = st.text_input("PHONE (No leading zero)", value=phone_val)
         full_phone = f"{COUNTRY_CODES[c_code].replace('+', '')}{phone_raw}" if not d_phone else d_phone
 
-    # --- DYNAMIC PRICING ENGINE ---
-    # Fetch prices specifically for the selected vehicle type
-    price_query = "SELECT service, price FROM wash_prices WHERE vehicle_type = :v"
-    dynamic_prices_df = conn.query(price_query, params={"v": v_type}, ttl=0)
+        # --- DYNAMIC PRICING ENGINE (FIXED) ---
+    # We use an f-string here to ensure the vehicle type is inserted correctly
+    # regardless of the SQL driver settings.
+    price_query = f"SELECT service, price FROM wash_prices WHERE vehicle_type = '{v_type}'"
     
-    # Create the dictionary for this specific car
-    CURRENT_SERVICES = dict(zip(dynamic_prices_df['service'], dynamic_prices_df['price']))
+    try:
+        # Run the query without 'params' to avoid binding errors
+        dynamic_prices_df = conn.query(price_query, ttl=0)
+        
+        # Check if the database returned any prices
+        if not dynamic_prices_df.empty:
+            CURRENT_SERVICES = dict(zip(dynamic_prices_df['service'], dynamic_prices_df['price']))
+        else:
+            # Fallback if no prices are set for this vehicle type yet
+            st.warning(f"⚠️ No prices found for {v_type}. defaulting to 0.")
+            CURRENT_SERVICES = {}
+            
+    except Exception as e:
+        # This prevents the whole app from crashing if the DB connection blips
+        st.error("⚠️ Database connection error. Using manual entry mode.")
+        CURRENT_SERVICES = {}
 
     with col2:
         total_price = 0.0
