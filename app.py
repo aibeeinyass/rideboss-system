@@ -1339,7 +1339,7 @@ elif choice == "LIVE U-FLOW":
                             
                             if sale_total == 0 and sale_type != "PROMO":
     # We fetch the actual prices for these specific services from the DB
-    price_query = text("SELECT SUM(price) FROM wash_prices WHERE service = ANY(:s_list) AND vehicle_type = :v")
+                                price_query = text("SELECT SUM(price) FROM wash_prices WHERE service = ANY(:s_list) AND vehicle_type = :v")
     with conn.session as s:
         price_res = s.execute(price_query, {"s_list": services_run, "v": row['vehicle_type']}).fetchone()
         commissionable_value = price_res[0] if price_res[0] else 0.0
