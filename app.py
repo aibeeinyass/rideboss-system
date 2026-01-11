@@ -1338,9 +1338,14 @@ elif choice == "LIVE U-FLOW":
                             services_run = sale_data.iloc[0]['services'].split(", ")
                             
                             if sale_total == 0 and sale_type != "PROMO":
-                                commissionable_value = sum([SERVICES.get(s, 0) for s in services_run])
-                            else:
-                                commissionable_value = sale_total
+    # We fetch the actual prices for these specific services from the DB
+    price_query = text("SELECT SUM(price) FROM wash_prices WHERE service = ANY(:s_list) AND vehicle_type = :v")
+    with conn.session as s:
+        price_res = s.execute(price_query, {"s_list": services_run, "v": row['vehicle_type']}).fetchone()
+        commissionable_value = price_res[0] if price_res[0] else 0.0
+else:
+    commissionable_value = sale_total
+
 
                             current_staff = row['staff']
                             prev_staff = row['wet_staff_history']
