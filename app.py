@@ -804,10 +804,10 @@ if choice == "COMMAND CENTER":
         match = cust_data[cust_data['plate'] == p_key].iloc[0]
         d_plate, d_name, d_phone = match['plate'], match['name'], match['phone']
 
-        col1, col2 = st.columns(2)
-        with col1:
-            plate = st.text_input("PLATE NUMBER", value=d_plate).upper()
-        # 1. Select Vehicle Type First
+            col1, col2 = st.columns(2)
+            with col1:
+                plate = st.text_input("PLATE NUMBER", value=d_plate).upper()
+        # Define v_type here
         v_type = st.selectbox("VEHICLE TYPE", ["Sedan", "SUV", "Truck", "Crossover", "Bike", "Other"])
         name = st.text_input("CLIENT NAME", value=d_name)
         c_code = st.selectbox("COUNTRY CODE", list(COUNTRY_CODES.keys()))
@@ -815,27 +815,21 @@ if choice == "COMMAND CENTER":
         phone_raw = st.text_input("PHONE (No leading zero)", value=phone_val)
         full_phone = f"{COUNTRY_CODES[c_code].replace('+', '')}{phone_raw}" if not d_phone else d_phone
 
-        # --- DYNAMIC PRICING ENGINE (FIXED) ---
-    # We use an f-string here to ensure the vehicle type is inserted correctly
-    # regardless of the SQL driver settings.
-    price_query = f"SELECT service, price FROM wash_prices WHERE vehicle_type = '{v_type}'"
-    
-    try:
-        # Run the query without 'params' to avoid binding errors
-        dynamic_prices_df = conn.query(price_query, ttl=0)
-        
-        # Check if the database returned any prices
-        if not dynamic_prices_df.empty:
-            CURRENT_SERVICES = dict(zip(dynamic_prices_df['service'], dynamic_prices_df['price']))
-        else:
-            # Fallback if no prices are set for this vehicle type yet
-            st.warning(f"⚠️ No prices found for {v_type}. defaulting to 0.")
-            CURRENT_SERVICES = {}
+    # --- DYNAMIC PRICING ENGINE ---
+    # This block now waits for v_type and handles errors gracefully
+    CURRENT_SERVICES = {}
+    if v_type:
+        try:
+            price_query = "SELECT service, price FROM wash_prices WHERE vehicle_type = :v"
+            dynamic_prices_df = conn.query(price_query, params={"v": v_type}, ttl=0)
             
-    except Exception as e:
-        # This prevents the whole app from crashing if the DB connection blips
-        st.error("⚠️ Database connection error. Using manual entry mode.")
-        CURRENT_SERVICES = {}
+            if not dynamic_prices_df.empty:
+                CURRENT_SERVICES = dict(zip(dynamic_prices_df['service'], dynamic_prices_df['price']))
+            else:
+                # Fallback if specific vehicle type isn't priced yet
+                st.caption(f"ℹ️ No specific pricing set for {v_type}. Please update in Inventory.")
+        except Exception as e:
+            st.error("Database sync error.")
 
     with col2:
         total_price = 0.0
@@ -848,14 +842,20 @@ if choice == "COMMAND CENTER":
         base_total = 0.0
         
         if mode == "CAR WASH":
-            # Use CURRENT_SERVICES (Dynamic) instead of SERVICES (Global)
-            selected = st.multiselect("SERVICES", list(CURRENT_SERVICES.keys()))
+            # Safely get keys from the dynamic dictionary
+            service_list = list(CURRENT_SERVICES.keys()) if CURRENT_SERVICES else []
+            selected = st.multiselect("SERVICES", service_list)
             is_promo = st.checkbox("🎟️ COMPLIMENTARY (FREE WASH)")
             
-            # Calculate total using the dynamic dictionary
-            base_total = sum([CURRENT_SERVICES[s] for s in selected]) if selected else 0.0
+            # Calculate total
+            if selected and CURRENT_SERVICES:
+                base_total = sum([CURRENT_SERVICES[s] for s in selected])
+            else:
+                base_total = 0.0
             
             st.write("---")
+            # ... (Rest of your promo logic)
+
             promo_code_input = st.text_input("ENTER PROMO CODE (Optional)").strip()
             
             if promo_code_input:
