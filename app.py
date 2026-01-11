@@ -1584,8 +1584,8 @@ elif choice == "INVENTORY & STAFF" and st.session_state.user_role == "MANAGER":
         inv_data = conn.query("SELECT * FROM inventory", ttl=0)
         st.dataframe(inv_data, use_container_width=True)
         
-            with t2:
-                st.subheader("EDIT SERVICES & PRICES")
+    with t2:
+        st.subheader("EDIT SERVICES & PRICES")
 
         # --- 1. VIEW CURRENT PRICES ---
         st.write("Current Price List:")
