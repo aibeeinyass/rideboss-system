@@ -804,9 +804,9 @@ if choice == "COMMAND CENTER":
         match = cust_data[cust_data['plate'] == p_key].iloc[0]
         d_plate, d_name, d_phone = match['plate'], match['name'], match['phone']
 
-            col1, col2 = st.columns(2)
-            with col1:
-                plate = st.text_input("PLATE NUMBER", value=d_plate).upper()
+    col1, col2 = st.columns(2)
+    with col1:
+        plate = st.text_input("PLATE NUMBER", value=d_plate).upper()
         # Define v_type here
         v_type = st.selectbox("VEHICLE TYPE", ["Sedan", "SUV", "Truck", "Crossover", "Bike", "Other"])
         name = st.text_input("CLIENT NAME", value=d_name)
