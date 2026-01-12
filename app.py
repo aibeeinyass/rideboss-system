@@ -912,9 +912,9 @@ if choice == "COMMAND CENTER":
             else:
                 staff_assigned = st.selectbox("ASSIGN WET BAY DETAILER", free_staff)
         
-    else:
-        st.subheader("LOUNGE ORDER")
-        inv_data = conn.query("SELECT * FROM inventory", ttl=0)
+        else:
+            st.subheader("LOUNGE ORDER")
+            inv_data = conn.query("SELECT * FROM inventory", ttl=0)
             inv_dict = dict(zip(inv_data['item'], inv_data['price']))
             stock_dict = dict(zip(inv_data['item'], inv_data['stock']))
             
@@ -946,7 +946,6 @@ if choice == "COMMAND CENTER":
                 total_price = 0.0
                 st.info("🎁 This order is marked as Complimentary. Total will be ₦0.")
 
-      
         if discount_amount > 0:
             st.caption(f"SUBTOTAL: ₦{base_total:,}")
             st.caption(f"DISCOUNT: -₦{discount_amount:,}")
