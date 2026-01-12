@@ -577,7 +577,7 @@ if 'wa_pending' not in st.session_state:
 # --- LOGIN SYSTEM ---
 if not st.session_state.logged_in:
     display_logo(is_sidebar=False)
-    st.markdown("<h1 style='text-align:center; letter-spacing:5px; margin-top:10px;'>RIDEBOSS LOGIN</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align:center; letter-spacing:5px; margin-top:7px;'>RIDEBOSS LOGIN</h1>", unsafe_allow_html=True)
     _, log_col, _ = st.columns([1,1,1])
     
     with log_col:
