@@ -486,146 +486,125 @@ def calculate_payouts(username):
 import streamlit as st
 import json
 import base64
-from datetime import datetime
 
-# --- SPECIAL PRINT RENDERER (UPDATED WITH LOGO & DETAILS) ---
-# This block handles the print request by intercepting query params
+# --- SPECIAL PRINT RENDERER (UPDATED) ---
 query_params = st.query_params
+
 if "print_receipt" in query_params:
     try:
+        # Load the data
         receipt_data = json.loads(query_params["print_receipt"])
         
-        # 1. PROCESS LOGO TO BASE64 FOR HTML PRINTING (Existing working code)
+        # 1. PROCESS LOGO (Fixed Size)
         logo_html = ""
         try:
             with open("logo.png", "rb") as image_file:
                 encoded_string = base64.b64encode(image_file.read()).decode()
-            logo_html = f'<img src="data:image/png;base64,{encoded_string}" style="width: 100px; display: block; margin: 0 auto 10px auto;">'
+            # UPDATED: Increased width to 250px and added max-width for safety
+            logo_html = f'<img src="data:image/png;base64,{encoded_string}" style="width: 250px; max-width: 100%; display: block; margin: 0 auto 10px auto;">'
         except Exception:
-            logo_html = "" # Fail silently if logo is missing
+            logo_html = "<h2 style='text-align:center'>RIDEBOSS AUTOS</h2>"
 
-        # 2. EXTRACT DATA WITH DEFAULTS (To ensure more detail without crashing)
-        # We use .get() so it doesn't break if you haven't added these keys to your sender yet
-        r_id = receipt_data.get('id', 'N/A')
-        r_date = receipt_data.get('date', datetime.now().strftime("%Y-%m-%d"))
-        r_time = receipt_data.get('time', datetime.now().strftime("%H:%M")) # New
-        r_plate = receipt_data.get('plate', 'N/A')
-        r_model = receipt_data.get('car_model', '') # New: Vehicle Model
-        r_items = receipt_data.get('items', 'No Services Listed')
-        r_total = receipt_data.get('total', 0)
-        r_customer = receipt_data.get('customer_name', 'Walk-in Customer') # New
-        r_payment = receipt_data.get('payment_method', 'Cash') # New
-        r_cashier = receipt_data.get('cashier', 'Admin') # New
-
-        # 3. GENERATE DETAILED RECEIPT HTML
+        # 2. GENERATE RECEIPT HTML (Updated to match your design)
         st.markdown(f"""
             <style>
                 @media print {{
                     body {{ background: white !important; }}
-                    .stApp {{ background: white !important; }}
-                    [data-testid="stSidebar"], header, .stButton, footer {{ display: none !important; }}
-                    @page {{ margin: 0; }}
+                    .stApp {{ display: none !important; }} /* Hide Streamlit UI */
+                    .print-container {{ display: block !important; }}
                 }}
-                .print-wrap {{ 
+                /* Screen view styles */
+                .stApp {{ background: #f0f2f6; }}
+                
+                .print-container {{ 
                     background: white; 
                     color: black; 
                     padding: 20px; 
                     font-family: 'Courier New', Courier, monospace; 
-                    width: 100%;
-                    max-width: 380px; 
-                    margin: auto; 
-                }}
-                .text-center {{ text-align: center; }}
-                .text-right {{ text-align: right; }}
-                .bold {{ font-weight: bold; }}
-                
-                .header-info {{ font-size: 10px; margin-bottom: 5px; }}
-                
-                .dashed-line {{ 
-                    border-top: 1px dashed black; 
-                    margin: 10px 0; 
-                }}
-                
-                .info-row {{ 
-                    display: flex; 
-                    justify-content: space-between; 
-                    font-size: 12px; 
-                    margin-bottom: 3px;
-                }}
-                
-                .service-header {{
-                    font-size: 12px;
-                    font-weight: bold;
-                    border-bottom: 1px solid black;
-                    margin-bottom: 5px;
-                    padding-bottom: 2px;
-                }}
-                
-                .service-item {{
-                    font-size: 14px;
-                    margin-bottom: 8px;
+                    width: 350px; /* Standard receipt width */
+                    margin: 0 auto; 
+                    font-size: 13px;
                     line-height: 1.4;
                 }}
-                
-                .total-section {{ 
-                    border-top: 2px solid black; 
-                    border-bottom: 2px solid black;
-                    margin-top: 10px; 
-                    padding: 10px 0; 
-                    font-size: 18px; 
+                .header-section {{
+                    text-align: center;
+                    margin-bottom: 10px;
                 }}
-                
-                .footer {{ 
-                    text-align: center; 
-                    font-size: 10px; 
-                    margin-top: 20px; 
+                .dashed-line {{
+                    border-top: 1px dashed #000;
+                    margin: 10px 0;
+                    width: 100%;
                 }}
+                .info-row {{
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 3px;
+                }}
+                .bold {{
+                    font-weight: bold;
+                }}
+                .service-header {{
+                    margin-bottom: 5px;
+                    font-weight: bold;
+                    text-decoration: underline;
+                }}
+                .total-section {{
+                    font-size: 16px;
+                    margin-top: 5px;
+                    border-top: 1px dashed black;
+                    border-bottom: 1px dashed black;
+                    padding: 5px 0;
+                }}
+                .footer {{
+                    text-align: center;
+                    margin-top: 20px;
+                    font-size: 11px;
+                }}
+                .footer p {{ margin: 2px 0; }}
             </style>
-            
-            <div class="print-wrap">
-                <div class="text-center">
-                    {logo_html} 
-                    <h2 style="margin:0; font-size:20px; text-transform:uppercase;">RIDEBOSS AUTOS</h2>
-                    <p class="header-info">PREMIUM DETAILING & LOUNGE</p>
-                    <p class="header-info">123 Main Street, Victoria Island, Lagos</p>
-                    <p class="header-info">Tel: +234 800 000 0000</p>
+
+            <div class="print-container">
+                <div class="header-section">
+                    {logo_html}
+                    <div style="font-weight: bold; font-size: 16px;">RIDEBOSS AUTOS</div>
+                    <div>PREMIUM DETAILING & LOUNGE</div>
+                    <div style="margin-top:5px;">123 Main Street, Victoria Island, Lagos</div>
+                    <div>Tel: +234 800 000 0000</div>
                 </div>
-                
+
                 <div class="dashed-line"></div>
-                
-                <div class="info-row"><span>Receipt #:</span> <span>RB-{r_id}</span></div>
-                <div class="info-row"><span>Date:</span> <span>{r_date}</span></div>
-                <div class="info-row"><span>Time:</span> <span>{r_time}</span></div>
-                <div class="info-row"><span>Cashier:</span> <span>{r_cashier}</span></div>
-                
+
+                <div class="info-row"><span>Receipt #:</span> <span>RB-{receipt_data.get('id', '---')}</span></div>
+                <div class="info-row"><span>Date:</span> <span>{receipt_data.get('date', '---')}</span></div>
+                <div class="info-row"><span>Cashier:</span> <span>{receipt_data.get('cashier', 'admin')}</span></div>
+
                 <div class="dashed-line"></div>
-                
-                <div class="info-row"><span>Customer:</span> <span>{r_customer}</span></div>
-                <div class="info-row"><span>Vehicle:</span> <span class="bold">{r_plate}</span></div>
-                {f'<div class="info-row"><span>Model:</span> <span>{r_model}</span></div>' if r_model else ''}
-                
+
+                <div class="info-row"><span>Customer:</span> <span>{receipt_data.get('name', 'Walk-in')}</span></div>
+                <div class="info-row"><span>Vehicle:</span> <span class="bold">{receipt_data.get('plate', '---')}</span></div>
+
                 <div class="dashed-line"></div>
-                
+
                 <div class="service-header">
                     <span>DESCRIPTION</span>
                 </div>
-                <div style="min-height: 80px; padding-top: 5px;">
-                    <div class="service-item">{r_items}</div>
+                <div style="min-height: 60px; padding-top: 5px;">
+                    <div class="service-item">{receipt_data.get('items', 'Standard Wash')}</div>
                 </div>
-                
+
                 <div class="dashed-line"></div>
-                
-                <div class="info-row"><span>Subtotal:</span> <span>₦{r_total:,}</span></div>
+
+                <div class="info-row"><span>Subtotal:</span> <span>₦{float(receipt_data.get('total', 0)):,.2f}</span></div>
                 <div class="info-row"><span>VAT (0%):</span> <span>₦0.00</span></div>
-                
+
                 <div class="total-section info-row bold">
                     <span>TOTAL:</span>
-                    <span>₦{r_total:,}</span>
+                    <span>₦{float(receipt_data.get('total', 0)):,.2f}</span>
                 </div>
-                
+
                 <div class="info-row" style="margin-top: 5px;">
                     <span>Paid via:</span> 
-                    <span style="text-transform: uppercase;">{r_payment}</span>
+                    <span style="text-transform: uppercase;">{receipt_data.get('method', 'CASH')}</span>
                 </div>
 
                 <div class="footer">
@@ -635,15 +614,19 @@ if "print_receipt" in query_params:
                     <p>Follow us @RideBossAutos</p>
                 </div>
             </div>
+            
             <script>
-                // Auto print when page loads
-                window.print();
+                // Slight delay to ensure images load before print dialog opens
+                setTimeout(function() {{
+                    window.print();
+                }}, 500);
             </script>
         """, unsafe_allow_html=True)
-        st.stop() # Stop execution
+        st.stop()
     except Exception as e:
         st.error(f"Receipt Generation Error: {e}")
         st.stop()
+
 
 
 # --- SESSION STATE INITIALIZATION ---
