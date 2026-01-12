@@ -509,7 +509,7 @@ if "print_receipt" in query_params:
         try:
             with open("logo.png", "rb") as image_file:
                 encoded = base64.b64encode(image_file.read()).decode()
-            logo_html = '<img src="data:image/png;base64,' + encoded + '" style="width:500px;display:block;margin:0 auto 10px;">'
+            logo_html = '<img src="data:image/png;base64,' + encoded + '" style="width:700px;display:block;margin:0 auto 10px;">'
         except:
             logo_html = "<h2 style='text-align:center;margin:0;'>RIDEBOSS AUTOS</h2>"
 
