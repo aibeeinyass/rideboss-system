@@ -18,17 +18,14 @@ from sqlalchemy import text
 # ==============================================================================
 
 # ==============================================================================
-# PWA HARD-OVERRIDE (Base64 Injection)
-# ==============================================================================
+# FORCE CUSTOM MANIFEST
 st.markdown(
     """
-    <link rel="manifest" href="/app/static/manifest.json">
+    <link rel="manifest" href="/app/static/manifest.json?v=3">
     <meta name="theme-color" content="#00d4ff">
     """,
     unsafe_allow_html=True
 )
-
-
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
