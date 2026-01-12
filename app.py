@@ -24,6 +24,21 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# --- LOGO DISPLAY FUNCTION ---
+def display_logo(is_sidebar=False):
+    try:
+        if is_sidebar:
+            st.sidebar.image("logo.jpg", use_container_width=True)
+            st.sidebar.markdown("---")
+        else:
+            # Centering logic for the login page
+            col1, col2, col3 = st.columns([1, 2, 1])
+            with col2:
+                st.image("logo.jpg", use_container_width=True)
+    except Exception:
+        st.error("Logo file 'logo.jpg' not found in repository.")
+
+
 # --- DATABASE CONNECTION SETUP ---
 # MIGRATION NOTE: Replaced sqlite3.connect with st.connection for PostgreSQL
 # Ensure your .streamlit/secrets.toml contains the [connections.postgresql] block
@@ -659,7 +674,6 @@ if st.session_state.user_role == "STAFF" and is_verified == 0:
 COUNTRY_CODES = {"Nigeria": "+234", "Ghana": "+233", "UK": "+44", "USA": "+1", "UAE": "+971"}
 
 # --- SIDEBAR NAVIGATION ---
-st.sidebar.image("logo.jpg", use_container_width=True)
 st.sidebar.markdown(f"USER: **{st.session_state.user_name}**")
 st.sidebar.caption(f"DEPT: {st.session_state.user_dept}")
 
