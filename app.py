@@ -5,6 +5,7 @@ import urllib.parse
 import time
 import json
 import io
+import base64
 from PIL import Image
 from sqlalchemy import text
 
@@ -482,83 +483,168 @@ def calculate_payouts(username):
     
     return base, daily_comm, monthly_comm, yearly_comm, (base + monthly_comm)
 
-# --- SPECIAL PRINT RENDERER (UNTOUCHED LOGIC) ---
+import streamlit as st
+import json
+import base64
+from datetime import datetime
+
+# --- SPECIAL PRINT RENDERER (UPDATED WITH LOGO & DETAILS) ---
 # This block handles the print request by intercepting query params
 query_params = st.query_params
 if "print_receipt" in query_params:
     try:
         receipt_data = json.loads(query_params["print_receipt"])
+        
+        # 1. PROCESS LOGO TO BASE64 FOR HTML PRINTING (Existing working code)
+        logo_html = ""
+        try:
+            with open("logo.png", "rb") as image_file:
+                encoded_string = base64.b64encode(image_file.read()).decode()
+            logo_html = f'<img src="data:image/png;base64,{encoded_string}" style="width: 100px; display: block; margin: 0 auto 10px auto;">'
+        except Exception:
+            logo_html = "" # Fail silently if logo is missing
+
+        # 2. EXTRACT DATA WITH DEFAULTS (To ensure more detail without crashing)
+        # We use .get() so it doesn't break if you haven't added these keys to your sender yet
+        r_id = receipt_data.get('id', 'N/A')
+        r_date = receipt_data.get('date', datetime.now().strftime("%Y-%m-%d"))
+        r_time = receipt_data.get('time', datetime.now().strftime("%H:%M")) # New
+        r_plate = receipt_data.get('plate', 'N/A')
+        r_model = receipt_data.get('car_model', '') # New: Vehicle Model
+        r_items = receipt_data.get('items', 'No Services Listed')
+        r_total = receipt_data.get('total', 0)
+        r_customer = receipt_data.get('customer_name', 'Walk-in Customer') # New
+        r_payment = receipt_data.get('payment_method', 'Cash') # New
+        r_cashier = receipt_data.get('cashier', 'Admin') # New
+
+        # 3. GENERATE DETAILED RECEIPT HTML
         st.markdown(f"""
             <style>
                 @media print {{
                     body {{ background: white !important; }}
                     .stApp {{ background: white !important; }}
-                    [data-testid="stSidebar"], header, .stButton {{ display: none !important; }}
+                    [data-testid="stSidebar"], header, .stButton, footer {{ display: none !important; }}
+                    @page {{ margin: 0; }}
                 }}
                 .print-wrap {{ 
                     background: white; 
                     color: black; 
-                    padding: 30px; 
+                    padding: 20px; 
                     font-family: 'Courier New', Courier, monospace; 
-                    max-width: 400px; 
+                    width: 100%;
+                    max-width: 380px; 
                     margin: auto; 
-                    border: 2px solid black; 
                 }}
-                .print-header {{ 
-                    text-align: center; 
-                    border-bottom: 2px solid black; 
-                    padding-bottom: 10px; 
-                    margin-bottom: 15px; 
-                }}
-                .print-row {{ 
-                    display: flex; 
-                    justify-content: space-between; 
-                    margin: 5px 0; 
-                    font-size: 14px; 
-                }}
-                .print-divider {{ 
+                .text-center {{ text-align: center; }}
+                .text-right {{ text-align: right; }}
+                .bold {{ font-weight: bold; }}
+                
+                .header-info {{ font-size: 10px; margin-bottom: 5px; }}
+                
+                .dashed-line {{ 
                     border-top: 1px dashed black; 
-                    margin: 15px 0; 
+                    margin: 10px 0; 
                 }}
-                .print-total {{ 
-                    border-top: 2px solid black; 
-                    margin-top: 10px; 
-                    padding-top: 10px; 
-                    font-weight: bold; 
-                    font-size: 22px; 
+                
+                .info-row {{ 
                     display: flex; 
                     justify-content: space-between; 
+                    font-size: 12px; 
+                    margin-bottom: 3px;
                 }}
+                
+                .service-header {{
+                    font-size: 12px;
+                    font-weight: bold;
+                    border-bottom: 1px solid black;
+                    margin-bottom: 5px;
+                    padding-bottom: 2px;
+                }}
+                
+                .service-item {{
+                    font-size: 14px;
+                    margin-bottom: 8px;
+                    line-height: 1.4;
+                }}
+                
+                .total-section {{ 
+                    border-top: 2px solid black; 
+                    border-bottom: 2px solid black;
+                    margin-top: 10px; 
+                    padding: 10px 0; 
+                    font-size: 18px; 
+                }}
+                
                 .footer {{ 
                     text-align: center; 
-                    font-size: 12px; 
-                    margin-top: 30px; 
-                    border-top: 1px solid black; 
-                    padding-top: 10px; 
+                    font-size: 10px; 
+                    margin-top: 20px; 
                 }}
             </style>
+            
             <div class="print-wrap">
-                <div class="print-header">
-                    <h1 style="margin:0; font-size:24px; color: black !important;">RIDEBOSS AUTOS</h1>
-                    <p style="margin:0; font-size:12px; letter-spacing:2px; color: black !important;">PREMIUM DETAILING & LOUNGE</p>
+                <div class="text-center">
+                    {logo_html} 
+                    <h2 style="margin:0; font-size:20px; text-transform:uppercase;">RIDEBOSS AUTOS</h2>
+                    <p class="header-info">PREMIUM DETAILING & LOUNGE</p>
+                    <p class="header-info">123 Main Street, Victoria Island, Lagos</p>
+                    <p class="header-info">Tel: +234 800 000 0000</p>
                 </div>
-                <div class="print-row"><span>REF NO:</span> <span>#RB{receipt_data['id']}</span></div>
-                <div class="print-row"><span>DATE:</span> <span>{receipt_data['date']}</span></div>
-                <div class="print-row"><span>PLATE:</span> <b>{receipt_data['plate']}</b></div>
-                <div class="print-divider"></div>
-                <div style="min-height: 100px;">
-                    <p style="font-size:12px; margin-bottom:5px;">SERVICES RENDERED:</p>
-                    <p style="font-size:16px; font-weight:bold;">{receipt_data['items']}</p>
+                
+                <div class="dashed-line"></div>
+                
+                <div class="info-row"><span>Receipt #:</span> <span>RB-{r_id}</span></div>
+                <div class="info-row"><span>Date:</span> <span>{r_date}</span></div>
+                <div class="info-row"><span>Time:</span> <span>{r_time}</span></div>
+                <div class="info-row"><span>Cashier:</span> <span>{r_cashier}</span></div>
+                
+                <div class="dashed-line"></div>
+                
+                <div class="info-row"><span>Customer:</span> <span>{r_customer}</span></div>
+                <div class="info-row"><span>Vehicle:</span> <span class="bold">{r_plate}</span></div>
+                {f'<div class="info-row"><span>Model:</span> <span>{r_model}</span></div>' if r_model else ''}
+                
+                <div class="dashed-line"></div>
+                
+                <div class="service-header">
+                    <span>DESCRIPTION</span>
                 </div>
-                <div class="print-total"><span>TOTAL</span><span>₦{receipt_data['total']:,}</span></div>
-                <div class="footer">THANK YOU FOR YOUR PATRONAGE<br>www.ridebossautos.com</div>
+                <div style="min-height: 80px; padding-top: 5px;">
+                    <div class="service-item">{r_items}</div>
+                </div>
+                
+                <div class="dashed-line"></div>
+                
+                <div class="info-row"><span>Subtotal:</span> <span>₦{r_total:,}</span></div>
+                <div class="info-row"><span>VAT (0%):</span> <span>₦0.00</span></div>
+                
+                <div class="total-section info-row bold">
+                    <span>TOTAL:</span>
+                    <span>₦{r_total:,}</span>
+                </div>
+                
+                <div class="info-row" style="margin-top: 5px;">
+                    <span>Paid via:</span> 
+                    <span style="text-transform: uppercase;">{r_payment}</span>
+                </div>
+
+                <div class="footer">
+                    <p>THANK YOU FOR YOUR PATRONAGE!</p>
+                    <p>Goods sold are not returnable.</p>
+                    <p>www.ridebossautos.com</p>
+                    <p>Follow us @RideBossAutos</p>
+                </div>
             </div>
-            <script>window.print();</script>
+            <script>
+                // Auto print when page loads
+                window.print();
+            </script>
         """, unsafe_allow_html=True)
-        st.stop() # Stop execution to only show receipt
+        st.stop() # Stop execution
     except Exception as e:
         st.error(f"Receipt Generation Error: {e}")
         st.stop()
+
 
 # --- SESSION STATE INITIALIZATION ---
 if 'logged_in' not in st.session_state: 
@@ -1062,11 +1148,22 @@ if choice == "COMMAND CENTER":
             </div>
         </div>
         """, unsafe_allow_html=True)
-        c_p1, c_p2 = st.columns(2)
+    c_p1, c_p2 = st.columns(2)
         with c_p1:
-            receipt_payload = {"id": r["id"], "date": r["date"], "plate": r["plate"], "items": r["items"], "total": r["total"]}
-            receipt_url = f"?print_receipt={urllib.parse.quote(json.dumps(receipt_payload))}"
-            st.markdown(f'<a href="{receipt_url}" target="_blank"><button style="width:100%; height:3.5em; background:black; color:white; font-weight:bold; cursor:pointer;">🖨️ PRINT RECEIPT</button></a>', unsafe_allow_html=True)
+        # We now include ALL the missing fields in the JSON payload
+        receipt_payload = {
+            "id": r["id"], 
+            "date": r["date"], 
+            "plate": r["plate"], 
+            "name": r.get("name", "N/A"),           # Added
+            "items": r["items"], 
+            "total": r["total"],
+            "cashier": st.session_state.user_name, # Added
+            "method": r.get("method", "N/A")        # Added
+        }
+        receipt_url = f"?print_receipt={urllib.parse.quote(json.dumps(receipt_payload))}"
+        st.markdown(f'<a href="{receipt_url}" target="_blank"><button style="width:100%; height:3.5em; background:black; color:white; font-weight:bold; cursor:pointer;">🖨️ PRINT RECEIPT</button></a>', unsafe_allow_html=True)
+
         with c_p2:
             if st.button("CLOSE & DISMISS"):
                 del st.session_state['last_receipt']
@@ -2041,15 +2138,18 @@ elif choice == "CRM & RETENTION":
                                 
                                 # Print Receipt for this specific historical visit
                                 if h_col2.button("PRINT 🖨️", key=f"prnt_{row['plate']}_{h_row['id']}"):
-                                    receipt_json = json.dumps({
-                                        "id": h_row['id'],
-                                        "date": h_row['timestamp'],
-                                        "plate": row['plate'],
-                                        "items": h_row['services'],
-                                        "total": h_row['total']
-                                    })
-                                    st.query_params["print_receipt"] = receipt_json
-                                    st.rerun()
+    receipt_json = json.dumps({
+        "id": h_row['id'],
+        "date": h_row['timestamp'],
+        "plate": row['plate'],
+        "name": row['name'],           # Customer name from CRM
+        "items": h_row['services'],
+        "total": h_row['total'],
+        "cashier": "RECORDS",          # Historical records label
+        "method": "PAID"               # Default for history
+    })
+    st.query_params["print_receipt"] = receipt_json
+    st.rerun()
                                 st.divider()
                         else:
                             st.info("No detailed history found for this plate.")
