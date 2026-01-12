@@ -22,10 +22,24 @@ from sqlalchemy import text
 # ==============================================================================
 st.markdown(
     """
-    <link rel="manifest" href="https://raw.githubusercontent.com/aibeeinyass/rideboss-system/refs/heads/main/manifest.json?v=1">
+    <script>
+        // Remove the default Streamlit manifest
+        var links = document.getElementsByTagName('link');
+        for (var i = 0; i < links.length; i++) {
+            if (links[i].rel === 'manifest') {
+                links[i].parentNode.removeChild(links[i]);
+            }
+        }
+        // Add your custom manifest
+        var link = document.createElement('link');
+        link.rel = 'manifest';
+        link.href = 'https://raw.githubusercontent.com/aibeeinyass/rideboss-system/refs/heads/main/manifest.json';
+        document.head.appendChild(link);
+    </script>
     """,
     unsafe_allow_html=True
 )
+
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
