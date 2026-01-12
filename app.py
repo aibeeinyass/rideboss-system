@@ -1269,7 +1269,7 @@ elif choice == "LIVE U-FLOW":
                 st.rerun()
             st.divider()
 
-        # RENDER CAR LIST
+                # RENDER CAR LIST
         if live_cars.empty:
             st.info("No vehicles currently in the bays.")
             
@@ -1285,9 +1285,9 @@ elif choice == "LIVE U-FLOW":
             except:
                 time_spent = 0
             
-            # Border color: Waiting (Grey), Normal (Blue), Overdue (Red)
-            if row['status'] == "WAITING":
-                border_color = "#555555"
+            # Border color logic (Updated for DRY_WAITING)
+            if "WAITING" in row['status']:
+                border_color = "#555555" # Grey for any waiting state
             else:
                 border_color = "#00d4ff" if time_spent < 40 else "#FF3B30"
             
@@ -1301,7 +1301,7 @@ elif choice == "LIVE U-FLOW":
                 st.write(f"**DETAILER:** {row['staff']}")
                 st.write(f"**ELAPSED:** {time_spent} mins")
             with c3:
-                # --- WAITING LIST TO WET BAY LOGIC ---
+                # --- 1. WAITING LIST TO WET BAY LOGIC ---
                 if row['status'] == "WAITING":
                     if active_wet < 3:
                         with st.popover("ASSIGN TO WET BAY"):
@@ -1316,15 +1316,26 @@ elif choice == "LIVE U-FLOW":
                     else:
                         st.caption("🚨 WET BAYS FULL (3/3)")
 
-                # --- WET TO DRY LOGIC ---
+                # --- 2. WET TO DRY LOGIC (UPDATED) ---
                 if row['status'] == "WET BAY":
+                    # Check if Dry Bays have space
                     if active_dry < 3:
                         with st.popover("TO DRY BAY"):
                             dry_staff = get_free_staff_by_dept("DRY BAY")
-                            new_dry_detailer = st.selectbox("Assign Dry Bay", dry_staff if dry_staff else ["NO FREE STAFF"], key=f"dry_{idx}")
                             
-                            if st.button("Confirm Handover", key=f"hnd_{idx}"):
-                                if new_dry_detailer != "NO FREE STAFF":
+                            # Case: Space exists, but NO STAFF available
+                            if not dry_staff:
+                                st.warning("No Dry Staff Available.")
+                                if st.button("Move to DRY WAITING", key=f"force_wait_{idx}"):
+                                    with conn.session as s:
+                                        # Save current wet staff to history, set status to DRY_WAITING
+                                        s.execute(text("UPDATE live_bays SET status='DRY_WAITING', staff='PENDING', wet_staff_history=:ws WHERE plate=:p"), {"ws": row['staff'], "p": row['plate']})
+                                        s.commit()
+                                    st.rerun()
+                            else:
+                                # Case: Space AND Staff available
+                                new_dry_detailer = st.selectbox("Assign Dry Bay", dry_staff, key=f"dry_{idx}")
+                                if st.button("Confirm Handover", key=f"hnd_{idx}"):
                                     with conn.session as s:
                                         s.execute(text("""
                                             UPDATE live_bays 
@@ -1337,15 +1348,40 @@ elif choice == "LIVE U-FLOW":
                                     add_event(f"{row['plate']} moved to Dry Bay")
                                     st.rerun()
                     else:
-                        if st.button("PARK (DRY FULL)", key=f"park_{idx}"):
+                        # Case: Dry Bays are FULL
+                        st.warning("DRY BAYS FULL (3/3)")
+                        if st.button("MOVE TO DRY WAITING", key=f"park_{idx}"):
                              with conn.session as s:
-                                s.execute(text("UPDATE live_bays SET status='WAITING', staff='PENDING', wet_staff_history=:ws WHERE plate=:p"), {"ws": row['staff'], "p": row['plate']})
+                                # Logic: Move to DRY_WAITING, keep wet staff in history
+                                s.execute(text("UPDATE live_bays SET status='DRY_WAITING', staff='PENDING', wet_staff_history=:ws WHERE plate=:p"), {"ws": row['staff'], "p": row['plate']})
                                 s.commit()
                              st.rerun()
 
-                                # --- RELEASE LOGIC (DRY BAY ONLY) ---
+                # --- 3. NEW: DRY WAITING LOGIC ---
+                # This block handles cars waiting for a Dry Bay to free up
+                if row['status'] == "DRY_WAITING":
+                    st.info("⏳ QUEUED FOR DRY BAY")
+                    
+                    if active_dry < 3:
+                        with st.popover("ASSIGN DRY STAFF"):
+                            dry_staff = get_free_staff_by_dept("DRY BAY")
+                            if dry_staff:
+                                target_staff = st.selectbox("Select Staff", dry_staff, key=f"q_dry_{idx}")
+                                if st.button("Assign & Move", key=f"q_move_{idx}"):
+                                    with conn.session as s:
+                                        # Move from DRY_WAITING to DRY BAY
+                                        s.execute(text("UPDATE live_bays SET status='DRY BAY', staff=:s WHERE plate=:p"), {"s": target_staff, "p": row['plate']})
+                                        s.commit()
+                                    st.rerun()
+                            else:
+                                st.error("No Staff Available yet.")
+                    else:
+                        st.caption(f"Waiting for space... (Dry Bays: {active_dry}/3)")
+
+                # --- 4. RELEASE LOGIC (DRY BAY ONLY) ---
                 if row['status'] == "DRY BAY":
                     if st.button(f"RELEASE {row['plate']}", key=f"rel_{idx}"):
+                        # ... (Your existing Release Logic remains exactly the same here) ...
                         # 1. Fetch the sale details
                         sale_data = conn.query("SELECT total, services, type FROM sales WHERE plate=:p ORDER BY id DESC LIMIT 1", params={"p": row['plate']}, ttl=0)
                         
@@ -1365,7 +1401,8 @@ elif choice == "LIVE U-FLOW":
 
                             current_staff = row['staff']
                             prev_staff = row['wet_staff_history']
-                            staff_to_pay = [s for s in [current_staff, prev_staff] if s and str(s).lower() != 'none' and str(s).strip() != '']
+                            # Clean staff list
+                            staff_to_pay = [s for s in [current_staff, prev_staff] if s and str(s).lower() != 'none' and str(s).strip() != '' and s != 'PENDING']
                             
                             # Create label for the financial record
                             report_names = f"{prev_staff} & {current_staff}" if prev_staff and prev_staff != current_staff else current_staff
@@ -1388,7 +1425,6 @@ elif choice == "LIVE U-FLOW":
                                         """), {"u": s_member, "a": comm_amt, "r": str(row['plate']), "t": datetime.now()})
                                 s.commit()
 
-
                         # 2. Capture WhatsApp Info
                         cust_info = conn.query("SELECT name, phone FROM customers WHERE plate=:p", params={"p": row['plate']}, ttl=0)
                         if not cust_info.empty:
@@ -1405,6 +1441,7 @@ elif choice == "LIVE U-FLOW":
                         add_event(f"{row['plate']} Released.")
                         st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
+
 
 
 
