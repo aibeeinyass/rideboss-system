@@ -33,7 +33,7 @@ st.markdown(
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
     page_title="RideBoss Autos System", 
-    page_icon="logo-192.png",
+    page_icon="static/logo-192.png",
     layout="wide",
     initial_sidebar_state="expanded"
 )
