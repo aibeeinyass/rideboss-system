@@ -515,16 +515,27 @@ if "print_receipt" in query_params:
 
         # BUILD SERVICE ITEMS SAFELY
         items_html = ""
-        for item in receipt_data.get("items", []):
-            name = item.get("name", "")
-            qty = item.get("qty", 1)
-            price = float(item.get("price", 0))
-            items_html += f"""
-            <div class="info-row">
-                <span>{qty}x {name}</span>
-                <span>₦{price:,.2f}</span>
-            </div>
-            """
+
+items = receipt_data.get("items", [])
+
+if isinstance(items, str):
+    items_html = f"""
+    <div class="info-row">
+        <span>{items}</span>
+        <span></span>
+    </div>
+    """
+else:
+    for item in items:
+        name = item.get("name", "")
+        qty = item.get("qty", 1)
+        price = float(item.get("price", 0))
+        items_html += f"""
+        <div class="info-row">
+            <span>{qty}x {name}</span>
+            <span>₦{price:,.2f}</span>
+        </div>
+        """
 
         html_content = f"""
 <style>
