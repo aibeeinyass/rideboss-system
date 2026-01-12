@@ -2139,17 +2139,20 @@ elif choice == "CRM & RETENTION":
                                 # Print Receipt for this specific historical visit
                                 if h_col2.button("PRINT 🖨️", key=f"prnt_{row['plate']}_{h_row['id']}"):
                                     receipt_json = json.dumps({
-        "id": h_row['id'],
-        "date": h_row['timestamp'],
-        "plate": row['plate'],
-        "name": row['name'],           # Customer name from CRM
-        "items": h_row['services'],
-        "total": h_row['total'],
-        "cashier": "RECORDS",          # Historical records label
-        "method": "PAID"               # Default for history
-    })
-    st.query_params["print_receipt"] = receipt_json
-    st.rerun()
+                                        "id": h_row['id'],
+                                        "date": h_row['timestamp'],
+                                        "plate": row['plate'],
+                                        "name": row['name'],           # Customer name from CRM
+                                        "items": h_row['services'],
+                                        "total": h_row['total'],
+                                        "cashier": "RECORDS",          # Historical records label
+                                        "method": "PAID"               # Default for history
+                                    })
+                                    st.query_params["print_receipt"] = receipt_json
+                                    st.rerun()
+            except Exception as e:
+                continue
+
                                 st.divider()
                         else:
                             st.info("No detailed history found for this plate.")
