@@ -355,21 +355,20 @@ def seed_data():
                 ON CONFLICT (item) DO NOTHING
             """), i)
         
-        # Seed Wash Prices
+                # Seed Wash Prices
         # Check count first
         count_res = s.execute(text("SELECT COUNT(*) FROM wash_prices")).scalar()
         if count_res == 0:
             initial_services = [
-                {"s": "Standard Wash", "p": 5000},
-                {"s": "Executive Detail", "p": 15000},
-                {"s": "Engine Steam", "p": 10000},
-                {"s": "Ceramic Wax", "p": 25000},
-                {"s": "Interior Deep Clean", "p": 12000}
+                {"s": "Standard Wash", "v": "Sedan", "p": 5000},
+                {"s": "Standard Wash", "v": "SUV", "p": 7500},
+                {"s": "Executive Detail", "v": "Sedan", "p": 15000},
             ]
             for svc in initial_services:
-                s.execute(text("INSERT INTO wash_prices VALUES (:s, :p)"), svc)
+                s.execute(text("INSERT INTO wash_prices (service, vehicle_type, price) VALUES (:s, :v, :p)"), svc)
                 
         s.commit()
+
 
 # Execute Initialization
 init_db()
