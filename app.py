@@ -18,30 +18,47 @@ from sqlalchemy import text
 # ==============================================================================
 
 # ==============================================================================
-# PWA OVERRIDE (FORCE CUSTOM ICON)
+# PWA HARD-OVERRIDE (Base64 Injection)
 # ==============================================================================
 st.markdown(
     """
     <script>
-        function applyManifest() {
-            // Find and remove any existing manifest links
-            const manifests = document.querySelectorAll('link[rel="manifest"]');
-            manifests.forEach(m => m.remove());
+        const myManifest = {
+            "name": "RideBoss Autos System",
+            "short_name": "RideBoss",
+            "display": "standalone",
+            "start_url": ".",
+            "theme_color": "#00d4ff",
+            "background_color": "#05070a",
+            "icons": [
+                {
+                    "src": "https://raw.githubusercontent.com/aibeeinyass/rideboss-system/main/logo-192.png",
+                    "sizes": "192x192",
+                    "type": "image/png"
+                },
+                {
+                    "src": "https://raw.githubusercontent.com/aibeeinyass/rideboss-system/main/logo-512.png",
+                    "sizes": "512x512",
+                    "type": "image/png"
+                }
+            ]
+        };
 
-            // Create and inject YOUR manifest
-            const newManifest = document.createElement('link');
-            newManifest.rel = 'manifest';
-            newManifest.href = 'https://raw.githubusercontent.com/aibeeinyass/rideboss-system/refs/heads/main/manifest.json';
-            document.head.appendChild(newManifest);
-        }
+        const stringManifest = JSON.stringify(myManifest);
+        const blob = new Blob([stringManifest], {type: 'application/json'});
+        const manifestURL = URL.createObjectURL(blob);
         
-        // Run immediately and again after 2 seconds to beat Streamlit's loader
-        applyManifest();
-        setTimeout(applyManifest, 2000);
+        // Remove old manifests and force this one
+        document.querySelectorAll('link[rel="manifest"]').forEach(el => el.remove());
+        const linkTag = document.createElement('link');
+        linkTag.rel = 'manifest';
+        linkTag.href = manifestURL;
+        document.head.appendChild(linkTag);
     </script>
     """,
     unsafe_allow_html=True
 )
+
 
 
 # --- PAGE CONFIGURATION ---
