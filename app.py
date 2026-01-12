@@ -912,9 +912,9 @@ if choice == "COMMAND CENTER":
             else:
                 staff_assigned = st.selectbox("ASSIGN WET BAY DETAILER", free_staff)
         
-                 else:
-            st.subheader("LOUNGE ORDER")
-            inv_data = conn.query("SELECT * FROM inventory", ttl=0)
+    else:
+        st.subheader("LOUNGE ORDER")
+        inv_data = conn.query("SELECT * FROM inventory", ttl=0)
             inv_dict = dict(zip(inv_data['item'], inv_data['price']))
             stock_dict = dict(zip(inv_data['item'], inv_data['stock']))
             
