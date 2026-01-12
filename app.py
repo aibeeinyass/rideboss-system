@@ -1120,34 +1120,47 @@ if choice == "COMMAND CENTER":
         elif (plate or mode == "LOUNGE") and (mode == "LOUNGE" or (mode == "CAR WASH" and item_summary)):
             confirm_transaction_dialog()
 
-    # --- RECEIPT RENDERING (Kept inside Command Center) ---
-    if 'last_receipt' in st.session_state and st.session_state.last_receipt:
-        r = st.session_state['last_receipt']
-        st.markdown(f"""
-        <div style="background: white; color: black; padding: 40px; max-width: 500px; margin: 20px auto; border: 1px solid #ddd; border-top: 10px solid black;">
-            <div style="text-align: center; border-bottom: 2px solid black; padding-bottom: 20px; margin-bottom: 20px;">
-                <h2 style="color: black !important; margin: 0; letter-spacing: 5px;">RIDEBOSS</h2>
-                <p style="color: #666 !important; font-size: 12px; margin: 0;">OFFICIAL TRANSACTION SUMMARY</p>
-            </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                <span style="font-weight: bold;">REFERENCE:</span> <span>#RB-{r['id']}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                <span style="font-weight: bold;">DATE:</span> <span>{r['date']}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 30px;">
-                <span style="font-weight: bold;">VEHICLE:</span> <span style="background: black; color: white; padding: 2px 8px;">{r['plate']}</span>
-            </div>
-            <div style="border: 1px solid black; padding: 15px; margin-bottom: 30px;">
-                <small style="color: #888; font-weight: bold;">DESCRIPTION</small><br>
-                <div style="font-size: 18px; margin-top: 5px;">{r['items']}</div>
-            </div>
-            <div style="display: flex; justify-content: space-between; border-top: 2px solid black; padding-top: 15px;">
-                <span style="font-size: 18px; font-weight: bold;">AMOUNT PAID</span>
-                <span style="font-size: 22px; font-weight: 900;">₦{r['total']:,}</span>
-            </div>
+    # --- RECEIPT RENDERING (FIXED INDENTATION & SCOPE) ---
+if 'last_receipt' in st.session_state and st.session_state.last_receipt:
+    r = st.session_state['last_receipt']
+    
+    # 1. On-Screen Display
+    st.markdown(f"""
+    <div style="background: white; color: black; padding: 40px; max-width: 500px; margin: 20px auto; border: 1px solid #ddd; border-top: 10px solid black;">
+        <div style="text-align: center; border-bottom: 2px solid black; padding-bottom: 20px; margin-bottom: 20px;">
+            <h2 style="color: black !important; margin: 0; letter-spacing: 5px;">RIDEBOSS</h2>
+            <p style="color: #666 !important; font-size: 12px; margin: 0;">OFFICIAL TRANSACTION SUMMARY</p>
         </div>
-        """, unsafe_allow_html=True)
+        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+            <span style="font-weight: bold;">REFERENCE:</span> <span>#RB-{r['id']}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+            <span style="font-weight: bold;">DATE/TIME:</span> <span>{r['date']}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+            <span style="font-weight: bold;">CUSTOMER:</span> <span>{r.get('name', 'N/A')}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+            <span style="font-weight: bold;">CASHIER:</span> <span>{st.session_state.get('user_name', 'System')}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+            <span style="font-weight: bold;">PAYMENT:</span> <span>{r.get('method', 'N/A')}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 30px;">
+            <span style="font-weight: bold;">VEHICLE:</span> <span style="background: black; color: white; padding: 2px 8px;">{r['plate']}</span>
+        </div>
+        <div style="border: 1px solid black; padding: 15px; margin-bottom: 30px;">
+            <small style="color: #888; font-weight: bold;">DESCRIPTION</small><br>
+            <div style="font-size: 18px; margin-top: 5px;">{r['items']}</div>
+        </div>
+        <div style="display: flex; justify-content: space-between; border-top: 2px solid black; padding-top: 15px;">
+            <span style="font-size: 18px; font-weight: bold;">AMOUNT PAID</span>
+            <span style="font-size: 22px; font-weight: 900;">₦{r['total']:,}</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # 2. Action Buttons (Now safely inside the 'if' block)
     c_p1, c_p2 = st.columns(2)
     with c_p1:
         # We now include ALL the missing fields in the JSON payload
@@ -1155,19 +1168,20 @@ if choice == "COMMAND CENTER":
             "id": r["id"], 
             "date": r["date"], 
             "plate": r["plate"], 
-            "name": r.get("name", "N/A"),           # Added
+            "name": r.get("name", "N/A"),
             "items": r["items"], 
             "total": r["total"],
-            "cashier": st.session_state.user_name, # Added
-            "method": r.get("method", "N/A")        # Added
+            "cashier": st.session_state.get("user_name", "System"),
+            "method": r.get("method", "N/A")
         }
         receipt_url = f"?print_receipt={urllib.parse.quote(json.dumps(receipt_payload))}"
         st.markdown(f'<a href="{receipt_url}" target="_blank"><button style="width:100%; height:3.5em; background:black; color:white; font-weight:bold; cursor:pointer;">🖨️ PRINT RECEIPT</button></a>', unsafe_allow_html=True)
 
-        with c_p2:
-            if st.button("CLOSE & DISMISS"):
-                del st.session_state['last_receipt']
-                st.rerun()
+    with c_p2:
+        if st.button("CLOSE & DISMISS", use_container_width=True):
+            del st.session_state['last_receipt']
+            st.rerun()
+
 
 # ==============================================================================
 # X. MEMBERSHIP HUB (SEPARATE SECTION)
