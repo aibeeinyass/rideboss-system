@@ -18,23 +18,26 @@ from sqlalchemy import text
 # ==============================================================================
 
 # ==============================================================================
-# PWA / MOBILE ICON CONFIGURATION
+# PWA OVERRIDE (FORCE CUSTOM ICON)
 # ==============================================================================
 st.markdown(
     """
     <script>
-        // Remove the default Streamlit manifest
-        var links = document.getElementsByTagName('link');
-        for (var i = 0; i < links.length; i++) {
-            if (links[i].rel === 'manifest') {
-                links[i].parentNode.removeChild(links[i]);
-            }
+        function applyManifest() {
+            // Find and remove any existing manifest links
+            const manifests = document.querySelectorAll('link[rel="manifest"]');
+            manifests.forEach(m => m.remove());
+
+            // Create and inject YOUR manifest
+            const newManifest = document.createElement('link');
+            newManifest.rel = 'manifest';
+            newManifest.href = 'https://raw.githubusercontent.com/aibeeinyass/rideboss-system/refs/heads/main/manifest.json';
+            document.head.appendChild(newManifest);
         }
-        // Add your custom manifest
-        var link = document.createElement('link');
-        link.rel = 'manifest';
-        link.href = 'https://raw.githubusercontent.com/aibeeinyass/rideboss-system/refs/heads/main/manifest.json';
-        document.head.appendChild(link);
+        
+        // Run immediately and again after 2 seconds to beat Streamlit's loader
+        applyManifest();
+        setTimeout(applyManifest, 2000);
     </script>
     """,
     unsafe_allow_html=True
