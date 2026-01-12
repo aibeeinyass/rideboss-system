@@ -2138,7 +2138,7 @@ elif choice == "CRM & RETENTION":
                                 
                                 # Print Receipt for this specific historical visit
                                 if h_col2.button("PRINT 🖨️", key=f"prnt_{row['plate']}_{h_row['id']}"):
-    receipt_json = json.dumps({
+        receipt_json = json.dumps({
         "id": h_row['id'],
         "date": h_row['timestamp'],
         "plate": row['plate'],
