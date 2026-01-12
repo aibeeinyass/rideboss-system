@@ -1149,7 +1149,7 @@ if choice == "COMMAND CENTER":
         </div>
         """, unsafe_allow_html=True)
     c_p1, c_p2 = st.columns(2)
-        with c_p1:
+    with c_p1:
         # We now include ALL the missing fields in the JSON payload
         receipt_payload = {
             "id": r["id"], 
