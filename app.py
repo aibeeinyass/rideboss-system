@@ -509,33 +509,32 @@ if "print_receipt" in query_params:
         try:
             with open("logo.png", "rb") as image_file:
                 encoded = base64.b64encode(image_file.read()).decode()
-            logo_html = f'<img src="data:image/png;base64,{encoded}" style="width:150px;display:block;margin:0 auto 10px;">'
+            logo_html = f'<img src="data:image/png;base64,{encoded}" style="width:350px;display:block;margin:0 auto 10px;">'
         except:
             logo_html = "<h2 style='text-align:center;margin:0;'>RIDEBOSS AUTOS</h2>"
 
         # BUILD SERVICE ITEMS SAFELY
         items_html = ""
+        items = receipt_data.get("items", [])
 
-items = receipt_data.get("items", [])
-
-if isinstance(items, str):
-    items_html = f"""
-    <div class="info-row">
-        <span>{items}</span>
-        <span></span>
-    </div>
-    """
-else:
-    for item in items:
-        name = item.get("name", "")
-        qty = item.get("qty", 1)
-        price = float(item.get("price", 0))
-        items_html += f"""
-        <div class="info-row">
-            <span>{qty}x {name}</span>
-            <span>₦{price:,.2f}</span>
-        </div>
-        """
+        if isinstance(items, str):
+            items_html = f"""
+            <div class="info-row">
+                <span>{items}</span>
+                <span></span>
+            </div>
+            """
+        else:
+            for item in items:
+                name = item.get("name", "")
+                qty = item.get("qty", 1)
+                price = float(item.get("price", 0))
+                items_html += f"""
+                <div class="info-row">
+                    <span>{qty}x {name}</span>
+                    <span>₦{price:,.2f}</span>
+                </div>
+                """
 
         html_content = f"""
 <style>
@@ -621,7 +620,6 @@ window.onload = function() {{
     except Exception as e:
         st.error(f"Receipt Error: {e}")
         st.stop()
-
 
 # --- SESSION STATE INITIALIZATION ---
 if 'logged_in' not in st.session_state: 
