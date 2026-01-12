@@ -22,39 +22,8 @@ from sqlalchemy import text
 # ==============================================================================
 st.markdown(
     """
-    <script>
-        const myManifest = {
-            "name": "RideBoss Autos System",
-            "short_name": "RideBoss",
-            "display": "standalone",
-            "start_url": ".",
-            "theme_color": "#00d4ff",
-            "background_color": "#05070a",
-            "icons": [
-                {
-                    "src": "https://raw.githubusercontent.com/aibeeinyass/rideboss-system/main/logo-192.png",
-                    "sizes": "192x192",
-                    "type": "image/png"
-                },
-                {
-                    "src": "https://raw.githubusercontent.com/aibeeinyass/rideboss-system/main/logo-512.png",
-                    "sizes": "512x512",
-                    "type": "image/png"
-                }
-            ]
-        };
-
-        const stringManifest = JSON.stringify(myManifest);
-        const blob = new Blob([stringManifest], {type: 'application/json'});
-        const manifestURL = URL.createObjectURL(blob);
-        
-        // Remove old manifests and force this one
-        document.querySelectorAll('link[rel="manifest"]').forEach(el => el.remove());
-        const linkTag = document.createElement('link');
-        linkTag.rel = 'manifest';
-        linkTag.href = manifestURL;
-        document.head.appendChild(linkTag);
-    </script>
+    <link rel="manifest" href="/app/static/manifest.json">
+    <meta name="theme-color" content="#00d4ff">
     """,
     unsafe_allow_html=True
 )
