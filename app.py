@@ -18,7 +18,8 @@ from sqlalchemy import text
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
-    page_title="RideBoss Autos HQ", 
+    page_title="RideBoss Autos System", 
+    page_icon="logo.jpg",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -658,6 +659,7 @@ if st.session_state.user_role == "STAFF" and is_verified == 0:
 COUNTRY_CODES = {"Nigeria": "+234", "Ghana": "+233", "UK": "+44", "USA": "+1", "UAE": "+971"}
 
 # --- SIDEBAR NAVIGATION ---
+st.sidebar.image("logo.jpg", use_container_width=True)
 st.sidebar.markdown(f"USER: **{st.session_state.user_name}**")
 st.sidebar.caption(f"DEPT: {st.session_state.user_dept}")
 
