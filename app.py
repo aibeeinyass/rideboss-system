@@ -22,7 +22,7 @@ from sqlalchemy import text
 # ==============================================================================
 st.markdown(
     """
-    <link rel="manifest" href="https://raw.githubusercontent.com/aibeeinyass/rideboss-system/refs/heads/main/manifest.json">
+    <link rel="manifest" href="https://raw.githubusercontent.com/aibeeinyass/rideboss-system/refs/heads/main/manifest.json?v=1">
     """,
     unsafe_allow_html=True
 )
