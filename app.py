@@ -19,7 +19,7 @@ from sqlalchemy import text
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
     page_title="RideBoss Autos System", 
-    page_icon="logo.jpg",
+    page_icon="logo.png",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -28,15 +28,15 @@ st.set_page_config(
 def display_logo(is_sidebar=False):
     try:
         if is_sidebar:
-            st.sidebar.image("logo.jpg", use_container_width=True)
+            st.sidebar.image("logo.png", use_container_width=True)
             st.sidebar.markdown("---")
         else:
             # Centering logic for the login page
             col1, col2, col3 = st.columns([1, 2, 1])
             with col2:
-                st.image("logo.jpg", use_container_width=True)
+                st.image("logo.png", use_container_width=True)
     except Exception:
-        st.error("Logo file 'logo.jpg' not found in repository.")
+        st.error("Logo file 'logo.png' not found in repository.")
 
 
 # --- DATABASE CONNECTION SETUP ---
@@ -577,7 +577,7 @@ if 'wa_pending' not in st.session_state:
 # --- LOGIN SYSTEM ---
 if not st.session_state.logged_in:
     display_logo(is_sidebar=False)
-    st.markdown("<h1 style='text-align:center; letter-spacing:10px; margin-top:100px;'>RIDEBOSS LOGIN</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align:center; letter-spacing:5px; margin-top:10px;'>RIDEBOSS LOGIN</h1>", unsafe_allow_html=True)
     _, log_col, _ = st.columns([1,1,1])
     
     with log_col:
