@@ -492,104 +492,74 @@ query_params = st.query_params
 
 if "print_receipt" in query_params:
     try:
-        # Load the data
         receipt_data = json.loads(query_params["print_receipt"])
         
-        # 1. PROCESS LOGO (Fixed Size)
+        # 1. LOAD LOGO
         logo_html = ""
         try:
             with open("logo.png", "rb") as image_file:
                 encoded_string = base64.b64encode(image_file.read()).decode()
-            # UPDATED: Increased width to 250px and added max-width for safety
-            logo_html = f'<img src="data:image/png;base64,{encoded_string}" style="width: 250px; max-width: 100%; display: block; margin: 0 auto 10px auto;">'
-        except Exception:
+            # Logo set to 250px width as requested
+            logo_html = f'<img src="data:image/png;base64,{encoded_string}" style="width: 250px; display: block; margin: 0 auto 10px auto;">'
+        except:
+            # Fallback if logo is missing
             logo_html = "<h2 style='text-align:center'>RIDEBOSS AUTOS</h2>"
 
-        # 2. GENERATE RECEIPT HTML (Updated to match your design)
-        st.markdown(f"""
+        # 2. BUILD HTML STRING (One single block to prevent code leaks)
+        html_content = f"""
             <style>
+                /* Print Settings */
                 @media print {{
-                    body {{ background: white !important; }}
-                    .stApp {{ display: none !important; }} /* Hide Streamlit UI */
-                    .print-container {{ display: block !important; }}
+                    body * {{ visibility: hidden; }}
+                    .print-container, .print-container * {{ visibility: visible; }}
+                    .print-container {{ position: absolute; left: 0; top: 0; width: 100%; }}
+                    @page {{ margin: 0; size: auto; }}
                 }}
-                /* Screen view styles */
-                .stApp {{ background: #f0f2f6; }}
                 
-                .print-container {{ 
-                    background: white; 
-                    color: black; 
-                    padding: 20px; 
-                    font-family: 'Courier New', Courier, monospace; 
-                    width: 350px; /* Standard receipt width */
-                    margin: 0 auto; 
-                    font-size: 13px;
-                    line-height: 1.4;
+                /* Receipt Styling */
+                .print-container {{
+                    background: white;
+                    color: black;
+                    font-family: 'Courier New', Courier, monospace;
+                    width: 380px;
+                    margin: 0 auto;
+                    padding: 20px;
+                    font-size: 14px;
                 }}
-                .header-section {{
-                    text-align: center;
-                    margin-bottom: 10px;
-                }}
-                .dashed-line {{
-                    border-top: 1px dashed #000;
-                    margin: 10px 0;
-                    width: 100%;
-                }}
-                .info-row {{
-                    display: flex;
-                    justify-content: space-between;
-                    margin-bottom: 3px;
-                }}
-                .bold {{
-                    font-weight: bold;
-                }}
-                .service-header {{
-                    margin-bottom: 5px;
-                    font-weight: bold;
-                    text-decoration: underline;
-                }}
-                .total-section {{
-                    font-size: 16px;
-                    margin-top: 5px;
-                    border-top: 1px dashed black;
-                    border-bottom: 1px dashed black;
-                    padding: 5px 0;
-                }}
-                .footer {{
-                    text-align: center;
-                    margin-top: 20px;
-                    font-size: 11px;
-                }}
-                .footer p {{ margin: 2px 0; }}
+                .header {{ text-align: center; margin-bottom: 10px; }}
+                .dashed-line {{ border-top: 1px dashed #000; margin: 10px 0; width: 100%; }}
+                .info-row {{ display: flex; justify-content: space-between; margin-bottom: 5px; }}
+                .bold {{ font-weight: bold; }}
+                .service-header {{ font-weight: bold; text-decoration: underline; margin-bottom: 5px; }}
+                .footer {{ text-align: center; margin-top: 20px; font-size: 12px; }}
+                .total-section {{ border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 10px 0; margin: 10px 0; font-size: 18px; }}
             </style>
 
             <div class="print-container">
-                <div class="header-section">
+                <div class="header">
                     {logo_html}
-                    <div style="font-weight: bold; font-size: 16px;">RIDEBOSS AUTOS</div>
-                    <div>PREMIUM DETAILING & LOUNGE</div>
-                    <div style="margin-top:5px;">123 Main Street, Victoria Island, Lagos</div>
-                    <div>Tel: +234 800 000 0000</div>
+                    <div style="font-weight: bold; font-size: 18px;">RIDEBOSS AUTOS</div>
+                    <div style="font-size: 12px;">PREMIUM DETAILING & LOUNGE</div>
+                    <div style="margin-top:5px; font-size: 12px;">123 Main Street, Victoria Island, Lagos</div>
+                    <div style="font-size: 12px;">Tel: +234 800 000 0000</div>
                 </div>
 
                 <div class="dashed-line"></div>
 
-                <div class="info-row"><span>Receipt #:</span> <span>RB-{receipt_data.get('id', '---')}</span></div>
-                <div class="info-row"><span>Date:</span> <span>{receipt_data.get('date', '---')}</span></div>
+                <div class="info-row"><span>Receipt #:</span> <span>RB-{receipt_data.get('id', '00')}</span></div>
+                <div class="info-row"><span>Date:</span> <span>{receipt_data.get('date', 'N/A')}</span></div>
                 <div class="info-row"><span>Cashier:</span> <span>{receipt_data.get('cashier', 'admin')}</span></div>
 
                 <div class="dashed-line"></div>
 
                 <div class="info-row"><span>Customer:</span> <span>{receipt_data.get('name', 'Walk-in')}</span></div>
-                <div class="info-row"><span>Vehicle:</span> <span class="bold">{receipt_data.get('plate', '---')}</span></div>
+                <div class="info-row"><span>Vehicle:</span> <span class="bold">{receipt_data.get('plate', 'N/A')}</span></div>
 
                 <div class="dashed-line"></div>
 
-                <div class="service-header">
-                    <span>DESCRIPTION</span>
-                </div>
-                <div style="min-height: 60px; padding-top: 5px;">
-                    <div class="service-item">{receipt_data.get('items', 'Standard Wash')}</div>
+                <div class="service-header">DESCRIPTION</div>
+                <div style="min-height: 60px;">
+                    {receipt_data.get('items', 'Standard Service')}
                 </div>
 
                 <div class="dashed-line"></div>
@@ -597,7 +567,7 @@ if "print_receipt" in query_params:
                 <div class="info-row"><span>Subtotal:</span> <span>₦{float(receipt_data.get('total', 0)):,.2f}</span></div>
                 <div class="info-row"><span>VAT (0%):</span> <span>₦0.00</span></div>
 
-                <div class="total-section info-row bold">
+                <div class="info-row total-section bold">
                     <span>TOTAL:</span>
                     <span>₦{float(receipt_data.get('total', 0)):,.2f}</span>
                 </div>
@@ -610,24 +580,28 @@ if "print_receipt" in query_params:
                 <div class="footer">
                     <p>THANK YOU FOR YOUR PATRONAGE!</p>
                     <p>Goods sold are not returnable.</p>
-                    <p>www.ridebossautos.com</p>
+                    <p><b>www.ridebossautos.com</b></p>
                     <p>Follow us @RideBossAutos</p>
                 </div>
             </div>
             
             <script>
-                // Slight delay to ensure images load before print dialog opens
-                setTimeout(function() {{
+                // Auto-print when loaded
+                window.onload = function() {{
                     window.print();
-                }}, 500);
+                }}
             </script>
-        """, unsafe_allow_html=True)
+        """
+
+        # 3. RENDER EVERYTHING AT ONCE
+        st.markdown(html_content, unsafe_allow_html=True)
+        
+        # Stop execution so no other UI elements interfere
         st.stop()
+        
     except Exception as e:
-        st.error(f"Receipt Generation Error: {e}")
+        st.error(f"Receipt Error: {e}")
         st.stop()
-
-
 
 # --- SESSION STATE INITIALIZATION ---
 if 'logged_in' not in st.session_state: 
