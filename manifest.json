@@ -1,0 +1,23 @@
+{
+  "name": "RideBoss Autos System",
+  "short_name": "RideBoss",
+  "description": "Management system for RideBoss Autos",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000B18",
+  "theme_color": "#000B18",
+  "icons": [
+    {
+      "src": "logo-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "logo-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
