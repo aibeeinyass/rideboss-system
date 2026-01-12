@@ -2127,7 +2127,7 @@ elif choice == "CRM & RETENTION":
                         st.divider()
                         st.write("**Service History & Records**")
                         
-                        # Fetch all past sales for this specific plate
+                                                # Fetch all past sales for this specific plate
                         history = conn.query("SELECT id, timestamp, services, total FROM sales WHERE plate = :p ORDER BY id DESC", params={"p": row['plate']}, ttl=0)
                         
                         if not history.empty:
@@ -2150,12 +2150,12 @@ elif choice == "CRM & RETENTION":
                                     })
                                     st.query_params["print_receipt"] = receipt_json
                                     st.rerun()
+                            st.divider()
+                        else:
+                            st.info("No detailed history found for this plate.")
             except Exception as e:
                 continue
 
-                      st.divider()
-                      else:
-                            st.info("No detailed history found for this plate.")
 
                     st.markdown(f"""
                         <div style='padding:12px; border-radius:5px; border-left: 5px solid {color}; background:#1e1e1e; margin-bottom:8px; margin-top:-10px;'>
