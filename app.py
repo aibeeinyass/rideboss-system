@@ -2157,7 +2157,7 @@ elif choice == "CRM & RETENTION":
                 continue
 
 
-                    st.markdown(f"""
+                        st.markdown(f"""
                         <div style='padding:12px; border-radius:5px; border-left: 5px solid {color}; background:#1e1e1e; margin-bottom:8px; margin-top:-10px;'>
                             <small style='color:{color}; font-weight:bold;'>{days_since} days since last visit ({status_text})</small>
                         </div>
