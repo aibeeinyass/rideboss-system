@@ -2153,7 +2153,7 @@ elif choice == "CRM & RETENTION":
             except Exception as e:
                 continue
 
-                            st.divider()
+                        st.divider()
                         else:
                             st.info("No detailed history found for this plate.")
 
