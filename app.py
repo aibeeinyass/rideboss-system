@@ -17,10 +17,20 @@ from sqlalchemy import text
 # Migration Date: 2026
 # ==============================================================================
 
+ ==============================================================================
+# PWA / MOBILE ICON CONFIGURATION
+# ==============================================================================
+st.markdown(
+    """
+    <link rel="manifest" href="https://raw.githubusercontent.com/aibeeinyass/rideboss-system/refs/heads/main/manifest.json">
+    """,
+    unsafe_allow_html=True
+)
+
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
     page_title="RideBoss Autos System", 
-    page_icon="logo.png",
+    page_icon="logo-192.png",
     layout="wide",
     initial_sidebar_state="expanded"
 )
