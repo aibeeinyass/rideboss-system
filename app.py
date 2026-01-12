@@ -2127,7 +2127,7 @@ elif choice == "CRM & RETENTION":
                         st.divider()
                         st.write("**Service History & Records**")
                         
-                                                # Fetch all past sales for this specific plate
+                        # Fetch all past sales for this specific plate
                         history = conn.query("SELECT id, timestamp, services, total FROM sales WHERE plate = :p ORDER BY id DESC", params={"p": row['plate']}, ttl=0)
                         
                         if not history.empty:
@@ -2153,16 +2153,15 @@ elif choice == "CRM & RETENTION":
                             st.divider()
                         else:
                             st.info("No detailed history found for this plate.")
-            except Exception as e:
-                continue
-
 
                     st.markdown(f"""
                         <div style='padding:12px; border-radius:5px; border-left: 5px solid {color}; background:#1e1e1e; margin-bottom:8px; margin-top:-10px;'>
                             <small style='color:{color}; font-weight:bold;'>{days_since} days since last visit ({status_text})</small>
                         </div>
                     """, unsafe_allow_html=True)
-                
+            except Exception as e:
+                continue
+
                 with col2:
                     # --- DYNAMIC ACTION BUTTON ---
                     if is_vip_milestone:
