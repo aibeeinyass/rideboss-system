@@ -497,7 +497,7 @@ import streamlit as st
 import json
 import base64
 
-# --- SPECIAL PRINT RENDERER (FIXED) ---
+# --- SPECIAL PRINT RENDERER (FINAL FIX) ---
 query_params = st.query_params
 
 if "print_receipt" in query_params:
@@ -509,51 +509,46 @@ if "print_receipt" in query_params:
         try:
             with open("logo.png", "rb") as image_file:
                 encoded = base64.b64encode(image_file.read()).decode()
-            logo_html = f'<img src="data:image/png;base64,{encoded}" style="width:350px;display:block;margin:0 auto 10px;">'
+            logo_html = '<img src="data:image/png;base64,' + encoded + '" style="width:150px;display:block;margin:0 auto 10px;">'
         except:
             logo_html = "<h2 style='text-align:center;margin:0;'>RIDEBOSS AUTOS</h2>"
 
-        # BUILD SERVICE ITEMS SAFELY
+        # BUILD SERVICE ITEMS WITHOUT INDENTATION
         items_html = ""
         items = receipt_data.get("items", [])
 
         if isinstance(items, str):
-            items_html = f"""
-            <div class="info-row">
-                <span>{items}</span>
-                <span></span>
-            </div>
-            """
+            items_html += "<div class='info-row'><span>" + items + "</span><span></span></div>"
         else:
             for item in items:
-                name = item.get("name", "")
-                qty = item.get("qty", 1)
+                name = str(item.get("name", ""))
+                qty = str(item.get("qty", 1))
                 price = float(item.get("price", 0))
-                items_html += f"""
-                <div class="info-row">
-                    <span>{qty}x {name}</span>
-                    <span>₦{price:,.2f}</span>
-                </div>
-                """
+                items_html += (
+                    "<div class='info-row'>"
+                    "<span>" + qty + "x " + name + "</span>"
+                    "<span>₦" + format(price, ",.2f") + "</span>"
+                    "</div>"
+                )
 
         html_content = f"""
 <style>
 @media print {{
-    body * {{ visibility: hidden; }}
-    .print-container, .print-container * {{ visibility: visible; }}
-    .print-container {{ position: absolute; left: 0; top: 0; width: 100%; }}
-    @page {{ margin: 0; }}
-    .stApp {{ display: none; }}
+body * {{ visibility: hidden; }}
+.print-container, .print-container * {{ visibility: visible; }}
+.print-container {{ position: absolute; left: 0; top: 0; width: 100%; }}
+@page {{ margin: 0; }}
+.stApp {{ display: none; }}
 }}
 
 .print-container {{
-    background: white;
-    color: black;
-    font-family: Courier New, monospace;
-    width: 300px;
-    margin: 0 auto;
-    padding: 15px;
-    font-size: 12px;
+background: white;
+color: black;
+font-family: Courier New, monospace;
+width: 300px;
+margin: 0 auto;
+padding: 15px;
+font-size: 12px;
 }}
 
 .header {{ text-align: center; }}
@@ -565,51 +560,51 @@ if "print_receipt" in query_params:
 </style>
 
 <div class="print-container">
-    <div class="header">
-        {logo_html}
-        <div style="font-size:10px;">PREMIUM DETAILING & LOUNGE</div>
-        <div style="font-size:10px;">Victoria Island, Lagos</div>
-        <div style="font-size:10px;">+234 800 000 0000</div>
-    </div>
+<div class="header">
+{logo_html}
+<div style="font-size:10px;">PREMIUM DETAILING & LOUNGE</div>
+<div style="font-size:10px;">Victoria Island, Lagos</div>
+<div style="font-size:10px;">+234 800 000 0000</div>
+</div>
 
-    <div class="dashed-line"></div>
+<div class="dashed-line"></div>
 
-    <div class="info-row"><span>Receipt #</span><span>RB-{receipt_data.get("id","00")}</span></div>
-    <div class="info-row"><span>Date</span><span>{receipt_data.get("date","")}</span></div>
-    <div class="info-row"><span>Cashier</span><span>{receipt_data.get("cashier","admin")}</span></div>
+<div class="info-row"><span>Receipt #</span><span>RB-{receipt_data.get("id","00")}</span></div>
+<div class="info-row"><span>Date</span><span>{receipt_data.get("date","")}</span></div>
+<div class="info-row"><span>Cashier</span><span>{receipt_data.get("cashier","admin")}</span></div>
 
-    <div class="dashed-line"></div>
+<div class="dashed-line"></div>
 
-    <div class="info-row"><span>Customer</span><span>{receipt_data.get("name","Walk-in")}</span></div>
-    <div class="info-row"><span>Vehicle</span><span>{receipt_data.get("plate","")}</span></div>
+<div class="info-row"><span>Customer</span><span>{receipt_data.get("name","Walk-in")}</span></div>
+<div class="info-row"><span>Vehicle</span><span>{receipt_data.get("plate","")}</span></div>
 
-    <div class="dashed-line"></div>
+<div class="dashed-line"></div>
 
-    <div class="service-header">DESCRIPTION</div>
-    {items_html}
+<div class="service-header">DESCRIPTION</div>
+{items_html}
 
-    <div class="dashed-line"></div>
+<div class="dashed-line"></div>
 
-    <div class="info-row"><span>Subtotal</span><span>₦{float(receipt_data.get("total",0)):,.2f}</span></div>
-    <div class="info-row"><span>VAT 0%</span><span>₦0.00</span></div>
+<div class="info-row"><span>Subtotal</span><span>₦{float(receipt_data.get("total",0)):,.2f}</span></div>
+<div class="info-row"><span>VAT 0%</span><span>₦0.00</span></div>
 
-    <div class="info-row total-section">
-        <span>TOTAL</span>
-        <span>₦{float(receipt_data.get("total",0)):,.2f}</span>
-    </div>
+<div class="info-row total-section">
+<span>TOTAL</span>
+<span>₦{float(receipt_data.get("total",0)):,.2f}</span>
+</div>
 
-    <div class="info-row"><span>Paid via</span><span>{receipt_data.get("method","CASH")}</span></div>
+<div class="info-row"><span>Paid via</span><span>{receipt_data.get("method","N/A")}</span></div>
 
-    <div class="footer">
-        <p>THANK YOU FOR YOUR PATRONAGE</p>
-        <p>Goods sold are not returnable</p>
-        <p>@RideBossAutos</p>
-    </div>
+<div class="footer">
+<p>THANK YOU FOR YOUR PATRONAGE</p>
+<p>Goods sold are not returnable</p>
+<p>@RideBossAutos</p>
+</div>
 </div>
 
 <script>
 window.onload = function() {{
-    setTimeout(function() {{ window.print(); }}, 400);
+setTimeout(function() {{ window.print(); }}, 400);
 }}
 </script>
 """
