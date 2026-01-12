@@ -912,18 +912,41 @@ if choice == "COMMAND CENTER":
             else:
                 staff_assigned = st.selectbox("ASSIGN WET BAY DETAILER", free_staff)
         
-        else:
-            st.subheader("LOUNGE ORDER")
-            inv_data = conn.query("SELECT * FROM inventory", ttl=0)
+            else:
+                st.subheader("LOUNGE ORDER")
+                inv_data = conn.query("SELECT * FROM inventory", ttl=0)
             inv_dict = dict(zip(inv_data['item'], inv_data['price']))
             stock_dict = dict(zip(inv_data['item'], inv_data['stock']))
+            
             lounge_items = st.multiselect("SELECT ITEMS", list(inv_dict.keys()))
+            
+            # --- NEW: COMPLIMENTARY TOGGLE ---
+            is_lounge_promo = st.checkbox("🎟️ COMPLIMENTARY (FREE ORDER)", key="lounge_free_toggle")
+            
             for item in lounge_items:
-                qty = st.number_input(f"Qty: {item}", min_value=1, max_value=int(stock_dict.get(item, 0)))
+                # Get max stock available
+                max_stock = int(stock_dict.get(item, 0))
+                if max_stock < 1:
+                    st.error(f"❌ {item} is OUT OF STOCK")
+                    continue
+                    
+                qty = st.number_input(f"Qty: {item}", min_value=1, max_value=max_stock, key=f"qty_{item}")
                 lounge_items_sold.append((item, qty))
-                total_price += (inv_dict[item] * qty)
+                
+                # Only add to price if NOT a promo
+                if not is_lounge_promo:
+                    total_price += (inv_dict[item] * qty)
+            
             item_summary = ", ".join([f"{q}x {i}" for i, q in lounge_items_sold])
             staff_assigned = st.session_state.user_name
+
+            # Set type so it shows as PROMO in financial logs
+            if is_lounge_promo:
+                transaction_type = "PROMO"
+                total_price = 0.0
+                st.info("🎁 This order is marked as Complimentary. Total will be ₦0.")
+
+   
 
         if discount_amount > 0:
             st.caption(f"SUBTOTAL: ₦{base_total:,}")
