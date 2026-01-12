@@ -509,99 +509,100 @@ if "print_receipt" in query_params:
         try:
             with open("logo.png", "rb") as image_file:
                 encoded_string = base64.b64encode(image_file.read()).decode()
-            # Logo set to 250px width as requested
-            logo_html = f'<img src="data:image/png;base64,{encoded_string}" style="width: 250px; display: block; margin: 0 auto 10px auto;">'
+            logo_html = f'<img src="data:image/png;base64,{encoded_string}" style="width: 150px; display: block; margin: 0 auto 10px auto;">'
         except:
-            # Fallback if logo is missing
-            logo_html = "<h2 style='text-align:center'>RIDEBOSS AUTOS</h2>"
+            logo_html = "<h2 style='text-align:center; margin:0;'>RIDEBOSS AUTOS</h2>"
 
-        # 2. BUILD HTML STRING (One single block to prevent code leaks)
+        # 2. BUILD HTML STRING 
+        # CRITICAL FIX: The HTML below is aligned to the left (no indentation) 
+        # to prevent Streamlit from treating it as a code block.
         html_content = f"""
-            <style>
-                /* Print Settings */
-                @media print {{
-                    body * {{ visibility: hidden; }}
-                    .print-container, .print-container * {{ visibility: visible; }}
-                    .print-container {{ position: absolute; left: 0; top: 0; width: 100%; }}
-                    @page {{ margin: 0; size: auto; }}
-                }}
-                
-                /* Receipt Styling */
-                .print-container {{
-                    background: white;
-                    color: black;
-                    font-family: 'Courier New', Courier, monospace;
-                    width: 380px;
-                    margin: 0 auto;
-                    padding: 20px;
-                    font-size: 14px;
-                }}
-                .header {{ text-align: center; margin-bottom: 10px; }}
-                .dashed-line {{ border-top: 1px dashed #000; margin: 10px 0; width: 100%; }}
-                .info-row {{ display: flex; justify-content: space-between; margin-bottom: 5px; }}
-                .bold {{ font-weight: bold; }}
-                .service-header {{ font-weight: bold; text-decoration: underline; margin-bottom: 5px; }}
-                .footer {{ text-align: center; margin-top: 20px; font-size: 12px; }}
-                .total-section {{ border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 10px 0; margin: 10px 0; font-size: 18px; }}
-            </style>
+<style>
+    /* Print Settings */
+    @media print {{
+        body * {{ visibility: hidden; }}
+        .print-container, .print-container * {{ visibility: visible; }}
+        .print-container {{ position: absolute; left: 0; top: 0; width: 100%; }}
+        @page {{ margin: 0; size: auto; }}
+        .stApp {{ display: none; }} 
+    }}
+    
+    /* Receipt Styling */
+    .print-container {{
+        background: white;
+        color: black;
+        font-family: 'Courier New', Courier, monospace;
+        width: 300px;
+        margin: 0 auto;
+        padding: 15px;
+        font-size: 12px;
+    }}
+    .header {{ text-align: center; margin-bottom: 10px; }}
+    .dashed-line {{ border-top: 1px dashed #000; margin: 10px 0; width: 100%; }}
+    .info-row {{ display: flex; justify-content: space-between; margin-bottom: 5px; }}
+    .bold {{ font-weight: bold; }}
+    .service-header {{ font-weight: bold; text-decoration: underline; margin-bottom: 5px; }}
+    .footer {{ text-align: center; margin-top: 20px; font-size: 10px; }}
+    .total-section {{ border-top: 2px dashed #000; border-bottom: 2px dashed #000; padding: 10px 0; margin: 10px 0; font-size: 16px; font-weight: 900; }}
+</style>
 
-            <div class="print-container">
-                <div class="header">
-                    {logo_html}
-                    <div style="font-weight: bold; font-size: 18px;">RIDEBOSS AUTOS</div>
-                    <div style="font-size: 12px;">PREMIUM DETAILING & LOUNGE</div>
-                    <div style="margin-top:5px; font-size: 12px;">123 Main Street, Victoria Island, Lagos</div>
-                    <div style="font-size: 12px;">Tel: +234 800 000 0000</div>
-                </div>
+<div class="print-container">
+    <div class="header">
+        {logo_html}
+        <div style="font-size: 10px;">PREMIUM DETAILING & LOUNGE</div>
+        <div style="margin-top:5px; font-size: 10px;">Victoria Island, Lagos</div>
+        <div style="font-size: 10px;">+234 800 000 0000</div>
+    </div>
 
-                <div class="dashed-line"></div>
+    <div class="dashed-line"></div>
 
-                <div class="info-row"><span>Receipt #:</span> <span>RB-{receipt_data.get('id', '00')}</span></div>
-                <div class="info-row"><span>Date:</span> <span>{receipt_data.get('date', 'N/A')}</span></div>
-                <div class="info-row"><span>Cashier:</span> <span>{receipt_data.get('cashier', 'admin')}</span></div>
+    <div class="info-row"><span>Receipt #:</span> <span>RB-{receipt_data.get('id', '00')}</span></div>
+    <div class="info-row"><span>Date:</span> <span>{receipt_data.get('date', 'N/A')}</span></div>
+    <div class="info-row"><span>Cashier:</span> <span>{receipt_data.get('cashier', 'admin')}</span></div>
 
-                <div class="dashed-line"></div>
+    <div class="dashed-line"></div>
 
-                <div class="info-row"><span>Customer:</span> <span>{receipt_data.get('name', 'Walk-in')}</span></div>
-                <div class="info-row"><span>Vehicle:</span> <span class="bold">{receipt_data.get('plate', 'N/A')}</span></div>
+    <div class="info-row"><span>Customer:</span> <span>{receipt_data.get('name', 'Walk-in')}</span></div>
+    <div class="info-row"><span>Vehicle:</span> <span class="bold">{receipt_data.get('plate', 'N/A')}</span></div>
 
-                <div class="dashed-line"></div>
+    <div class="dashed-line"></div>
 
-                <div class="service-header">DESCRIPTION</div>
-                <div style="min-height: 60px;">
-                    {receipt_data.get('items', 'Standard Service')}
-                </div>
+    <div class="service-header">DESCRIPTION</div>
+    <div style="min-height: 40px; margin-bottom: 10px;">
+        {receipt_data.get('items', 'Standard Service')}
+    </div>
 
-                <div class="dashed-line"></div>
+    <div class="dashed-line"></div>
 
-                <div class="info-row"><span>Subtotal:</span> <span>₦{float(receipt_data.get('total', 0)):,.2f}</span></div>
-                <div class="info-row"><span>VAT (0%):</span> <span>₦0.00</span></div>
+    <div class="info-row"><span>Subtotal:</span> <span>₦{float(receipt_data.get('total', 0)):,.2f}</span></div>
+    <div class="info-row"><span>VAT (0%):</span> <span>₦0.00</span></div>
 
-                <div class="info-row total-section bold">
-                    <span>TOTAL:</span>
-                    <span>₦{float(receipt_data.get('total', 0)):,.2f}</span>
-                </div>
+    <div class="info-row total-section">
+        <span>TOTAL:</span>
+        <span>₦{float(receipt_data.get('total', 0)):,.2f}</span>
+    </div>
 
-                <div class="info-row" style="margin-top: 5px;">
-                    <span>Paid via:</span> 
-                    <span style="text-transform: uppercase;">{receipt_data.get('method', 'CASH')}</span>
-                </div>
+    <div class="info-row" style="margin-top: 5px;">
+        <span>Paid via:</span> 
+        <span style="text-transform: uppercase;">{receipt_data.get('method', 'CASH')}</span>
+    </div>
 
-                <div class="footer">
-                    <p>THANK YOU FOR YOUR PATRONAGE!</p>
-                    <p>Goods sold are not returnable.</p>
-                    <p><b>www.ridebossautos.com</b></p>
-                    <p>Follow us @RideBossAutos</p>
-                </div>
-            </div>
-            
-            <script>
-                // Auto-print when loaded
-                window.onload = function() {{
-                    window.print();
-                }}
-            </script>
-        """
+    <div class="footer">
+        <p>THANK YOU FOR YOUR PATRONAGE!</p>
+        <p>Goods sold are not returnable.</p>
+        <p><b>@RideBossAutos</b></p>
+    </div>
+</div>
+
+<script>
+    // Auto-print when loaded
+    window.onload = function() {{
+        setTimeout(function() {{
+            window.print();
+        }}, 500); 
+    }}
+</script>
+"""
 
         # 3. RENDER EVERYTHING AT ONCE
         st.markdown(html_content, unsafe_allow_html=True)
@@ -612,6 +613,7 @@ if "print_receipt" in query_params:
     except Exception as e:
         st.error(f"Receipt Error: {e}")
         st.stop()
+
 
 # --- SESSION STATE INITIALIZATION ---
 if 'logged_in' not in st.session_state: 
