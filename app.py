@@ -1248,7 +1248,7 @@ elif choice == "LIVE U-FLOW":
     # --- AUTO-CLEANUP: Remove cars that have been READY for > 10 mins ---
     try:
         with conn.session as s:
-            s.execute(text("DELETE FROM live_bays WHERE status='READY' AND released_at < (now() - interval '10 minutes')"))
+            s.execute(text("UPDATE live_bays SET status='READY', released_at=NOW() WHERE plate=:p"), {"p": row['plate']})
             s.commit()
     except Exception as e:
         pass # Gracefully handle if released_at column missing initially
