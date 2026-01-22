@@ -1247,11 +1247,14 @@ elif choice == "LIVE U-FLOW":
 
     # --- AUTO-CLEANUP: Remove cars that have been READY for > 10 mins ---
     try:
+        from datetime import timedelta
+        cleanup_cutoff = datetime.now() - timedelta(minutes=10)
         with conn.session as s:
-            s.execute(text("UPDATE live_bays SET status='READY', released_at=NOW() WHERE plate=:p"), {"p": row['plate']})
+            # FIXED: Used DELETE for cleanup and Python datetime for reliability
+            s.execute(text("DELETE FROM live_bays WHERE status='READY' AND released_at < :cutoff"), {"cutoff": cleanup_cutoff})
             s.commit()
     except Exception as e:
-        pass # Gracefully handle if released_at column missing initially
+        pass # Gracefully handle if released_at column missing or other DB errors
 
     view_mode = st.radio("VIEW MODE", ["Management controls", "External Flight Board"], horizontal=True)
     
@@ -1559,13 +1562,15 @@ elif choice == "LIVE U-FLOW":
                             st.session_state.wa_pending = {"url": format_whatsapp(c_phone, wa_msg), "plate": row['plate']}
 
                         # 3. Complete Release (UPDATE TO READY, DO NOT DELETE YET)
+                        # FIXED: Replaced datetime('now') with Python's datetime.now() for DB compatibility
                         with conn.session as s:
-                            s.execute(text("UPDATE live_bays SET status='READY', released_at=datetime('now') WHERE plate=:p"), {"p": row['plate']})
+                            s.execute(text("UPDATE live_bays SET status='READY', released_at=:r_time WHERE plate=:p"), {"p": row['plate'], "r_time": datetime.now()})
                             s.commit()
                             
                         add_event(f"{row['plate']} marked Ready.")
                         st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
+
 
 # ==============================================================================
 # 3. ONBOARD STAFF (MANAGER ONLY)
