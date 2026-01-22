@@ -1245,9 +1245,17 @@ elif choice == "LIVE U-FLOW":
     if 'wa_pending' not in st.session_state:
         st.session_state.wa_pending = None
 
+    # --- AUTO-CLEANUP: Remove cars that have been READY for > 10 mins ---
+    try:
+        with conn.session as s:
+            s.execute(text("DELETE FROM live_bays WHERE status='READY' AND released_at < datetime('now', '-10 minutes')"))
+            s.commit()
+    except Exception as e:
+        pass # Gracefully handle if released_at column missing initially
+
     view_mode = st.radio("VIEW MODE", ["Management controls", "External Flight Board"], horizontal=True)
     
-    # Fetch Live Data
+    # Fetch Live Data (Includes cars that are currently READY within the 10m window)
     live_cars = conn.query("SELECT * FROM live_bays", ttl=0)
     
     if view_mode == "External Flight Board":
@@ -1306,7 +1314,10 @@ elif choice == "LIVE U-FLOW":
                 .monitor-meta {{ text-align: right; }}
                 .monitor-staff {{ font-size: 20px; color: #888; text-transform: uppercase; }}
                 .monitor-svc {{ color: #00d4ff; font-style: italic; font-size: 22px; }}
+                
+                /* STATUS COLORS */
                 .status-waiting {{ color: #FF3B30 !important; }}
+                .status-ready {{ color: #28a745 !important; text-shadow: 0 0 10px #28a745; }}
             </style>
 
             <div class="monitor-container">
@@ -1320,13 +1331,23 @@ elif choice == "LIVE U-FLOW":
             scroll_data = pd.concat([live_cars, live_cars])
             
             for _, row in scroll_data.iterrows():
-                status_class = "status-waiting" if row['status'] == "WAITING" else ""
+                # Logic to determine CSS class based on status
+                if row['status'] == "WAITING":
+                    status_class = "status-waiting"
+                    display_status = "WAITING"
+                elif row['status'] == "READY":
+                    status_class = "status-ready"
+                    display_status = "✅ READY FOR PICKUP"
+                else:
+                    status_class = ""
+                    display_status = row['status']
+
                 monitor_html += f"""
                 <div class="monitor-row">
                     <div class="monitor-plate">{row['plate']}<br><span style="font-size:18px; color:#555;">{row['vehicle_type']}</span></div>
                     <div style="flex:1; padding-left:40px;"><div class="monitor-svc">SERVICE: {row['service_detail']}</div></div>
                     <div class="monitor-meta">
-                        <div class="monitor-status {status_class}">{row['status']}</div>
+                        <div class="monitor-status {status_class}">{display_status}</div>
                         <div class="monitor-staff">ASSIGNED: {row['staff']}</div>
                     </div>
                 </div>"""
@@ -1371,15 +1392,17 @@ elif choice == "LIVE U-FLOW":
                 st.rerun()
             st.divider()
 
-                # RENDER CAR LIST
-        if live_cars.empty:
+        # RENDER CAR LIST (Filter out 'READY' cars for management view)
+        active_view = live_cars[live_cars['status'] != 'READY']
+
+        if active_view.empty:
             st.info("No vehicles currently in the bays.")
             
         # Count active bays for limit logic
-        active_wet = len(live_cars[live_cars['status'] == 'WET BAY'])
-        active_dry = len(live_cars[live_cars['status'] == 'DRY BAY'])
+        active_wet = len(active_view[active_view['status'] == 'WET BAY'])
+        active_dry = len(active_view[active_view['status'] == 'DRY BAY'])
             
-        for idx, row in live_cars.iterrows():
+        for idx, row in active_view.iterrows():
             # Calculate time spent
             try:
                 entry_dt = datetime.strptime(row['entry_time'], "%Y-%m-%d %H:%M")
@@ -1535,17 +1558,14 @@ elif choice == "LIVE U-FLOW":
                             wa_msg = f"Hi {c_name}, your vehicle ({row['plate']}) is ready for pickup! Thank you for choosing RideBoss Autos."
                             st.session_state.wa_pending = {"url": format_whatsapp(c_phone, wa_msg), "plate": row['plate']}
 
-                        # 3. Complete Release
+                        # 3. Complete Release (UPDATE TO READY, DO NOT DELETE YET)
                         with conn.session as s:
-                            s.execute(text("DELETE FROM live_bays WHERE plate=:p"), {"p": row['plate']})
+                            s.execute(text("UPDATE live_bays SET status='READY', released_at=datetime('now') WHERE plate=:p"), {"p": row['plate']})
                             s.commit()
                             
-                        add_event(f"{row['plate']} Released.")
+                        add_event(f"{row['plate']} marked Ready.")
                         st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
-
-
-
 
 # ==============================================================================
 # 3. ONBOARD STAFF (MANAGER ONLY)
