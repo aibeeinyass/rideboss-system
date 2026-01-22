@@ -2048,6 +2048,7 @@ elif choice == "CRM & RETENTION":
     # Ensure necessary libraries are available for code generation
     import random
     import string
+    from datetime import datetime # Ensure datetime is available locally if not global
 
     # 1. Get System Rules (For VIP Logic)
     sett_df = conn.query("SELECT * FROM system_settings", ttl=0)
@@ -2143,14 +2144,12 @@ elif choice == "CRM & RETENTION":
                             <small style='color:{color}; font-weight:bold;'>{days_since} days since last visit ({status_text})</small>
                         </div>
                     """, unsafe_allow_html=True)
-            except Exception as e:
-                continue
 
+                # --- BUTTON LOGIC MOVED HERE (INSIDE TRY BLOCK) ---
                 with col2:
                     # --- DYNAMIC ACTION BUTTON ---
                     if is_vip_milestone:
                         # CHECK: Has a reward already been sent and is still active?
-                        # This prevents the button from showing if they already have a code for this milestone.
                         existing_promo = conn.query(
                             "SELECT code FROM promotions WHERE created_for_plate=:p AND status='ACTIVE'", 
                             params={"p": row['plate']}
@@ -2213,6 +2212,7 @@ elif choice == "CRM & RETENTION":
                                 </div>
                             </a>
                         """, unsafe_allow_html=True)
+
             except Exception as e:
                 # Optional: print(e) for debugging if needed, otherwise continue
                 continue
