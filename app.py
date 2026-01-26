@@ -838,6 +838,73 @@ st.markdown(f'<div class="notification-bar">SYSTEM LOG: {message_text}</div>', u
 if choice == "COMMAND CENTER":
     st.header("🏁 COMMAND CENTER")
     
+    
+    # ==========================================================================
+    # START: NEW REMOTE BOOKING MANAGER
+    # ==========================================================================
+    # This looks for cars inserted by the App with status 'APP_PENDING'
+    remote_reqs = conn.query("SELECT * FROM live_bays WHERE status = 'APP_PENDING'", ttl=0)
+
+    if not remote_reqs.empty:
+        st.markdown(f"""
+        <div style="background: #22c55e; padding: 10px; border-radius: 5px; margin-bottom: 15px; color: black; font-weight: bold; text-align: center;">
+            🔔 {len(remote_reqs)} NEW REMOTE APP BOOKING(S) REQUIRE ACTION
+        </div>
+        """, unsafe_allow_html=True)
+
+        for idx, row in remote_reqs.iterrows():
+            with st.expander(f"📲 PENDING: {row['plate']} ({row['vehicle_type']})", expanded=True):
+                c1, c2, c3 = st.columns([2, 1, 1])
+                with c1:
+                    st.write(f"**Service:** {row['service_detail']}")
+                    st.write(f"**Requested:** {row['entry_time']}")
+                
+                with c2:
+                    # Logic 1: Check if bays are free to assign immediately
+                    wet_staff = get_free_staff_by_dept("WET BAY")
+                    if wet_staff:
+                        assign_staff = st.selectbox("Assign Immediate Staff", wet_staff, key=f"remote_st_{row['plate']}")
+                        if st.button("✅ ACCEPT & START WASH", key=f"start_{row['plate']}", type="primary"):
+                            with conn.session as s:
+                                s.execute(text("""
+                                    UPDATE live_bays 
+                                    SET status='WET BAY', staff=:s, entry_time=:now 
+                                    WHERE plate=:p
+                                """), {"s": assign_staff, "now": datetime.now().strftime("%Y-%m-%d %H:%M"), "p": row['plate']})
+                                # Optional: Add notification
+                                s.execute(text("INSERT INTO notifications (message, timestamp) VALUES (:m, :t)"), 
+                                          {"m": f"📲 Remote Booking {row['plate']} Started by {st.session_state.user_name}", "t": datetime.now().strftime("%H:%M:%S")})
+                                s.commit()
+                            st.rerun()
+                    else:
+                        st.caption("🚫 No Staff Available for Immediate Start")
+
+                with c3:
+                    # Logic 2: Bays full? Move to Waiting List
+                    st.write("**Waitlist Options**")
+                    if st.button("⏳ MOVE TO QUEUE", key=f"queue_{row['plate']}"):
+                        with conn.session as s:
+                            s.execute(text("""
+                                UPDATE live_bays 
+                                SET status='WAITING', staff='Pending' 
+                                WHERE plate=:p
+                            """), {"p": row['plate']})
+                            s.commit()
+                        st.success("Moved to Waiting List")
+                        st.rerun()
+                    
+                    if st.button("❌ REJECT / NO SHOW", key=f"reject_{row['plate']}"):
+                        with conn.session as s:
+                            s.execute(text("DELETE FROM live_bays WHERE plate=:p"), {"p": row['plate']})
+                            s.commit()
+                        st.rerun()
+        st.markdown("---")
+    # ==========================================================================
+    # END: NEW REMOTE BOOKING MANAGER
+    # ==========================================================================
+    
+
+
     # --- NEW: FAST SCAN SECTION ---
     st.subheader("💳 QUICK SCAN / CARD SEARCH")
     scan_input = st.text_input("SCAN CARD OR TYPE SERIAL", placeholder="e.g., RB-1001", key="membership_scanner").strip()
