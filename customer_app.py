@@ -1,408 +1,358 @@
 import streamlit as st
 import pandas as pd
-from sqlalchemy import text
 from datetime import datetime
 import time
+from sqlalchemy import text
 
 # ==============================================================================
-# 1. APP CONFIGURATION & STYLING
+# RIDEBOSS CLIENT - CUSTOMER PORTAL
+# Connects to the same PostgreSQL Backend as the Admin App
 # ==============================================================================
+
 st.set_page_config(
-    page_title="RideBoss Concierge",
-    page_icon="🏎️",
-    layout="centered", # vital for mobile feel
+    page_title="My RideBoss", 
+    page_icon="🚘",
+    layout="centered", # Mobile-first feel
     initial_sidebar_state="collapsed"
 )
 
-# --- DATABASE CONNECTION ---
-# Uses the same connection string as your backend
+# --- DATABASE CONNECTION (Shared with Admin App) ---
 try:
     conn = st.connection("postgresql", type="sql")
 except Exception as e:
-    st.error("System Offline. Please try again later.")
+    st.error("⚠️ Server Connection Error. Please try again later.")
     st.stop()
 
-# --- CSS: THE PREMIUM MOBILE THEME ---
+# --- HIGH-END CSS STYLING ---
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&display=swap');
     
-    /* GLOBAL */
-    .stApp {
-        background-color: #05070a;
+    .stApp { 
+        background-color: #000000;
         font-family: 'Outfit', sans-serif;
-        color: #e2e8f0;
+        color: white;
     }
     
-    /* HIDE STREAMLIT CHROME */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-
-    /* STATUS TRACKER CARD */
-    .tracker-container {
-        background: linear-gradient(145deg, #0f1219, #05070a);
-        border: 1px solid #1f2937;
+    /* GLASSMORPHISM CARD STYLES */
+    .glass-card {
+        background: rgba(20, 20, 20, 0.6);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 15px;
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+    }
+    
+    /* MEMBERSHIP CARD - GOLD/PLATINUM LOOK */
+    .member-card {
+        background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
         border-radius: 20px;
         padding: 25px;
-        text-align: center;
-        box-shadow: 0 10px 30px rgba(0, 212, 255, 0.1);
-        margin-bottom: 20px;
         position: relative;
         overflow: hidden;
-    }
-    
-    .tracker-pulse {
-        position: absolute;
-        top: 0; left: 0; width: 100%; height: 5px;
-        background: linear-gradient(90deg, #05070a, #00d4ff, #05070a);
-        animation: loading 2s infinite;
-    }
-    
-    @keyframes loading {
-        0% { transform: translateX(-100%); }
-        100% { transform: translateX(100%); }
-    }
-
-    .status-big {
-        font-size: 2.2rem;
-        font-weight: 800;
-        color: #ffffff;
-        letter-spacing: -1px;
-        margin: 10px 0;
-    }
-    
-    .plate-badge {
-        background: #1e293b;
-        color: #94a3b8;
-        padding: 5px 12px;
-        border-radius: 8px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        letter-spacing: 1px;
-    }
-
-    /* UPSELL CARDS */
-    .upsell-card {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        border-radius: 12px;
-        padding: 15px;
-        margin-bottom: 10px;
+        border: 1px solid #444;
+        box-shadow: 0 10px 40px -10px rgba(0,0,0,0.8);
+        height: 220px;
         display: flex;
+        flex-direction: column;
         justify-content: space-between;
-        align-items: center;
-        transition: transform 0.2s;
-    }
-    .upsell-card:active {
-        transform: scale(0.98);
-        background: rgba(0, 212, 255, 0.05);
     }
     
-    /* INPUT FIELDS */
-    .stTextInput input {
-        background-color: #0f1219 !important;
-        border: 1px solid #334155 !important;
-        color: white !important;
+    .card-tier-Gold { background: linear-gradient(135deg, #FFD700 0%, #B8860B 100%); color: black; }
+    .card-tier-Platinum { background: linear-gradient(135deg, #E5E4E2 0%, #505050 100%); color: black; }
+    .card-tier-Silver { background: linear-gradient(135deg, #C0C0C0 0%, #708090 100%); color: white; }
+
+    .card-chip {
+        width: 50px; height: 35px;
+        background: linear-gradient(135deg, #d4af37 0%, #996515 100%);
+        border-radius: 5px;
+        margin-bottom: 20px;
+        border: 1px solid rgba(0,0,0,0.2);
+    }
+
+    /* NEON BUTTONS */
+    .stButton button {
+        background: #00d4ff !important;
+        color: black !important;
+        font-weight: 800 !important;
         border-radius: 12px !important;
-        height: 50px;
-        font-size: 1.2rem;
-        text-align: center;
-        letter-spacing: 2px;
+        border: none !important;
+        padding: 12px !important;
         text-transform: uppercase;
     }
     
-    /* BUTTONS */
-    div.stButton > button {
-        background: #00d4ff;
-        color: #000;
-        font-weight: 800;
-        border: none;
-        border-radius: 12px;
-        height: 50px;
-        width: 100%;
-        transition: all 0.3s ease;
-    }
-    div.stButton > button:hover {
-        box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
-    }
-    
-    /* TABS */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 10px;
-        background-color: transparent;
-    }
-    .stTabs [data-baseweb="tab"] {
-        height: 50px;
-        background-color: #0f1219;
-        border-radius: 10px;
-        color: #fff;
-        flex: 1; /* Equal width tabs */
-    }
-    .stTabs [aria-selected="true"] {
-        background-color: #1e293b;
-        border: 1px solid #00d4ff;
-    }
+    /* HIDE STREAMLIT BRANDING */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
     </style>
-    """, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
+
+# --- SESSION STATE MANAGEMENT ---
+if 'cust_phone' not in st.session_state: st.session_state.cust_phone = None
+if 'cust_name' not in st.session_state: st.session_state.cust_name = None
+if 'active_plate' not in st.session_state: st.session_state.active_plate = None
 
 # ==============================================================================
-# 2. SESSION & LOGIC HELPERS
+# 1. AUTHENTICATION (PHONE NUMBER LOGIN)
 # ==============================================================================
-
-if 'user_plate' not in st.session_state:
-    st.session_state.user_plate = None
-
-def login_user(plate):
-    """
-    Validates plate against the Customers table.
-    """
-    clean_plate = plate.upper().strip()
-    # Check if plate exists in customer history OR is currently in the bay
-    # We check 'live_bays' first as they might be a new walk-in not yet in 'customers'
-    # but usually your backend adds them to customers on entry.
+if not st.session_state.cust_phone:
+    st.markdown("<br><br><br>", unsafe_allow_html=True)
+    st.image("logo.png", width=200) # Ensure you have the logo file
+    st.title("Welcome Back.")
+    st.caption("Access your garage, bookings, and membership.")
     
-    query = "SELECT * FROM customers WHERE plate = :p"
-    df = conn.query(query, params={"p": clean_plate}, ttl=0)
+    with st.form("login_form"):
+        phone_input = st.text_input("Enter your Phone Number", placeholder="e.g. 08012345678")
+        submitted = st.form_submit_button("ENTER GARAGE", use_container_width=True)
+        
+        if submitted:
+            # CLEAN PHONE INPUT (Remove spaces, basic validation)
+            clean_phone = phone_input.replace(" ", "").strip()
+            
+            # DATABASE CALL: Check if this phone exists in customers table
+            # We use ILIKE for partial matching or exact matching logic
+            q = "SELECT * FROM customers WHERE phone LIKE :p"
+            df = conn.query(q, params={"p": f"%{clean_phone}%"}, ttl=0)
+            
+            if not df.empty:
+                st.session_state.cust_phone = df.iloc[0]['phone']
+                st.session_state.cust_name = df.iloc[0]['name']
+                # Default to the first car found
+                st.session_state.active_plate = df.iloc[0]['plate'] 
+                st.rerun()
+            else:
+                st.error("Number not found. Please register at the front desk first.")
     
-    if not df.empty:
-        st.session_state.user_plate = clean_plate
-        st.rerun()
-    else:
-        # Check if they are in live bay (new customer case)
-        live_df = conn.query("SELECT * FROM live_bays WHERE plate = :p", params={"p": clean_plate}, ttl=0)
-        if not live_df.empty:
-            st.session_state.user_plate = clean_plate
-            st.rerun()
-        else:
-            st.toast("🚫 Plate not found. Please check in at reception first.", icon="🚫")
-
-def logout():
-    st.session_state.user_plate = None
-    st.rerun()
-
-# ==============================================================================
-# 3. SCREEN 1: SMART LOGIN
-# ==============================================================================
-
-if not st.session_state.user_plate:
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        try:
-            st.image("logo.png", use_container_width=True) # Ensure this file exists
-        except:
-            st.markdown("<h1 style='text-align:center; color:#00d4ff;'>RIDEBOSS</h1>", unsafe_allow_html=True)
-
-    st.markdown("<div style='height: 50px;'></div>", unsafe_allow_html=True)
-    st.markdown("<h3 style='text-align:center; font-weight:300;'>TRACK YOUR SERVICE</h3>", unsafe_allow_html=True)
-    
-    plate_input = st.text_input("Enter Plate Number", placeholder="ABC-123", label_visibility="collapsed")
-    
-    if st.button("ACCESS MY VEHICLE"):
-        if len(plate_input) > 2:
-            login_user(plate_input)
-        else:
-            st.warning("Please enter a valid plate number.")
-    
-    st.markdown("""
-        <div style='text-align:center; margin-top:50px; color:#475569; font-size:0.8rem;'>
-            SECURE CLIENT PORTAL<br>Victoria Island, Lagos
-        </div>
-    """, unsafe_allow_html=True)
+    st.info("ℹ️ First time? Visit RideBoss Victoria Island to create your profile.")
     st.stop()
 
-
 # ==============================================================================
-# 4. SCREEN 2: THE DASHBOARD
+# 2. MAIN APP INTERFACE
 # ==============================================================================
 
-# --- HEADER ---
-c1, c2 = st.columns([3, 1])
-with c1:
-    st.markdown(f"<h2 style='margin:0;'>Hi, Client</h2>", unsafe_allow_html=True)
-    st.caption(f"Vehicle: {st.session_state.user_plate}")
-with c2:
-    if st.button("EXIT", key="logout_btn"):
-        logout()
-
-st.markdown("---")
-
-# --- MAIN TABS ---
-tab_live, tab_history, tab_rewards = st.tabs(["⚡ LIVE STATUS", "📜 HISTORY", "💎 VIP CLUB"])
-
-# --- TAB 1: LIVE TRACKER (THE CORE FEATURE) ---
-with tab_live:
-    # Query Live Status
-    live_data = conn.query("SELECT * FROM live_bays WHERE plate = :p", params={"p": st.session_state.user_plate}, ttl=0)
+# --- SIDEBAR: MULTI-CAR MANAGEMENT ---
+with st.sidebar:
+    st.header(f"Hey, {st.session_state.cust_name}")
+    st.write("My Garage")
     
-    if not live_data.empty:
-        row = live_data.iloc[0]
-        status = row['status'] # WAITING, WET BAY, DRY BAY, READY
-        staff = row['staff']
-        service = row['service_detail']
-        
-        # MAPPING STATUS TO VISUALS
-        progress = 0
-        status_msg = "Checking In..."
-        pulse_class = ""
-        
-        if status == "WAITING":
-            progress = 10
-            status_msg = "IN QUEUE"
-            color_code = "#f59e0b" # Orange
-        elif status == "WET BAY":
-            progress = 40
-            status_msg = "WASHING"
-            color_code = "#3b82f6" # Blue
-            pulse_class = "tracker-pulse"
-        elif "DRY" in status: # DRY BAY or DRY_WAITING
-            progress = 75
-            status_msg = "DETAILING"
-            color_code = "#a855f7" # Purple
-            pulse_class = "tracker-pulse"
-        elif status == "READY":
-            progress = 100
-            status_msg = "READY TO GO"
-            color_code = "#22c55e" # Green
-            
-        # 1. THE PIZZA TRACKER CARD
-        st.markdown(f"""
-            <div class="tracker-container">
-                <div class="{pulse_class}"></div>
-                <span class="plate-badge">{st.session_state.user_plate}</span>
-                <div class="status-big" style="color: {color_code}">{status_msg}</div>
-                <div style="color: #94a3b8; font-size: 0.9rem;">Current Stage: {status}</div>
-                <div style="margin-top: 15px; font-size: 0.8rem; color: #64748b;">
-                    Handling your vehicle: <strong style="color:white">{staff}</strong>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-        
-        st.progress(progress / 100)
-        
-        # 2. UPSELL / MODIFICATION ENGINE
-        if status != "READY":
-            st.markdown("### 🛠️ While you wait...")
-            st.caption("Request add-ons directly to the bay.")
-            
-            # Upsell Options
-            upsells = [
-                {"name": "Spray Wax Polish", "price": 3000, "icon": "✨"},
-                {"name": "Engine Steam Clean", "price": 5000, "icon": "💨"},
-                {"name": "Interior Fragrance", "price": 1000, "icon": "🌸"}
-            ]
-            
-            for item in upsells:
-                uc1, uc2 = st.columns([3, 1])
-                with uc1:
-                    st.markdown(f"**{item['icon']} {item['name']}**")
-                    st.caption(f"Add for ₦{item['price']:,}")
-                with uc2:
-                    # Unique key needed for buttons inside loop
-                    if st.button("ADD", key=f"add_{item['name']}"):
+    # FETCH ALL CARS LINKED TO THIS PHONE
+    my_cars = conn.query("SELECT plate, visits FROM customers WHERE phone = :p", params={"p": st.session_state.cust_phone}, ttl=0)
+    
+    # 1. Car Switcher
+    car_list = my_cars['plate'].tolist()
+    selected_plate = st.radio("Active Vehicle", car_list, index=car_list.index(st.session_state.active_plate) if st.session_state.active_plate in car_list else 0)
+    st.session_state.active_plate = selected_plate
+    
+    st.divider()
+    
+    # 2. Add New Car Logic
+    with st.expander("➕ Add Another Vehicle"):
+        with st.form("add_car"):
+            new_plate = st.text_input("Plate Number").upper()
+            if st.form_submit_button("Link Vehicle"):
+                if new_plate:
+                    try:
                         with conn.session as s:
+                            # Insert new row with SAME Name/Phone but NEW Plate
                             s.execute(text("""
-                                INSERT INTO service_requests (plate, request_item, status) 
-                                VALUES (:p, :i, 'PENDING')
-                            """), {"p": st.session_state.user_plate, "i": item['name']})
+                                INSERT INTO customers (plate, name, phone, visits, last_visit) 
+                                VALUES (:pl, :nm, :ph, 0, :lv)
+                                ON CONFLICT (plate) DO UPDATE SET phone=:ph
+                            """), {
+                                "pl": new_plate, 
+                                "nm": st.session_state.cust_name, 
+                                "ph": st.session_state.cust_phone,
+                                "lv": datetime.now().strftime("%Y-%m-%d")
+                            })
                             s.commit()
-                        st.toast(f"Request sent for {item['name']}!", icon="✅")
+                        st.success("Vehicle Added!")
+                        st.rerun()
+                    except Exception as e:
+                        st.error("Could not add vehicle.")
+
+    if st.button("Logout"):
+        st.session_state.cust_phone = None
+        st.rerun()
+
+# --- TOP NAV ---
+# Simple Clean Header
+c1, c2 = st.columns([3, 1])
+c1.markdown(f"### 🚘 {st.session_state.active_plate}")
+c1.caption("Start your engine.")
+if c2.button("↻"): st.rerun()
+
+# --- TABBED NAVIGATION ---
+tab_home, tab_book, tab_mem, tab_hist = st.tabs(["HOME", "REQUEST WASH", "MEMBERSHIP", "HISTORY"])
+
+# ------------------------------------------------------------------------------
+# TAB 1: HOME (LIVE STATUS)
+# ------------------------------------------------------------------------------
+with tab_home:
+    # DATABASE CALL: Check live_bays for the active plate
+    live_status = conn.query("SELECT * FROM live_bays WHERE plate = :p", params={"p": st.session_state.active_plate}, ttl=0)
+    
+    if not live_status.empty:
+        status_row = live_status.iloc[0]
+        stat_msg = status_row['status']
+        staff_msg = status_row['staff']
         
-        # 3. FEEDBACK LOOP (Only if READY)
-        else:
-            st.success("Your vehicle is ready for pickup!")
-            st.markdown("### ⭐ Rate this Wash")
-            
-            with st.form("rating_form"):
-                stars = st.slider("Rating", 1, 5, 5)
-                comment = st.text_area("Any comments?", placeholder="Great shine!")
-                
-                if st.form_submit_button("SUBMIT REVIEW"):
-                    with conn.session as s:
-                        s.execute(text("""
-                            INSERT INTO reviews (plate, rating, comment) 
-                            VALUES (:p, :r, :c)
-                        """), {"p": st.session_state.user_plate, "r": stars, "c": comment})
-                        s.commit()
-                    st.toast("Thank you for your feedback!", icon="❤️")
-
-    else:
-        st.info("No active service session found.")
-        st.markdown("""
-            <div style="text-align:center; padding: 40px; color: #64748b;">
-                <h1>💤</h1>
-                <p>Your vehicle is not currently in the shop.</p>
-            </div>
-        """, unsafe_allow_html=True)
-
-# --- TAB 2: DIGITAL HISTORY ---
-with tab_history:
-    st.markdown("### 🗓️ Service Log")
-    
-    # Query History
-    hist_query = """
-    SELECT timestamp, services, total, staff 
-    FROM sales 
-    WHERE plate = :p 
-    ORDER BY id DESC
-    """
-    history_df = conn.query(hist_query, params={"p": st.session_state.user_plate}, ttl=0)
-    
-    if not history_df.empty:
-        total_spend = history_df['total'].sum()
-        st.metric("Total Lifetime Spend", f"₦{total_spend:,.0f}")
-        
-        for idx, row in history_df.iterrows():
-            with st.expander(f"{row['timestamp']} - ₦{row['total']:,}"):
-                st.write(f"**Services:** {row['services']}")
-                st.write(f"**Detailer:** {row['staff']}")
-                st.caption("Receipt ID: Verified")
-    else:
-        st.write("No history found.")
-
-# --- TAB 3: LOYALTY & VIP ---
-with tab_rewards:
-    st.markdown("### 💎 Loyalty Status")
-    
-    # Check Visits or Membership
-    mem_df = conn.query("SELECT * FROM memberships WHERE plate = :p", params={"p": st.session_state.user_plate}, ttl=0)
-    cust_df = conn.query("SELECT visits FROM customers WHERE plate = :p", params={"p": st.session_state.user_plate}, ttl=0)
-    
-    # 1. Gold Card Balance
-    if not mem_df.empty:
-        m_row = mem_df.iloc[0]
-        st.markdown(f"""
-            <div style="background: linear-gradient(135deg, #FFD700 0%, #B8860B 100%); 
-                        color: black; padding: 20px; border-radius: 15px; margin-bottom: 20px;">
-                <h3 style="margin:0;">{m_row['card_type']} MEMBER</h3>
-                <h1 style="font-size: 3.5rem; margin: 0; font-weight: 900;">{m_row['balance_washes']}</h1>
-                <p>WASHES REMAINING</p>
-                <small>{m_row['plate']}</small>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    # 2. Visit Counter
-    visits = cust_df.iloc[0]['visits'] if not cust_df.empty else 0
-    next_milestone = ((visits // 10) + 1) * 10
-    washes_left = next_milestone - visits
-    
-    st.write(f"**Visit Count:** {visits}")
-    st.progress(visits % 10 / 10)
-    st.caption(f"{washes_left} more visits until your next VIP Reward!")
-
-    # 3. Active Promo Codes
-    promos = conn.query("SELECT code, discount_pc FROM promotions WHERE created_for_plate=:p AND status='ACTIVE'", 
-                       params={"p": st.session_state.user_plate}, ttl=0)
-    
-    if not promos.empty:
-        st.markdown("### 🎁 Active Rewards")
-        for _, p_row in promos.iterrows():
-            st.markdown(f"""
-                <div style="border: 1px dashed #00d4ff; padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 10px;">
-                    <div style="color: #00d4ff; font-weight: bold; font-size: 1.2rem;">{p_row['discount_pc']}% OFF</div>
-                    <div style="font-family: monospace; font-size: 1.5rem; background: #1e293b; display: inline-block; padding: 5px 15px; border-radius: 5px; margin-top: 5px;">
-                        {p_row['code']}
-                    </div>
-                    <p style="margin: 5px 0 0 0; font-size: 0.8rem; color: #64748b;">Show this to cashier</p>
+        # DYNAMIC VISUALS BASED ON STATUS
+        if stat_msg == "READY":
+            st.success("✅ YOUR VEHICLE IS READY!")
+            st.markdown("""
+                <div class='glass-card' style='border-left: 5px solid #2ecc71;'>
+                    <h3>Ready for Pickup</h3>
+                    <p>Your vehicle has been detailed and is waiting at the exit bay.</p>
                 </div>
             """, unsafe_allow_html=True)
+        else:
+            # Active Washing Animation Placeholder
+            st.info(f"💦 CURRENTLY IN: {stat_msg}")
+            percent = 10
+            if stat_msg == "WET BAY": percent = 40
+            elif stat_msg == "DRY BAY": percent = 80
+            
+            st.progress(percent, text=f"Work in progress by {staff_msg}")
+            st.markdown(f"**Service:** {status_row['service_detail']}")
+            
+    else:
+        st.markdown("""
+            <div class='glass-card'>
+                <h3 style='margin:0;'>Vehicle is Idle</h3>
+                <p style='color:#888;'>Not currently in the shop.</p>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        # Marketing Banner
+        st.markdown("#### 🎁 Offers for you")
+        promos = conn.query("SELECT * FROM promotions WHERE created_for_plate = :p AND status='ACTIVE'", params={"p": st.session_state.active_plate}, ttl=0)
+        if not promos.empty:
+            code = promos.iloc[0]['code']
+            disc = promos.iloc[0]['discount_pc']
+            st.markdown(f"""
+                <div style="background: linear-gradient(45deg, #FFD700, #FDB931); color:black; padding:15px; border-radius:10px;">
+                    <strong>👑 VIP REWARD AVAILABLE!</strong><br>
+                    Use code <h1>{code}</h1> for {disc}% OFF your next wash.
+                </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.caption("No active rewards. Visit us to earn points!")
+
+# ------------------------------------------------------------------------------
+# TAB 2: REQUEST WASH (BOOKING)
+# ------------------------------------------------------------------------------
+with tab_book:
+    st.subheader("Book a Service")
+    
+    # 1. Fetch Prices from DB
+    prices_df = conn.query("SELECT service, price, vehicle_type FROM wash_prices", ttl=0)
+    
+    # 2. Select Vehicle Type (to filter prices)
+    v_type = st.selectbox("Vehicle Size", ["Sedan", "SUV", "Truck", "Crossover", "Bike"])
+    
+    # 3. Filter Services
+    available_svcs = prices_df[prices_df['vehicle_type'] == v_type]
+    
+    if available_svcs.empty:
+        st.warning("Please contact support for pricing.")
+    else:
+        # Create a dictionary for the dropdown
+        svc_dict = {f"{row['service']} (₦{row['price']:,.0f})": row['service'] for i, row in available_svcs.iterrows()}
+        selected_svc_label = st.selectbox("Choose Service", list(svc_dict.keys()))
+        selected_svc_name = svc_dict[selected_svc_label]
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        if st.button("📅 NOTIFY TEAM I'M COMING", use_container_width=True):
+            # Write to NOTIFICATIONS table so Admin sees it in "Command Center"
+            msg = f"🔔 BOOKING REQUEST: {st.session_state.active_plate} is requesting {selected_svc_name} ({v_type})."
+            ts = datetime.now().strftime("%H:%M:%S")
+            
+            with conn.session as s:
+                s.execute(text("INSERT INTO notifications (message, timestamp) VALUES (:m, :t)"), {"m": msg, "t": ts})
+                s.commit()
+            
+            st.success("Request Sent! We'll be ready for you.")
+            st.balloons()
+
+# ------------------------------------------------------------------------------
+# TAB 3: MEMBERSHIP (THE CARD)
+# ------------------------------------------------------------------------------
+with tab_mem:
+    st.subheader("Membership Card")
+    
+    # DATABASE CALL: Fetch membership info
+    mem_data = conn.query("SELECT * FROM memberships WHERE plate = :p", params={"p": st.session_state.active_plate}, ttl=0)
+    
+    if mem_data.empty:
+        st.markdown("""
+            <div style='text-align:center; padding:40px; border:1px dashed #444; border-radius:15px;'>
+                <h3>No Membership Found</h3>
+                <p>Buy a Silver, Gold, or Platinum card at the counter to save money on washes!</p>
+            </div>
+        """, unsafe_allow_html=True)
+    else:
+        row = mem_data.iloc[0]
+        card_type = row.get('card_type', 'Silver') # Default to silver if null
+        serial = row.get('card_serial', '0000')
+        bal = row['balance_washes']
+        
+        # Clean up card type string for CSS class (e.g. "Gold (10 Washes)" -> "Gold")
+        css_class = "Silver"
+        if "Gold" in card_type: css_class = "Gold"
+        elif "Platinum" in card_type: css_class = "Platinum"
+        
+        # RENDER THE CARD
+        st.markdown(f"""
+            <div class="member-card card-tier-{css_class}">
+                <div style="display:flex; justify-content:space-between; align-items:start;">
+                    <div class="card-chip"></div>
+                    <div style="text-align:right; font-weight:900; opacity:0.7;">RIDEBOSS<br>PREMIUM</div>
+                </div>
+                
+                <div style="text-align:center; font-family:monospace; font-size: 24px; letter-spacing: 4px; text-shadow: 1px 1px 2px rgba(0,0,0,0.3);">
+                    •••• •••• •••• {serial[-4:] if len(serial) > 4 else serial}
+                </div>
+                
+                <div style="display:flex; justify-content:space-between; align-items:end; font-size:12px;">
+                    <div>
+                        <div style="opacity:0.7; font-size:10px;">HOLDER NAME</div>
+                        <div style="font-size:14px; font-weight:bold;">{st.session_state.cust_name.upper()}</div>
+                    </div>
+                    <div>
+                         <div style="opacity:0.7; font-size:10px;">BALANCE</div>
+                        <div style="font-size:18px; font-weight:900;">{bal} WASHES</div>
+                    </div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        if bal < 2:
+            st.error(f"⚠️ Low Balance ({bal}). Please top up soon.")
+
+# ------------------------------------------------------------------------------
+# TAB 4: HISTORY
+# ------------------------------------------------------------------------------
+with tab_hist:
+    st.subheader("Service History")
+    
+    hist_df = conn.query("""
+        SELECT timestamp, services, total, staff 
+        FROM sales 
+        WHERE plate = :p 
+        ORDER BY id DESC LIMIT 10
+    """, params={"p": st.session_state.active_plate}, ttl=0)
+    
+    if hist_df.empty:
+        st.info("No history yet.")
+    else:
+        for i, row in hist_df.iterrows():
+            with st.container():
+                c1, c2 = st.columns([3, 1])
+                c1.write(f"**{row['services']}**")
+                c1.caption(f"📅 {row['timestamp']} | 👨‍🔧 {row['staff']}")
+                c2.write(f"**₦{row['total']:,.0f}**")
+                st.divider()
+
